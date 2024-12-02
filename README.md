@@ -72,8 +72,6 @@ Finally, there is a method to save the image to disk:
 
 - `save(path: str | Path)`: Save the image to disk
 
-````python
-
 ## Usage Example 1
 
 Blending two images using PixelCache:
