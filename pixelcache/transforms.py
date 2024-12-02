@@ -396,9 +396,9 @@ def mask2points(
     rng: np.random.Generator | None = None,
     output: Literal["xy", "yx"] = "xy",
 ) -> list[tuple[int, int]] | list[tuple[float, float]]:
-    """Convert a hashable image mask into a list of points.
+    """Convert a numpy image mask into a list of points.
 
-    This function takes a hashable image mask and converts it into a list of
+    This function takes a numpy image mask and converts it into a list of
         points. The number of points to be generated can be specified.
 
     Arguments:
@@ -455,9 +455,9 @@ def mask2bbox(
     area_threshold: float = 0.0,
     **kwargs: Any,
 ) -> list[tuple[int, int, int, int]] | list[tuple[float, float, float, float]]:
-    """Convert a hashable image mask into bounding boxes.
+    """Convert a numpy image mask into bounding boxes.
 
-    This function takes a hashable image mask and converts it into bounding
+    This function takes a numpy image mask and converts it into bounding
         boxes. It also allows for various image processing operations such
         as opening, closing, and merging masks.
 
@@ -662,13 +662,13 @@ def mask2squaremask(
         mask.
 
     Arguments:
-        mask (HashableImage): The original mask image.
+        mask (np.ndarray): The original mask image.
         margin (float): The margin to be added around the bounding box of
             the mask.
         **kwargs: Additional keyword arguments.
 
     Returns:
-        HashableImage: A square mask image with the specified margin added
+        np.ndarray: A square mask image with the specified margin added
             around the bounding box of the original mask.
 
     Example:
@@ -697,13 +697,13 @@ def resize_squaremask(
         converts it into a square mask with a specified background value.
 
     Arguments:
-        mask (HashableImage): The input image mask to be resized.
+        mask (np.ndarray): The input image mask to be resized.
         size (ImageSize): The desired size of the square mask.
         **kwargs (Any): Additional keyword arguments for the mask2squaremask
             function.
 
     Returns:
-        HashableImage: The resized square mask.
+        np.ndarray: The resized square mask.
 
     Example:
         >>> resize_square_mask(mask, size, background_value=0)
@@ -747,7 +747,7 @@ def resize_image(
         modulo (int): The value to round the dimensions to after resizing.
 
     Returns:
-        HashableImage: The resized image as a HashableImage object.
+        Tensor: The resized image as a tensor object.
 
     Example:
         >>> resize_image(input_image, 500, "bilinear", "min", 2)
@@ -802,8 +802,8 @@ def crop_from_mask(
     of the image based on the bounding box defined by the mask.
 
     Arguments:
-        image (HashableImage): The original image to be cropped.
-        mask (HashableImage): The mask used to define the bounding box for
+        image (np.ndarray): The original image to be cropped.
+        mask (np.ndarray): The mask used to define the bounding box for
             cropping.
         margin (float | None): The margin around the mask bounding box.
             Defaults to 0.0.
@@ -811,7 +811,7 @@ def crop_from_mask(
             function.
 
     Returns:
-        HashableImage: The cropped version of the original image based on
+        np.ndarray: The cropped version of the original image based on
             the bounding box defined by the mask.
 
     Example:
@@ -842,14 +842,14 @@ def crop_from_bbox(
         coordinates.
 
     Arguments:
-        image (HashableImage): The input image to be cropped.
+        image (np.ndarray): The input image to be cropped.
         bboxes (List[Tuple[Union[int, float]]]): A list of tuples containing
             the bounding box coordinates. Each tuple should have either four
             integers or four floats representing (xmin, ymin, xmax, ymax)
             coordinates of the bounding box.
 
     Returns:
-        HashableImage: A new HashableImage object representing the cropped
+        np.ndarray: A new np.ndarray object representing the cropped
             image based on the provided bounding box coordinates.
 
     Example:
@@ -896,13 +896,13 @@ def compress_image(
 ) -> str:
     """Compress an image to a JPEG file with a specified quality level.
 
-    This function takes in an image in hashable format and compresses it to
+    This function takes in an image in pillow format and compresses it to
         a JPEG file with a specified quality level.
     It saves the compressed image in a temporary directory and returns the
         path to the compressed JPEG file.
 
     Arguments:
-        image (HashableImage): The input image to be compressed.
+        image (Image.Image): The input image to be compressed.
         temp_dir (Union[str, Path, None]): Optional temporary directory to
             save the compressed image. Defaults to None.
         jpeg_quality (int): Quality level for JPEG compression.
@@ -954,7 +954,7 @@ def uncrop_from_bbox(
             image to fit the bounding boxes. Defaults to False.
 
     Returns:
-        HashableImage: The uncropped image as a HashableImage object.
+        np.ndarray: The uncropped image as a np.ndarray object.
 
     Example:
         >>> uncrop_image(base_image, image, bboxes, resize=True)
@@ -1155,8 +1155,8 @@ def mask_blend(
     """Blend an image with a mask based on a given alpha value.
 
     Arguments:
-        image (HashableImage): The input image to be blended with the mask.
-        mask (HashableImage): The mask to be applied to the image.
+        image (np.ndarray): The input image to be blended with the mask.
+        mask (np.ndarray): The mask to be applied to the image.
         alpha (float): The blending factor, determining the degree of
             transparency for the mask.
         with_bbox (bool, optional): Flag to include bounding boxes in the
@@ -1165,7 +1165,7 @@ def mask_blend(
             output. Defaults to True.
 
     Returns:
-        HashableImage: The blended image resulting from the application of
+        np.ndarray: The blended image resulting from the application of
             the mask on the input image.
 
     Example:

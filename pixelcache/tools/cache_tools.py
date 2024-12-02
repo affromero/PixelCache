@@ -1,5 +1,7 @@
 import functools
 import os
+import random
+import string
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -189,3 +191,28 @@ def sha256sum(filename: str) -> str:
     from sha256sum import sha256sum as _sha256sum
 
     return _sha256sum(filename)[:8]
+
+
+@beartype
+def pseudo_hash(idx: int, length: int = 6) -> str:
+    """Generate a pseudo-random hash based on the given index and length.
+
+    Arguments:
+        idx (int): The index used to seed the random number generator.
+        length (int, optional): The length of the hash to be generated.
+            Defaults to 6.
+
+    Returns:
+        str: A string representing the pseudo-random hash generated based on
+            the given index and length.
+
+    Example:
+        >>> generate_hash(10, 6)
+
+    Note:
+        The hash generated is pseudo-random, meaning it will generate the
+            same result if the same index and length are provided.
+
+    """
+    random.seed(idx)
+    return "".join(random.choice(string.ascii_letters) for _ in range(length))  # noqa: S311

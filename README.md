@@ -34,6 +34,46 @@ Or from source:
 poetry add git+ssh://git@github.com:affromero/pixelcache.git
 ```
 
+## Basic Usage
+
+HashableImage receives as input several types of inputs, such as URLs, paths, or Pillow images, Numpy arrays, or PyTorch tensors in the following form or shape:
+
+### Valdid inputs:
+
+- Paths: `str` | `Path`
+- Pillow: `Image.Image`
+- Numpy Arrays: `UInt8[np.ndarray, "h w 3"]` | `UInt8[np.ndarray, "h w"]` | `Bool[np.ndarray, "h w"]`
+- Torch Tensors: `Float[torch.Tensor, "1 c h w"]` | `Bool[torch.Tensor, "1 1 h w"]`
+
+Example:
+
+```python
+from pixelcache import HashableImage
+import torch
+image = HashableImage(torch.rand(1, 3, 256, 256).float())
+image_pil = image.pil()
+image_numpy_bool = image.to_binary(0.5).numpy()
+```
+
+### Basic Transformations:
+
+At all times, it is possible to transform between them using the following methods:
+
+- `pil()`: Returns a Pillow Image object
+- `numpy()`: Returns a Numpy Array object
+- `tensor()`: Returns a PyTorch Tensor object
+
+Additionally, there is a method to convert the image to 3 channels RGB or binary:
+
+- `to_rgb()`: Convert to RGB, which returns another HashableImage
+- `to_binary(threshold: float)`: Convert to Boolean, which returns another HashableImage
+
+Finally, there is a method to save the image to disk:
+
+- `save(path: str | Path)`: Save the image to disk
+
+````python
+
 ## Usage Example 1
 
 Blending two images using PixelCache:
@@ -79,7 +119,7 @@ HashableImage.make_image_grid(
 ).save(output)
 logger.success(f"Output saved to: {output}")
 
-```
+````
 
 ![Output](pixelcache/assets/pixel_cache_demo_blend.jpg)
 

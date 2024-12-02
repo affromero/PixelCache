@@ -249,6 +249,29 @@ class HashableImage:
         """
         save_image(self.__image, path=str(path), normalize=False)
 
+    def show(self) -> None:
+        """Display the image represented by the HashableImage object.
+
+        This method displays the image data stored in the HashableImage
+            object.
+
+        Arguments:
+            self (HashableImage): The HashableImage object to be displayed.
+
+        Returns:
+            None: This method doesn't return any value. It displays the image
+                data.
+
+        Example:
+            >>> image_object.display_image()
+
+        Note:
+            The method uses the default image viewer on your system to
+                display the image.
+
+        """
+        self.pil().show()
+
     def downsample(self, factor: int) -> "HashableImage":
         """Downsample the given image by a specified factor.
 
