@@ -117,7 +117,7 @@ HashableImage.make_image_grid(
 ).save(output)
 logger.success(f"Output saved to: {output}")
 
-````
+```
 
 ![Output](pixelcache/assets/pixel_cache_demo_blend.jpg)
 

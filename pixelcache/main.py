@@ -8,7 +8,6 @@ from typing import (
     Any,
     Literal,
     SupportsIndex,
-    TypeAlias,
     TypeVar,
     cast,
     overload,
@@ -18,13 +17,20 @@ import cv2
 import numpy as np
 import torch
 from beartype import beartype
-from jaxtyping import Bool, Float, UInt8
+from jaxtyping import Bool, Float, Float32, UInt8
 from PIL import Image, ImageOps
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
+from torchvision.transforms import functional as TF
 
-from pixelcache.tools.cache_tools import lru_cache
-from pixelcache.tools.text_tools import create_text, draw_text
-from pixelcache.tools.utils import (
+from pixelcache.tools.bbox import crop_from_bbox, uncrop_from_bbox
+from pixelcache.tools.cache import lru_cache
+from pixelcache.tools.image import (
     ImageSize,
+    center_pad,
+    compress_image,
+    convert_to_space_color,
+    get_canny_edge,
     make_image_grid,
     numpy2tensor,
     pil2tensor,
@@ -32,30 +38,25 @@ from pixelcache.tools.utils import (
     save_image,
     tensor2numpy,
     tensor2pil,
+    to_binary,
 )
-from pixelcache.transforms import (
+from pixelcache.tools.mask import (
     bbox2mask,
-    center_pad,
-    convert_to_space_color,
-    crop_from_bbox,
     crop_from_mask,
+    differential_mask,
     group_regions_from_binary,
     mask2bbox,
+    mask2points,
     mask2squaremask,
     mask_blend,
     morphologyEx,
     polygon_to_mask,
-    to_binary,
-    uncrop_from_bbox,
 )
+from pixelcache.tools.text import create_text, draw_text
 
 _T = TypeVar("_T")
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
-
-_BBOX_TYPE: TypeAlias = (
-    tuple[int, int, int, int] | tuple[float, float, float, float]
-)
 
 MAX_IMG_CACHE = 5
 VALID_IMAGES = Literal["pil", "numpy", "torch"]
@@ -296,7 +297,10 @@ class HashableImage:
         )
         return self.resize(new_size)
 
-    def resize(self, size: ImageSize) -> "HashableImage":
+    def resize(
+        self,
+        size: ImageSize,
+    ) -> "HashableImage":
         """Resize the image to a specified size using different interpolation.
 
             methods based on the image mode.
@@ -343,6 +347,46 @@ class HashableImage:
                 )
             return HashableImage(__image)
         return self
+
+    def resize_min_size(
+        self, min_size: int, modulo: int = 16
+    ) -> "HashableImage":
+        """Resize the image to a specified minimum size.
+
+        This method resizes the image to the specified minimum size while
+            maintaining the aspect ratio.
+
+        Arguments:
+            self (HashableImage): The HashableImage object to be resized.
+            min_size (int): The minimum size to which the image should be
+                resized.
+            modulo (int, optional): The value to which the image dimensions
+                should be divisible. Defaults to 16.
+
+        Returns:
+            HashableImage: A new HashableImage object with the resized image
+                based on the minimum size.
+
+        Example:
+            >>> image = HashableImage(...)
+            >>> new_image = image.resize_min_size(200)
+
+        Note:
+            The aspect ratio of the image is maintained during resizing.
+
+        """
+        image_size = self.size()
+        height = image_size.height
+        width = image_size.width
+        if height < width:
+            new_h = min_size
+            new_w = int(width * (new_h / height))
+        else:
+            new_w = min_size
+            new_h = int(height * (new_w / width))
+        new_h = new_h - (new_h % modulo)
+        new_w = new_w - (new_w % modulo)
+        return self.resize(ImageSize(height=new_h, width=new_w))
 
     def is_empty(self) -> bool:
         """Check if the HashableImage object is empty.
@@ -845,6 +889,36 @@ class HashableImage:
             convert_to_space_color(
                 self.__image, color_space, getchannel=getchannel
             )
+        )
+
+    def compress_image(
+        self,
+        *,
+        temp_dir: str | Path | None = None,
+        jpeg_quality: int,
+    ) -> str:
+        """Compress the image stored in the HashableImage object.
+
+        This method compresses the image stored in the HashableImage object
+            using the JPEG format.
+
+        Arguments:
+            self (HashableImage): The HashableImage object containing the
+                image to be compressed.
+            temp_dir (str | Path, optional): The directory where the
+                compressed image will be stored. If None, a temporary
+                directory will be created. Defaults to None.
+            jpeg_quality (int): The quality of the compressed image. This
+                should be an integer between 0 and 100.
+
+        Returns:
+            str: The path to the compressed image file.
+
+        """
+        return compress_image(
+            self.to_rgb().pil(),
+            temp_dir=temp_dir,
+            jpeg_quality=jpeg_quality,
         )
 
     def __add__(self, other: object) -> "HashableImage":
@@ -1840,7 +1914,7 @@ class HashableImage:
     @lru_cache(maxsize=MAX_IMG_CACHE)
     def crop_from_bbox(
         self,
-        bboxes: "HashableList[_BBOX_TYPE]",
+        bboxes: "HashableList[BoundingBox]",
     ) -> "HashableImage":
         """Crop an image based on the provided bounding boxes.
 
@@ -1876,33 +1950,19 @@ class HashableImage:
 
         """
         # set bbox to the size of the image in case it is bigger, for both float and int
-        if isinstance(bboxes[0][0], float):
-            _bboxes = [
-                (
-                    max(0.0, bbox[0]),
-                    max(0.0, bbox[1]),
-                    min(0.999, bbox[2]),
-                    min(0.999, bbox[3]),
-                )
-                for bbox in bboxes.to_list()
-            ]
-        else:
-            _bboxes = [
-                (
-                    max(0, bbox[0]),
-                    max(0, bbox[1]),
-                    min(self.size().width - 1, bbox[2]),
-                    min(self.size().height - 1, bbox[3]),
-                )
-                for bbox in bboxes.to_list()
-            ]
-        return HashableImage(crop_from_bbox(self.to_rgb().numpy(), _bboxes))
+        is_normalized = True
+        _bboxes = [bbox.xyxyn for bbox in bboxes.to_list()]
+        return HashableImage(
+            crop_from_bbox(
+                self.to_rgb().numpy(), _bboxes, is_normalized=is_normalized
+            )
+        )
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     def uncrop_from_bbox(
         self,
         base: "HashableImage",
-        bboxes: "HashableList[_T]",
+        bboxes: "HashableList[BoundingBox]",
         *,
         resize: bool = False,
     ) -> "HashableImage":
@@ -1936,17 +1996,81 @@ class HashableImage:
                 performance optimization.
 
         """
+        is_normalized = False
+        _bboxes = [bbox.xyxy for bbox in bboxes.to_list()]
         return HashableImage(
             uncrop_from_bbox(
                 base.to_rgb().numpy(),
                 self.to_rgb().numpy(),
-                bboxes.to_list(),
+                _bboxes,
                 resize=resize,
+                is_normalized=is_normalized,
             )
         )
 
+    def mask2points(
+        self,
+        npoints: int = 100,
+        *,
+        normalize: bool = False,
+        rng: np.random.Generator | None = None,
+        output: Literal["xy", "yx"] = "xy",
+    ) -> "Points":
+        """Convert a mask image to a list of points.
+
+        This method converts a mask image to a list of points. The number of
+            points to generate is specified by the 'npoints' parameter.
+
+        Arguments:
+            self (HashableImage): The HashableImage object representing the
+                mask image.
+            npoints (int): The number of points to generate. Defaults to 100.
+            normalize (bool): A boolean flag indicating whether to normalize
+                the points. Defaults to False.
+            rng (np.random.Generator): A random number generator. Defaults to
+                None.
+            output (str): A string specifying the output format. It can be
+                'xy' or 'yx'. Defaults to 'xy'.
+
+        Returns:
+            List[Tuple[int, int]] | List[Tuple[float, float]]: A list of
+                points generated from the mask image.
+
+        Example:
+            >>> mask2points(self, npoints=100, normalize=False, rng=None,
+                output='xy')
+
+        Note:
+            The mask2points function generates points from the mask image.
+                The number of points to generate is specified by the
+                'npoints' parameter.
+
+        """
+        _points = mask2points(
+            self.to_binary().numpy(),
+            npoints=npoints,
+            normalize=normalize,
+            rng=rng,
+            output=output,
+        )
+        _points_np = np.asarray(_points).astype(np.float32)
+        return Points(
+            _points_np, is_normalized=normalize, image_size=self.size()
+        )
+
     @lru_cache(maxsize=MAX_IMG_CACHE)
-    def mask2bbox(self, **kwargs: Any) -> "HashableList[_BBOX_TYPE]":
+    def mask2bbox(
+        self,
+        margin: float,
+        *,
+        normalized: bool = False,
+        merge: bool = False,
+        verbose: bool = True,
+        closing: tuple[int, int] = (0, 0),
+        opening: tuple[int, int] = (0, 0),
+        area_threshold: float = 0.0,
+        number_of_objects: int = -1,
+    ) -> "HashableList[BoundingBox]":
         """Convert a mask image to a bounding box in HashableList format.
 
         This method takes an instance of HashableImage class and additional
@@ -1959,8 +2083,26 @@ class HashableImage:
         Arguments:
             self (HashableImage): An instance of the HashableImage class
                 representing the mask image.
-            **kwargs: Additional keyword arguments to pass to the mask2bbox
-                function.
+            margin (float): The margin to be added to the bounding box
+                coordinates.
+            normalized (bool, optional): A boolean flag indicating whether
+                the bounding box coordinates should be normalized. Defaults
+                to False.
+            merge (bool, optional): A boolean flag indicating whether to
+                merge bounding boxes. Defaults to False.
+            verbose (bool, optional): A boolean flag indicating whether to
+                display verbose output. Defaults to True.
+            closing (Tuple[int, int], optional): A tuple of two integers
+                representing the kernel size for morphological closing.
+                Defaults to (0, 0).
+            opening (Tuple[int, int], optional): A tuple of two integers
+                representing the kernel size for morphological opening.
+                Defaults to (0, 0).
+            area_threshold (float, optional): A float value representing the
+                area threshold for filtering bounding boxes. Defaults to 0.0.
+            number_of_objects (int, optional): An integer representing the
+                maximum number of objects to detect. Defaults to -1. If set
+                to -1, all objects will be detected.
 
         Returns:
             HashableList: A list containing the bounding box coordinates
@@ -1974,7 +2116,29 @@ class HashableImage:
                 kwargs.
 
         """
-        return HashableList(mask2bbox(self.to_binary().numpy(), **kwargs))
+        _bbox = mask2bbox(
+            self.to_binary().numpy(),
+            margin=margin,
+            normalized=normalized,
+            merge=merge,
+            verbose=verbose,
+            closing=closing,
+            opening=opening,
+            area_threshold=area_threshold,
+            number_of_objects=number_of_objects,
+        )
+        all_boxes: HashableList[BoundingBox] = HashableList([])
+        for box in _bbox:
+            all_boxes.append(
+                BoundingBox(
+                    xmin=box[0],
+                    ymin=box[1],
+                    xmax=box[2],
+                    ymax=box[3],
+                    image_size=self.size(),
+                )
+            )
+        return all_boxes
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     def mask2squaremask(self, **kwargs: Any) -> "HashableImage":
@@ -2157,7 +2321,7 @@ class HashableImage:
 
     def draw_polygon(
         self,
-        points: list[tuple[int, int]],
+        points: "Points",
         alpha: float = 0.5,
         add_text: str = "",
     ) -> "HashableImage":
@@ -2189,15 +2353,15 @@ class HashableImage:
         """
         mask = HashableImage(
             polygon_to_mask(
-                points,
+                points.list_tuple_int(),
                 image_shape=(int(self.size().height), int(self.size().width)),
             ),
         )
         out = self.blend(mask, alpha, with_bbox=True)
         if add_text:
             # add text to the image in the upper left corner of the polygon
-            x_min = min([point[0] for point in points])
-            y_min = min([point[1] for point in points])
+            x_min = points.min_x()
+            y_min = points.min_y()
             out = out.draw_text(
                 add_text,
                 (x_min, y_min),
@@ -2208,7 +2372,7 @@ class HashableImage:
 
     def draw_bbox(
         self,
-        bbox: tuple[int, int, int, int],
+        bbox: "BoundingBox",
         alpha: float = 0.5,
         add_text: str = "",
         color: tuple[int, int, int] = (255, 255, 0),
@@ -2238,14 +2402,19 @@ class HashableImage:
                 within the dimensions of the input image.
 
         """
-        mask = bbox2mask([bbox], self.size())
+        if bbox.is_normalized():
+            msg = "The bounding box should be in absolute coordinates, not normalized."
+            raise ValueError(
+                msg,
+            )
+        mask = HashableImage(bbox2mask([bbox.xyxyn], self.size()))
         out = self.blend(mask, alpha, with_bbox=True, merge_bbox=True)
         if add_text:
             # add text to the image in the upper left corner of the bbox
-            x_min, y_min, _, _ = bbox
+            x_min, y_min, _, _ = bbox.xyxy
             out = out.draw_text(
                 add_text,
-                (x_min, y_min),
+                (int(x_min), int(y_min)),
                 font_size=max(self.size().min() * 0.01, 30.0),
                 color=color,
             )
@@ -2365,6 +2534,104 @@ class HashableImage:
         return HashableImage(
             center_pad(self.to_rgb().numpy(), image_size, fill)
         )
+
+    def get_canny_edge(
+        self, threshold: tuple[int, int] = (100, 200), *, to_gray: bool = False
+    ) -> "HashableImage":
+        """Get the Canny edge detection of the image.
+
+        This method in the HashableImage class is used to get the Canny edge
+            detection of the image.
+
+        Arguments:
+            threshold (Tuple[int, int]): A tuple representing the lower and
+                upper threshold values for the edge detection. Defaults to
+                (100, 200).
+            to_gray (bool): A boolean flag indicating whether to convert the
+                image to grayscale before applying edge detection. Defaults
+                to False.
+
+        Returns:
+            HashableImage: A new HashableImage object with the Canny edge
+                detection applied.
+
+        """
+        return HashableImage(
+            get_canny_edge(self.to_rgb().numpy(), threshold, to_gray)
+        )
+
+    def differential_mask(
+        self,
+        dilation: int,
+        force_steps: int | None = None,
+        scale_nonmask: float | None = None,
+        *,
+        invert: bool = False,
+    ) -> "HashableImage":
+        """Get the differential mask of the image.
+
+        This method in the HashableImage class is used to get the differential
+            mask of the image.
+
+        Arguments:
+            dilation (int): An integer representing the dilation value for
+                the differential mask.
+            force_steps (int, optional): An integer representing the number
+                of steps for the differential mask. Defaults to None.
+            scale_nonmask (float, optional): A float value representing the
+                scale for the non-masked regions. Defaults to None.
+            invert (bool, optional): A boolean flag indicating whether to
+                invert the mask. Defaults to False.
+
+        Returns:
+            HashableImage: A new HashableImage object with the differential
+                mask applied.
+
+        """
+        return HashableImage(
+            differential_mask(
+                self.to_binary().numpy(),
+                dilation,
+                force_steps=force_steps,
+                scale_nonmask=scale_nonmask,
+                invert=invert,
+            )
+        )
+
+    def group_regions_binary(
+        self,
+        *,
+        closing: tuple[int, int],
+        margin: float = 0.0,
+        area_threshold: float = 0.0,
+    ) -> "list[HashableImage]":
+        """Group regions in a binary image.
+
+        This method groups regions in a binary image based on the specified
+            parameters.
+
+        Arguments:
+            closing (Tuple[int, int]): A tuple representing the kernel size for
+                the closing operation.
+            margin (float, optional): A float value representing the margin for
+                grouping regions. Defaults to 0.0.
+            area_threshold (float, optional): A float value representing the
+                area threshold for grouping regions. Defaults to 0.0.
+
+        Returns:
+            List[HashableImage]: A list of HashableImage objects representing
+                the grouped regions.
+
+        """
+        return [
+            HashableImage(region)
+            for region in group_regions_from_binary(
+                self.to_binary().numpy(),
+                closing=closing,
+                margin=margin,
+                area_threshold=area_threshold,
+            )
+        ]
 
     @staticmethod
     def make_image_grid(
@@ -3308,3 +3575,853 @@ class HashableList(MutableSequence[_T]):
 
         """
         return HashableList(self.__data * other)
+
+
+@dataclass(config=ConfigDict(extra="forbid"), kw_only=True)
+class ImageCrop:
+    left: float
+    """The left coordinate of the crop area."""
+    top: float
+    """The top coordinate of the crop area."""
+    right: float
+    """The right coordinate of the crop area."""
+    bottom: float
+    """The bottom coordinate of the crop area."""
+
+    def __post_init__(self) -> None:
+        """Validate and initialize the crop values of an image.
+
+        This method is part of the 'ImageCrop' class and is used to validate
+            the crop values.
+        It checks if the given crop values are valid and sets a flag based
+            on whether the values are normalized or not.
+
+        Arguments:
+            self (ImageCrop): An instance of the 'ImageCrop' class on which
+                the method is called.
+
+        Returns:
+            None: This method does not return anything.
+
+        Example:
+            >>> image_crop = ImageCrop()
+            >>> image_crop.__post_init__()
+
+        Note:
+            This method is typically called internally within the class and
+                not directly by the user.
+
+        """
+        if self.left >= self.right:
+            msg = f"left must be smaller than right. {self}"
+            raise ValueError(msg)
+        if self.top >= self.bottom:
+            msg = f"top must be smaller than bottom. {self}"
+            raise ValueError(msg)
+        if self.left < 0 or self.top < 0 or self.right < 0 or self.bottom < 0:
+            msg = f"crop values must be positive. {self}"
+            raise ValueError(msg)
+
+    def is_normalized(self) -> bool:
+        """Check if the crop values are normalized.
+
+        This method checks if the crop values are normalized, i.e., if they
+            are between 0 and 1.
+
+        Arguments:
+            self (ImageCrop): The ImageCrop object for which the
+                normalization is being checked.
+
+        Returns:
+            bool: True if the crop values are normalized, False otherwise.
+
+        Example:
+            >>> image_crop = ImageCrop(0.1, 0.2, 0.3, 0.4)
+            >>> image_crop.is_normalized()
+            True
+
+        """
+        return all(
+            0 <= coord <= 1
+            for coord in [self.left, self.top, self.right, self.bottom]
+        )
+
+    def __repr__(self) -> str:
+        """Generate a string representation of an ImageCrop object.
+
+        This method returns a string representation of an ImageCrop object,
+            showcasing the values of its left, top, right,
+        and bottom attributes. This representation can be useful for
+            debugging or logging purposes.
+
+        Arguments:
+            self (ImageCrop): The ImageCrop object for which the string
+                representation is being generated.
+
+        Returns:
+            str: A string representing the ImageCrop object with its left,
+                top, right, and bottom attributes displayed.
+
+        Example:
+            >>> print(ImageCrop(10, 20, 30, 40))
+            'ImageCrop(left=10, top=20, right=30, bottom=40)'
+
+        """
+        return f"ImageCrop(left={self.left}, top={self.top}, right={self.right}, bottom={self.bottom})"
+
+
+    def __hash__(self) -> int:
+        """Calculate the hash value of an ImageCrop object.
+
+        This method calculates the hash value of an ImageCrop object based
+            on its attributes.
+
+        Arguments:
+            self (ImageCrop): The ImageCrop object for which the hash value
+                is being calculated.
+
+        Returns:
+            int: The hash value of the ImageCrop object.
+
+        Example:
+            >>> image_crop = ImageCrop(10, 20, 30, 40)
+            >>> image_crop.__hash__()
+
+        """
+        return hash((self.left, self.top, self.right, self.bottom))
+    
+    def __eq__(self, other: object) -> bool:
+        """Compare two ImageCrop instances for equality.
+
+        This method compares two ImageCrop instances to determine if they
+            are equal.
+
+        Arguments:
+            self (ImageCrop): The ImageCrop object calling the method.
+            other (object): The other object to compare with.
+
+        Returns:
+            bool: True if the two ImageCrop instances are equal, False
+                otherwise.
+
+        Example:
+            >>> image_crop1 = ImageCrop(10, 20, 30, 40)
+            >>> image_crop2 = ImageCrop(10, 20, 30, 40)
+            >>> image_crop1.__eq__(image_crop2)
+
+        """
+        if not isinstance(other, ImageCrop):
+            return NotImplemented
+        return self.left == other.left and self.top == other.top and self.right == other.right and self.bottom == other.bottom
+
+
+    def __call__(
+        self,
+        image: HashableImage,
+        /,
+    ) -> HashableImage:
+        """Crops the given image based on specified coordinates.
+
+        Arguments:
+            image (HashableImage): The image to be cropped.
+            top_left (Tuple[int, int]): The coordinates of the top left
+                corner of the crop area.
+            bottom_right (Tuple[int, int]): The coordinates of the bottom
+                right corner of the crop area.
+
+        Returns:
+            HashableImage: The cropped image.
+
+        Example:
+            >>> crop_image(image, (0, 0), (100, 100))
+
+        Note:
+            The coordinates are represented as (x, y), where x is the
+                horizontal position and y is the vertical position.
+
+        """
+        image_pil = image.pil()
+        if self.is_normalized():
+            image_pil = TF.crop(
+                image,
+                self.top * image_pil.height,
+                self.left * image_pil.width,
+                self.bottom * image_pil.height,
+                self.right * image_pil.width,
+            )
+        else:
+            image_pil = TF.crop(
+                image_pil,
+                self.top,
+                self.left,
+                self.bottom,
+                self.right,
+            )
+        return HashableImage(image_pil)
+
+
+@dataclass(config=ConfigDict(extra="forbid"), frozen=True)
+class BoundingBox:
+    xmin: float
+    """The minimum x-coordinate of the bounding box."""
+    ymin: float
+    """The minimum y-coordinate of the bounding box."""
+    xmax: float
+    """The maximum x-coordinate of the bounding box."""
+    ymax: float
+    """The maximum y-coordinate of the bounding box."""
+    image_size: ImageSize | None = None
+    """The size of the image containing the bounding box."""
+
+    def __post_init__(self) -> None:
+        """Validate the bounding box coordinates."""
+        if self.xmin >= self.xmax:
+            msg = "xmin must be smaller than xmax."
+            raise ValueError(msg)
+        if self.ymin >= self.ymax:
+            msg = "ymin must be smaller than ymax."
+            raise ValueError(msg)
+        if self.xmin < 0 or self.ymin < 0 or self.xmax < 0 or self.ymax < 0:
+            msg = "Bounding box coordinates must be positive."
+            raise ValueError(msg)
+        if not self.is_normalized() and self.image_size is None:
+            msg = "Image size must be provided for non-normalized bounding boxes."
+            raise ValueError(msg)
+
+    def is_normalized(self) -> bool:
+        """Check if the bounding box coordinates are normalized.
+
+        This method checks if the bounding box coordinates are normalized
+            (i.e., if they are between 0 and 1).
+
+        Arguments:
+            self (BoundingBox): The BoundingBox object for which the
+                normalization is being checked.
+
+        Returns:
+            bool: True if the bounding box coordinates are normalized,
+                False otherwise.
+
+        Example:
+            >>> bbox = BoundingBox(0.1, 0.2, 0.3, 0.4)
+            >>> bbox.is_normalized()
+            True
+
+        """
+        return all(
+            0 <= coord <= 1
+            for coord in [self.xmin, self.ymin, self.xmax, self.ymax]
+        )
+
+    @property
+    def xyxy(self) -> tuple[float, float, float, float]:
+        """Calculate the minimum and maximum X and Y coordinates of the.
+
+            bounding box.
+
+        This method from the 'BoundingBox' class generates a tuple
+            containing the X and Y coordinates
+        of the minimum and maximum points of the bounding box.
+
+        Arguments:
+            None
+        Returns:
+            Tuple[float, float, float, float]: A tuple in the format (min_x,
+                min_y, max_x, max_y)
+            representing the minimum and maximum X and Y coordinates of the
+                bounding box.
+
+        Example:
+            >>> bbox = BoundingBox(...)
+            >>> bbox.xyxy()
+            (min_x, min_y, max_x, max_y)
+
+        Note:
+            This method does not take any arguments. It calculates the
+                coordinates based on the
+            properties of the 'BoundingBox' instance.
+
+        """
+        if self.is_normalized() and self.image_size is not None:
+            return (
+                self.xmin * self.image_size.width,
+                self.ymin * self.image_size.height,
+                self.xmax * self.image_size.width,
+                self.ymax * self.image_size.height,
+            )
+        if not self.is_normalized():
+            return (self.xmin, self.ymin, self.xmax, self.ymax)
+
+        msg = "Image size must be provided for normalized bounding boxes. Use xyxyn instead."
+        raise ValueError(msg)
+
+    @property
+    def xywh(self) -> tuple[float, float, float, float]:
+        """Calculate and return the coordinates and dimensions of a bounding.
+
+            box.
+
+        This function does not take any arguments. It calculates and returns
+            a tuple containing
+        the x, y coordinates and width, height dimensions of a bounding box.
+
+        Returns:
+            Tuple[int, int, int, int]: A tuple containing the x, y
+                coordinates and width, height
+            dimensions of the bounding box. The values are ordered as (x, y,
+                width, height).
+
+        Example:
+            >>> get_bounding_box()
+            (10, 20, 30, 40)
+
+        Note:
+            The function assumes that the bounding box is calculated based
+                on some predefined conditions.
+
+        """
+        x, y, x2, y2 = self.xyxy
+        return x, y, x2 - x, y2 - y
+
+    @property
+    def xyxyn(self) -> tuple[float, float, float, float]:
+        """Calculate the normalized minimum and maximum X and Y coordinates.
+
+        This method generates a tuple containing the normalized X and Y
+            coordinates of the minimum and maximum points of the bounding box.
+
+        Arguments:
+            None
+
+        Returns:
+            Tuple[float, float, float, float]: A tuple in the format (min_x,
+                min_y, max_x, max_y)
+            representing the normalized minimum and maximum X and Y
+                coordinates of the bounding box.
+
+        Example:
+            >>> bbox = BoundingBox(...)
+            >>> bbox.xyxyn()
+
+        Note:
+            This method does not take any arguments. It calculates the
+                coordinates based on the
+            properties of the 'BoundingBox' instance.
+
+        """
+        if self.is_normalized():
+            return self.xmin, self.ymin, self.xmax, self.ymax
+        if self.image_size is not None:
+            return (
+                self.xmin / self.image_size.width,
+                self.ymin / self.image_size.height,
+                self.xmax / self.image_size.width,
+                self.ymax / self.image_size.height,
+            )
+
+        msg = "Image size must be provided for non-normalized bounding boxes. Use xyxy instead."
+        raise ValueError(msg)
+
+    @property
+    def xywhn(self) -> tuple[float, float, float, float]:
+        """Calculate and return the normalized coordinates and dimensions of a.
+
+            bounding box.
+
+        This method calculates and returns a tuple containing the normalized
+            x, y coordinates and width, height dimensions of a bounding box.
+
+        Returns:
+            Tuple[float, float, float, float]: A tuple containing the
+                normalized x, y coordinates and width, height dimensions of
+                the bounding box. The values are ordered as (x, y, width,
+                height).
+
+        Example:
+            >>> bbox = BoundingBox(...)
+            >>> bbox.xywhn()
+
+        Note:
+            This method does not take any arguments. It calculates the
+                coordinates based on the properties of the 'BoundingBox'
+                instance.
+
+        """
+        x, y, w, h = self.xywh
+        if self.is_normalized():
+            return x, y, w, h
+        if self.image_size is not None:
+            return (
+                x / self.image_size.width,
+                y / self.image_size.height,
+                w / self.image_size.width,
+                h / self.image_size.height,
+            )
+
+        msg = "Image size must be provided for non-normalized bounding boxes. Use xywh instead."
+        raise ValueError(msg)
+
+    def __str__(self) -> str:
+        """Return a string representation of the BoundingBox object.
+
+        This method generates a string that represents the BoundingBox
+            object by displaying its minimum and maximum x and y values. No
+            arguments are required for this method.
+
+        Returns:
+            str: A string representation of the BoundingBox object. The
+                string includes the minimum and maximum x and y values.
+
+        Example:
+            >>> bbox = BoundingBox(0, 0, 1, 1)
+            >>> print(bbox)
+            'BoundingBox: Min(x=0, y=0), Max(x=1, y=1)'
+        Note:
+            This method is typically used for debugging purposes.
+
+        """
+        return f"xmin: {self.xmin}, ymin: {self.ymin}, xmax: {self.xmax}, ymax: {self.ymax}"
+
+    def __hash__(self) -> int:
+        """Calculate the hash value for a BoundingBox object based on its.
+
+            attributes.
+
+        Arguments:
+            self (BoundingBox): The BoundingBox object for which the hash
+                value is being calculated.
+
+        Returns:
+            int: The hash value of the BoundingBox object.
+
+        Example:
+            >>> box = BoundingBox()
+            >>> calculate_hash(box)
+
+        Note:
+            The hash value is calculated based on the attributes of the
+                BoundingBox object.
+
+        """
+        return hash(HashableDict(self.__dict__))
+
+    def __eq__(self, other: object) -> bool:
+        """Compare two BoundingBox objects for equality based on their hash.
+
+            values.
+
+        This method evaluates whether the hash values of the self and other
+            BoundingBox objects are equal. If 'other' is not a BoundingBox
+            object, the method returns NotImplemented.
+
+        Arguments:
+            self ('BoundingBox'): The instance of BoundingBox that calls the
+                method.
+            other ('BoundingBox'): Another instance of BoundingBox that is
+                compared with self.
+
+        Returns:
+            bool: True if the hash values of the two BoundingBox objects are
+                equal, False otherwise. Returns NotImplemented if 'other' is
+                not a BoundingBox object.
+
+        Example:
+            >>> box1.equals(box2)
+
+        Note:
+            The equality of two BoundingBox objects is determined solely
+                based on their hash values.
+
+        """
+        if not isinstance(other, BoundingBox):
+            return NotImplemented
+        return self.__hash__() == other.__hash__()
+
+
+@dataclass(
+    config=ConfigDict(extra="forbid", arbitrary_types_allowed=True),
+    kw_only=False,
+)
+class Points:
+    """A class to represent a set of points in an image."""
+
+    points: Float32[np.ndarray, "n 2"]
+    """The points in the image, represented as a 2D NumPy array."""
+
+    is_normalized: bool
+    """A flag indicating whether the points are normalized."""
+
+    image_size: ImageSize
+    """The size of the image in which the points are located in case the points are not normalized."""
+
+    def __post_init__(self) -> None:
+        """Validate the Points object after initialization.
+
+        This method is called after the Points object is initialized to
+            validate the points attribute.
+
+        Arguments:
+            self (Points): The Points object to be validated.
+
+        Returns:
+            None
+
+        Example:
+            >>> points = Points(...)
+            >>> points.__post_init__()
+
+        Note:
+            This method is automatically called after the Points object is
+                initialized.
+
+        """
+        if not isinstance(self.points, np.ndarray):
+            msg = "The 'points' attribute must be a NumPy array."
+            raise TypeError(msg)
+        if self.points.ndim != 2:
+            msg = "The 'points' attribute must be a 2D NumPy array."
+            raise ValueError(msg)
+
+    @property
+    def num_points(self) -> int:
+        """Return the number of points in the Points object.
+
+        This method returns the number of points in the Points object.
+
+        Arguments:
+            self (Points): The Points object for which the number of points
+                is to be calculated.
+
+        Returns:
+            int: The number of points in the Points object.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.num_points
+
+        Note:
+            This method does not take any arguments. It calculates the number
+                of points based on the properties of the Points object.
+
+        """
+        return self.points.shape[0]
+
+    @property
+    def xy(self) -> Float[np.ndarray, "n 2"]:
+        """Return the X and Y coordinates of the points.
+
+        This method returns the X and Y coordinates of the points in the
+            Points object.
+
+        Arguments:
+            self (Points): The Points object for which the X and Y
+                coordinates are to be calculated.
+
+        Returns:
+            np.ndarray: A NumPy array containing the X and Y coordinates of
+                the points.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.xy()
+
+        Note:
+            This method does not take any arguments. It calculates the X and Y
+                coordinates based on the properties of the Points object.
+
+        """
+        if self.is_normalized:
+            return self.points * np.array(
+                [self.image_size.height, self.image_size.width]
+            )
+        return self.points
+
+    @property
+    def xyn(self) -> Float[np.ndarray, "n 2"]:
+        """Return the normalized X and Y coordinates of the points.
+
+        This method returns the normalized X and Y coordinates of the points
+            in the Points object.
+
+        Arguments:
+            self (Points): The Points object for which the normalized X and
+                Y coordinates are to be calculated.
+
+        Returns:
+            np.ndarray: A NumPy array containing the normalized X and Y
+                coordinates of the points.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.xyn()
+
+        Note:
+            This method does not take any arguments. It calculates the
+                normalized X and Y coordinates based on the properties of the
+                Points object.
+
+        """
+        if not self.is_normalized:
+            return self.points / np.array(
+                [self.image_size.height, self.image_size.width]
+            )
+        return self.points
+
+    def shift_points(self, shift: tuple[float, float]) -> "Points":
+        """Shift the points in the Points object by a specified amount.
+
+        This method shifts the points in the Points object by a specified
+            amount.
+
+        Arguments:
+            self (Points): The Points object for which the points are to be
+                shifted.
+            shift (Tuple[float, float]): A tuple containing the X and Y
+                coordinates by which the points are to be shifted.
+
+        Returns:
+            Points: A new Points object with the shifted points.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.shift_points((10, 10))
+
+        Note:
+            This method shifts the points by adding the specified amount to
+                the X and Y coordinates of each point.
+
+        """
+        new_points = self.xy + np.array(shift)
+        return Points(
+            new_points.astype(np.float32),
+            is_normalized=False,
+            image_size=self.image_size,
+        )
+
+    def list_tuple_int(self) -> list[tuple[int, int]]:
+        """Return the points as a list of tuples of integers.
+
+        This method returns the points in the Points object as a list of
+            tuples of integers.
+
+        Arguments:
+            self (Points): The Points object for which the points are to be
+                converted to a list of tuples of integers.
+
+        Returns:
+            List[Tuple[int, int]]: A list of tuples containing the X and Y
+                coordinates of the points as integers.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.list_tuple_int()
+
+        Note:
+            This method does not take any arguments. It converts the points
+                based on the properties of the Points object.
+
+        """
+        return [(int(x), int(y)) for x, y in self.xy]
+
+    def list_tuple_float(
+        self, *, normalized: bool
+    ) -> list[tuple[float, float]]:
+        """Return the points as a list of tuples of floats.
+
+        This method returns the points in the Points object as a list of
+            tuples of floats.
+
+        Arguments:
+            self (Points): The Points object for which the points are to be
+                converted to a list of tuples of floats.
+
+        Returns:
+            List[Tuple[float, float]]: A list of tuples containing the X and
+                Y coordinates of the points as floats.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.list_tuple_float()
+
+        Note:
+            This method does not take any arguments. It converts the points
+                based on the properties of the Points object.
+
+        """
+        if normalized:
+            return [(float(x), float(y)) for x, y in self.xyn]
+        return [(float(x), float(y)) for x, y in self.xy]
+
+    def min_x(self) -> int:
+        """Return the minimum X coordinate of the points.
+
+        This method returns the minimum X coordinate of the points in the
+            Points object.
+
+        Arguments:
+            self (Points): The Points object for which the minimum X
+                coordinate is to be calculated.
+
+        Returns:
+            int: The minimum X coordinate of the points.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.min_x()
+
+        Note:
+            This method does not take any arguments. It calculates the minimum
+                X coordinate based on the properties of the Points object.
+
+        """
+        return int(np.min(self.xy[:, 0]))
+
+    def min_y(self) -> int:
+        """Return the minimum Y coordinate of the points.
+
+        This method returns the minimum Y coordinate of the points in the
+            Points object.
+
+        Arguments:
+            self (Points): The Points object for which the minimum Y
+                coordinate is to be calculated.
+
+        Returns:
+            int: The minimum Y coordinate of the points.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.min_y()
+
+        Note:
+            This method does not take any arguments. It calculates the minimum
+                Y coordinate based on the properties of the Points object.
+
+        """
+        return int(np.min(self.xy[:, 1]))
+
+    def max_x(self) -> int:
+        """Return the maximum X coordinate of the points.
+
+        This method returns the maximum X coordinate of the points in the
+            Points object.
+
+        Arguments:
+            self (Points): The Points object for which the maximum X
+                coordinate is to be calculated.
+
+        Returns:
+            int: The maximum X coordinate of the points.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.max_x()
+
+        Note:
+            This method does not take any arguments. It calculates the maximum
+                X coordinate based on the properties of the Points object.
+
+        """
+        return int(np.max(self.xy[:, 0]))
+
+    def max_y(self) -> int:
+        """Return the maximum Y coordinate of the points.
+
+        This method returns the maximum Y coordinate of the points in the
+            Points object.
+
+        Arguments:
+            self (Points): The Points object for which the maximum Y
+                coordinate is to be calculated.
+
+        Returns:
+            int: The maximum Y coordinate of the points.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.max_y()
+
+        Note:
+            This method does not take any arguments. It calculates the maximum
+                Y coordinate based on the properties of the Points object.
+
+        """
+        return int(np.max(self.xy[:, 1]))
+
+    def __len__(self) -> int:
+        """Return the number of points in the Points object.
+
+        This method returns the number of points in the Points object.
+
+        Arguments:
+            self (Points): The Points object for which the number of points
+                is to be calculated.
+
+        Returns:
+            int: The number of points in the Points object.
+
+        Example:
+            >>> points = Points(...)
+            >>> len(points)
+
+        Note:
+            This method is used to calculate the length of the Points object.
+
+        """
+        return self.num_points
+
+    def __hash__(self) -> int:
+        """Calculate the hash value of a Points object.
+
+        This method calculates the hash value of a Points object by
+            converting its dictionary attributes into a hashable format.
+
+        Arguments:
+            self (Points): The Points object for which the hash value is
+                being calculated.
+
+        Returns:
+            int: An integer representing the hash value of the Points object.
+
+        Example:
+            >>> points = Points(...)
+            >>> points.__hash__()
+
+        Note:
+            Hash values are used to quickly compare dictionary keys during a
+                dictionary lookup. They must be immutable and hashable.
+
+        """
+        return hash(HashableDict(self.__dict__))
+
+    def __eq__(self, other: object) -> bool:
+        """Compare two Points objects for equality.
+
+        This method checks if two instances of the class Points are equal by
+            comparing their hash values.
+
+        Arguments:
+            self (Points): The instance of the class Points calling the
+                method.
+            other (object): Another object to compare with the instance of
+                the class Points.
+
+        Returns:
+            bool: Returns True if the hash values of the two instances are
+                equal, False otherwise.
+                  If the other object is not an instance of Points, it returns
+                NotImplemented.
+
+        Example:
+            >>> points1 = Points(...)
+            >>> points2 = Points(...)
+            >>> points1 == points2
+
+        Note:
+            The equality of two Points instances doesn't mean they are the
+                same object, only that their hash values are equal.
+
+        """
+        if not isinstance(other, Points):
+            return NotImplemented
+        return self.__hash__() == other.__hash__()

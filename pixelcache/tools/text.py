@@ -6,8 +6,8 @@ import torch
 from beartype import beartype
 from PIL import Image, ImageDraw, ImageFont
 
+from pixelcache.tools.image import ImageSize, read_image
 from pixelcache.tools.logger import get_logger
-from pixelcache.tools.utils import ImageSize, read_image
 
 logger = get_logger()
 
@@ -71,7 +71,7 @@ def get_font_path(font: str = "JetBrainsMono-Regular", /) -> str:
             exists.
 
     """
-    font_path = Path("pixelcache") / "fonts" / f"{font}.ttf"
+    font_path = Path(__file__).parent.parent / "fonts" / f"{font}.ttf"
     if not font_path.exists():
         msg = f"File {font_path!s} not found. Please check path"
         raise TypeError(msg)

@@ -117,6 +117,14 @@ repos:
             types: [toml]
             additional_dependencies: [toml-sort>=0.23.1]
 
+          - id: pylint
+            name: pylint
+            entry: pylint
+            language: system
+            types: [python]
+            require_serial: true
+            args: [--disable=all, --enable=E0401]
+            # ruff is trying to include more of this: https://github.com/astral-sh/ruff/issues/970
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
       # Ruff version.
