@@ -316,10 +316,6 @@ def remove_white_text(image: np.ndarray) -> np.ndarray:
             new one.
 
     """
-    if isinstance(image, str):
-        image = Image.open(image)
-    if isinstance(image, Image.Image):
-        image = np.asarray(image)
     for start_row in range(image.shape[0]):
         if not (image[start_row] == 255).all().item():
             break
