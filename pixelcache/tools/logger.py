@@ -518,11 +518,9 @@ class LoggingRich:
 
         """
         ignore_unittest = kwargs.pop("ignore_unittest", False)
-        if (
-            self.is_file_enabled()
-            and ignore_unittest
-            or not self.verbosity["rule"]
-        ):
+        if (self.is_file_enabled() and ignore_unittest) or not self.verbosity[
+            "rule"
+        ]:
             return
         msg = self.preprocess_msg(msg)
         self.console.rule(msg, **kwargs)

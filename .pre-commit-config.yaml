@@ -45,7 +45,7 @@ repos:
     #         args: [--line-length=79, --target-version=py310, --quiet]
 
     - repo: https://github.com/executablebooks/mdformat
-      rev: 0.7.18
+      rev: 0.7.19
       hooks:
           - id: mdformat
             args: [--number]
@@ -117,18 +117,21 @@ repos:
             types: [toml]
             additional_dependencies: [toml-sort>=0.23.1]
 
+    - repo: https://github.com/pycqa/pylint
+      rev: v3.3.2
+      hooks:
           - id: pylint
             name: pylint
             entry: pylint
-            language: python
+            language: system
             types: [python]
-            require_serial: true
+            exclude: ^dependencies/|^experiments/|poetry\.lock|tools/generative/pipelines/
             args: [--disable=all, --enable=E0401]
-            # ruff is trying to include more of this: https://github.com/astral-sh/ruff/issues/970
+          # ruff is trying to include more of this: https://github.com/astral-sh/ruff/issues/970
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
       # Ruff version.
-      rev: v0.7.2
+      rev: v0.8.1
       hooks:
         # Run the linter.
           - id: ruff

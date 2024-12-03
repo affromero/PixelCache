@@ -540,12 +540,9 @@ class HashableImage:
         """
         # check if it is bool already
         if (
-            self.__mode == "torch"
-            and self.__image.dtype == torch.bool
-            or self.__mode == "numpy"
-            and self.__image.dtype == bool
-            or self.__mode == "pil"
-            and self.__image.mode == "1"
+            (self.__mode == "torch" and self.__image.dtype == torch.bool)
+            or (self.__mode == "numpy" and self.__image.dtype == bool)
+            or (self.__mode == "pil" and self.__image.mode == "1")
         ):
             return self
         return HashableImage(to_binary(self.__image, threshold=threshold))
@@ -3027,7 +3024,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
         """
         return f"HashableDict: {self.__data}"
 
-    def __getitem__(self, __name: _KT) -> _VT:
+    def __getitem__(self, __name: _KT, /) -> _VT:
         """Retrieve the value associated with a specific key in a HashableDict.
 
             object.
@@ -3052,7 +3049,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
         """
         return self.__data[__name]
 
-    def __setitem__(self, __name: _KT, __value: _VT) -> None:
+    def __setitem__(self, __name: _KT, __value: _VT, /) -> None:
         """Set a key-value pair in a HashableDict object.
 
         This method allows for setting a key-value pair in a HashableDict
@@ -3077,7 +3074,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
         """
         self.__data[__name] = __value
 
-    def __delitem__(self, __name: _KT) -> None:
+    def __delitem__(self, __name: _KT, /) -> None:
         """Delete an item from the HashableDict class.
 
         This method removes an item from the HashableDict class based on the
@@ -3392,6 +3389,7 @@ class HashableList(MutableSequence[_T]):
     def __getitem__(
         self,
         __index: SupportsIndex | slice,
+        /,
     ) -> _T | "HashableList[_T]":
         """Retrieve an element or a slice of elements from the HashableList.
 
@@ -3494,12 +3492,12 @@ class HashableList(MutableSequence[_T]):
         return len(self.__data)
 
     @overload
-    def __delitem__(self, __index: int) -> None: ...
+    def __delitem__(self, __index: int, /) -> None: ...
 
     @overload
-    def __delitem__(self, __index: slice) -> None: ...
+    def __delitem__(self, __index: slice, /) -> None: ...
 
-    def __delitem__(self, __index: int | slice) -> None:
+    def __delitem__(self, __index: int | slice, /) -> None:
         """Delete an item or a slice of items from a HashableList object.
 
         This method removes a single item if an integer is provided as an
@@ -3526,7 +3524,7 @@ class HashableList(MutableSequence[_T]):
         """
         del self.__data[__index]
 
-    def insert(self, __index: int, __value: _T) -> None:
+    def insert(self, __index: int, __value: _T, /) -> None:
         """Insert a value at a specified index in a HashableList object.
 
         Arguments:
@@ -3669,7 +3667,6 @@ class ImageCrop:
         """
         return f"ImageCrop(left={self.left}, top={self.top}, right={self.right}, bottom={self.bottom})"
 
-
     def __hash__(self) -> int:
         """Calculate the hash value of an ImageCrop object.
 
@@ -3689,7 +3686,7 @@ class ImageCrop:
 
         """
         return hash((self.left, self.top, self.right, self.bottom))
-    
+
     def __eq__(self, other: object) -> bool:
         """Compare two ImageCrop instances for equality.
 
@@ -3712,8 +3709,12 @@ class ImageCrop:
         """
         if not isinstance(other, ImageCrop):
             return NotImplemented
-        return self.left == other.left and self.top == other.top and self.right == other.right and self.bottom == other.bottom
-
+        return (
+            self.left == other.left
+            and self.top == other.top
+            and self.right == other.right
+            and self.bottom == other.bottom
+        )
 
     def __call__(
         self,

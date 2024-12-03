@@ -13,12 +13,12 @@ from pixelcache.tools.image import ImageSize
 
 __all__ = [
     "MAX_IMG_CACHE",
+    "BoundingBox",
     "HashableDict",
     "HashableImage",
     "HashableList",
-    "ImageSize",
     "ImageCrop",
-    "BoundingBox",
+    "ImageSize",
     "Points",
 ]
 
