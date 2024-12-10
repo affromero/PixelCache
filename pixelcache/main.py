@@ -15,7 +15,6 @@ from typing import (
 
 import cv2
 import numpy as np
-from pixelcache.tools.utils import color_palette
 import torch
 from beartype import beartype
 from jaxtyping import Bool, Float, Float32, UInt8
@@ -54,6 +53,7 @@ from pixelcache.tools.mask import (
     polygon_to_mask,
 )
 from pixelcache.tools.text import create_text, draw_text
+from pixelcache.tools.utils import color_palette
 
 _T = TypeVar("_T")
 _KT = TypeVar("_KT")
@@ -62,6 +62,7 @@ _VT = TypeVar("_VT")
 MAX_IMG_CACHE = 5
 VALID_IMAGES = Literal["pil", "numpy", "torch"]
 PALETTE_DEFAULT = color_palette()
+
 
 @beartype
 def pseudo_hash(idx: int, length: int = 6) -> str:
@@ -478,7 +479,9 @@ class HashableImage:
             return HashableImage(torch.flip(self.__image, [3]))
         return HashableImage(cv2.flip(self.__image, 1))
 
-    def apply_palette(self, _palette: UInt8[np.ndarray, "256 3"] = PALETTE_DEFAULT, /) -> "HashableImage":
+    def apply_palette(
+        self, _palette: UInt8[np.ndarray, "256 3"] = PALETTE_DEFAULT, /
+    ) -> "HashableImage":
         """Apply a color palette to the HashableImage object.
 
         This method applies a color palette to the HashableImage object.
@@ -504,8 +507,11 @@ class HashableImage:
         """
         rgb = self.to_rgb().numpy()
         # make sure all three channels are the same
-        if not np.all(rgb[:, :, 0] == rgb[:, :, 1]) or not np.all(rgb[:, :, 0] == rgb[:, :, 2]):
-            raise ValueError("To apply a palette, the image must be grayscale.")
+        if not np.all(rgb[:, :, 0] == rgb[:, :, 1]) or not np.all(
+            rgb[:, :, 0] == rgb[:, :, 2]
+        ):
+            msg = "To apply a palette, the image must be grayscale."
+            raise ValueError(msg)
         # apply the palette
         image_np = rgb[:, :, 0]
         # replace the values with the palette
@@ -514,7 +520,6 @@ class HashableImage:
         for i, value in enumerate(unique_values):
             new_image[image_np == value] = _palette[i]
         return HashableImage(new_image)
-        
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     def to_rgb(self) -> "HashableImage":

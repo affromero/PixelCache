@@ -117,17 +117,17 @@ repos:
             types: [toml]
             additional_dependencies: [toml-sort>=0.23.1]
 
-    - repo: https://github.com/pycqa/pylint
-      rev: v3.3.2
-      hooks:
-          - id: pylint
-            name: pylint
-            entry: pylint
-            language: system
-            types: [python]
-            exclude: ^dependencies/|^experiments/|poetry\.lock|tools/generative/pipelines/
-            args: [--disable=all, --enable=E0401]
-          # ruff is trying to include more of this: https://github.com/astral-sh/ruff/issues/970
+    # - repo: https://github.com/pycqa/pylint
+    #   rev: v3.3.2
+    #   hooks:
+    #       - id: pylint
+    #         name: pylint
+    #         entry: pylint
+    #         language: system
+    #         types: [python]
+    #         exclude: ^dependencies/|^experiments/|poetry\.lock|tools/generative/pipelines/
+    #         args: [--disable=all, --enable=E0401]
+    #       # ruff is trying to include more of this: https://github.com/astral-sh/ruff/issues/970
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
       # Ruff version.
