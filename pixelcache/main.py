@@ -15,6 +15,7 @@ from typing import (
 
 import cv2
 import numpy as np
+from pixelcache.tools.utils import color_palette
 import torch
 from beartype import beartype
 from jaxtyping import Bool, Float, Float32, UInt8
@@ -60,7 +61,7 @@ _VT = TypeVar("_VT")
 
 MAX_IMG_CACHE = 5
 VALID_IMAGES = Literal["pil", "numpy", "torch"]
-
+PALETTE_DEFAULT = color_palette()
 
 @beartype
 def pseudo_hash(idx: int, length: int = 6) -> str:
@@ -476,6 +477,44 @@ class HashableImage:
         if self.__mode == "torch":
             return HashableImage(torch.flip(self.__image, [3]))
         return HashableImage(cv2.flip(self.__image, 1))
+
+    def apply_palette(self, _palette: UInt8[np.ndarray, "256 3"] = PALETTE_DEFAULT, /) -> "HashableImage":
+        """Apply a color palette to the HashableImage object.
+
+        This method applies a color palette to the HashableImage object.
+
+        Arguments:
+            self (HashableImage): The HashableImage object to which the
+                color palette will be applied.
+            _palette (np.ndarray, optional): The color palette to be applied
+                to the HashableImage object. Defaults to PALETTE_DEFAULT.
+
+        Returns:
+            HashableImage: A new HashableImage object with the color palette
+                applied.
+
+        Example:
+            >>> image = HashableImage(...)
+            >>> new_image = image.apply_palette()
+
+        Note:
+            The color palette is applied to the HashableImage object based
+                on the mode of the image data.
+
+        """
+        rgb = self.to_rgb().numpy()
+        # make sure all three channels are the same
+        if not np.all(rgb[:, :, 0] == rgb[:, :, 1]) or not np.all(rgb[:, :, 0] == rgb[:, :, 2]):
+            raise ValueError("To apply a palette, the image must be grayscale.")
+        # apply the palette
+        image_np = rgb[:, :, 0]
+        # replace the values with the palette
+        unique_values = np.unique(image_np)
+        new_image = np.zeros_like(rgb)
+        for i, value in enumerate(unique_values):
+            new_image[image_np == value] = _palette[i]
+        return HashableImage(new_image)
+        
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     def to_rgb(self) -> "HashableImage":
