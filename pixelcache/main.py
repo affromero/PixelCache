@@ -2905,7 +2905,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
                 items[k] = hash(v.tobytes())
             else:
                 items[k] = hash(v)
-        return hash(frozenset(items))
+        return hash(frozenset(items.items()))
 
     def __eq__(self, other: object) -> bool:
         """Compare two HashableDict instances for equality.
