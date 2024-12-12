@@ -57,10 +57,10 @@ def crop_from_bbox(
         ymin *= image_np.shape[0]
         xmax *= image_np.shape[1]
         ymax *= image_np.shape[0]
-    xmin = int(max(0, xmin))
-    ymin = int(max(0, ymin))
-    xmax = int(min(image_np.shape[1] - 1, xmax))
-    ymax = int(min(image_np.shape[0] - 1, ymax))
+    xmin = int(round(max(0, xmin)))
+    ymin = int(round(max(0, ymin)))
+    xmax = int(round(min(image_np.shape[1], xmax)))
+    ymax = int(round(min(image_np.shape[0], ymax)))
     return image_np[ymin:ymax, xmin:xmax]
 
 
@@ -115,10 +115,10 @@ def uncrop_from_bbox(
         ymin *= height
         xmax *= width
         ymax *= height
-    xmin = int(max(0, xmin))
-    ymin = int(max(0, ymin))
-    xmax = int(min(width - 1, xmax))
-    ymax = int(min(height - 1, ymax))
+    xmin = round(max(0, xmin))
+    ymin = round(max(0, ymin))
+    xmax = round(min(width, xmax))
+    ymax = round(min(height, ymax))
     if resize:
         image = tensor2numpy(
             resize_image(
@@ -182,16 +182,16 @@ def increase_bbox(
         # apply margin to the bbox, margin is a fraction of the bbox size
         bbox_h = bbox[3] - bbox[1]
         bbox_w = bbox[2] - bbox[0]
-        ratio_height = int(margin * image_size.height / bbox_h)
-        ratio_width = int(margin * image_size.width / bbox_w)
+        ratio_height = round(margin * image_size.height / bbox_h)
+        ratio_width = round(margin * image_size.width / bbox_w)
         # if these ratios are too high, then the margin affects more the bounding box, which means the bounding box was very small
         if not is_normalized:
             new_bboxes.append(
                 (
                     max(0, bbox[0] - ratio_width),
                     max(0, bbox[1] - ratio_height),
-                    min(image_size.width - 1, bbox[2] + ratio_width),
-                    min(image_size.height - 1, bbox[3] + ratio_height),
+                    min(image_size.width, bbox[2] + ratio_width),
+                    min(image_size.height, bbox[3] + ratio_height),
                 ),
             )
         else:

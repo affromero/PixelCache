@@ -240,7 +240,7 @@ def mask2points(
         h, w = binary_mask.shape
         _points = [(y / w, x / h) for y, x in points]
     else:
-        _points = [(int(y), int(x)) for y, x in points]
+        _points = [(round(y), round(x)) for y, x in points]
     if output == "xy":
         _points = [(x, y) for y, x in _points]
     return _points
@@ -331,15 +331,15 @@ def mask2bbox(
         bbox_h = ymax - ymin
         bbox_w = xmax - xmin
         ymin = max(0, ymin - bbox_h * margin)
-        ymax = min(h - 1, ymax + bbox_h * margin)
+        ymax = min(h, ymax + bbox_h * margin)
         if ymin == ymax:
-            ymin = max(0, ymin - 1)
-            ymax = min(h - 1, ymax + 1)
+            msg = "ymin == ymax"
+            raise ValueError(msg)
         xmin = max(0, xmin - bbox_w * margin)
-        xmax = min(w - 1, xmax + bbox_w * margin)
+        xmax = min(w, xmax + bbox_w * margin)
         if xmin == xmax:
-            xmin = max(0, xmin - 1)
-            xmax = min(w - 1, xmax + 1)
+            msg = "xmin == xmax"
+            raise ValueError(msg)
         bbox = (
             int(np.round(xmin)),
             int(np.round(ymin)),
@@ -435,10 +435,10 @@ def bbox2mask(
                 msg = f"box is not normalized. {box}, image size: {image_size} - it should be normalized [0, 1]"
                 raise ValueError(msg)
             box = (
-                int(box[0] * width),
-                int(box[1] * height),
-                int(box[2] * width),
-                int(box[3] * height),
+                round(box[0] * width),
+                round(box[1] * height),
+                round(box[2] * width),
+                round(box[3] * height),
             )  # x1, y1, x2, y2
         box = (int(box[0]), int(box[1]), int(box[2]), int(box[3]))
         zeros[box[1] : box[3], box[0] : box[2]] = True

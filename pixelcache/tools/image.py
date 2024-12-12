@@ -592,7 +592,7 @@ class ImageSize:
 
         """
         return ImageSize(
-            height=int(self.height * other), width=int(self.width * other)
+            height=round(self.height * other), width=round(self.width * other)
         )
 
     def __ne__(self, other: object) -> bool:
@@ -1216,8 +1216,8 @@ def resize_image(
         is_bool = True
     if resolution is None:
         # resize divisible by modulo
-        height = int(np.round(height / modulo)) * modulo
-        width = int(np.round(width / modulo)) * modulo
+        height = round(np.round(height / modulo)) * modulo
+        width = round(np.round(width / modulo)) * modulo
     elif isinstance(resolution, ImageSize):
         height, width = resolution.height, resolution.width
     else:
@@ -1227,8 +1227,8 @@ def resize_image(
             k = float(resolution) / max(height, width)  # resize with max
         height *= k
         width *= k
-        height = int(np.round(height / modulo)) * modulo
-        width = int(np.round(width / modulo)) * modulo
+        height = round(np.round(height / modulo)) * modulo
+        width = round(np.round(width / modulo)) * modulo
     output: Float[torch.Tensor, "b c h w"] = torch.nn.functional.interpolate(
         tensor,
         size=(height, width),

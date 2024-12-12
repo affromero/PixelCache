@@ -80,10 +80,10 @@ def draw_bbox(
                 )
             w, h = image.size
             box = (
-                int(box[0] * w),
-                int(box[1] * h),
-                int(box[2] * w),
-                int(box[3] * h),
+                round(box[0] * w),
+                round(box[1] * h),
+                round(box[2] * w),
+                round(box[3] * h),
             )  # x1, y1, x2, y2
         draw.rectangle(box, outline=color, width=width)
         if text is not None and text[idx]:
@@ -91,9 +91,9 @@ def draw_bbox(
             get_font_path = (
                 Path(__file__).parent / "fonts" / "JetBrainsMono-ExtraBold.ttf"
             )
-            font = ImageFont.truetype(str(get_font_path), int(size_text))
+            font = ImageFont.truetype(str(get_font_path), round(size_text))
             draw.text(
-                (int(box[0]), int(box[1])),
+                (round(box[0]), round(box[1])),
                 text[idx],
                 font=font,
                 fill=(0, 200, 255),

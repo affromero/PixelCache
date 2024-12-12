@@ -294,8 +294,8 @@ class HashableImage:
 
         """
         new_size = ImageSize(
-            height=int(self.size().height // factor),
-            width=int(self.size().width // factor),
+            height=round(self.size().height // factor),
+            width=round(self.size().width // factor),
         )
         return self.resize(new_size)
 
@@ -382,10 +382,10 @@ class HashableImage:
         width = image_size.width
         if height < width:
             new_h = min_size
-            new_w = int(width * (new_h / height))
+            new_w = round(width * (new_h / height))
         else:
             new_w = min_size
-            new_h = int(height * (new_w / width))
+            new_h = round(height * (new_w / width))
         new_h = new_h - (new_h % modulo)
         new_w = new_w - (new_w % modulo)
         return self.resize(ImageSize(height=new_h, width=new_w))
@@ -478,6 +478,33 @@ class HashableImage:
         if self.__mode == "torch":
             return HashableImage(torch.flip(self.__image, [3]))
         return HashableImage(cv2.flip(self.__image, 1))
+
+    def extract_binary_from_value(self, value: int) -> "HashableImage":
+        """Extract the binary mask from the value in the HashableImage object.
+
+        This method extracts the binary mask from the value in the
+            HashableImage object.
+
+        Arguments:
+            value (int): The value from which the binary mask will be
+                extracted.
+
+        Returns:
+            HashableImage: A new HashableImage object with the binary mask
+                extracted from the value.
+
+        Example:
+            >>> image = HashableImage(...)
+            >>> binary_mask = HashableImage.extract_binary_from_value(10)
+
+        Note:
+            The binary mask is extracted based on the mode of the image data.
+
+        """
+        image_np = self.to_rgb().numpy()
+        new_image: np.ndarray = np.zeros_like(image_np)
+        new_image[image_np == value] = 255
+        return HashableImage(new_image.astype(bool)[..., 0])
 
     def apply_palette(
         self, _palette: UInt8[np.ndarray, "256 3"] = PALETTE_DEFAULT, /
@@ -1991,11 +2018,11 @@ class HashableImage:
 
         """
         # set bbox to the size of the image in case it is bigger, for both float and int
-        is_normalized = True
-        _bboxes = [bbox.xyxyn for bbox in bboxes.to_list()]
         return HashableImage(
             crop_from_bbox(
-                self.to_rgb().numpy(), _bboxes, is_normalized=is_normalized
+                self.to_rgb().numpy(),
+                [bbox.xyxyn for bbox in bboxes.to_list()],
+                is_normalized=True,
             )
         )
 
@@ -2875,9 +2902,9 @@ class HashableDict(MutableMapping[_KT, _VT]):
         items = {}
         for k, v in self.__data.items():
             if isinstance(v, np.ndarray | Image.Image):
-                items[k] = v.tobytes()
+                items[k] = hash(v.tobytes())
             else:
-                items[k] = v
+                items[k] = hash(v)
         return hash(frozenset(items))
 
     def __eq__(self, other: object) -> bool:
@@ -3254,9 +3281,9 @@ class HashableList(MutableSequence[_T]):
         items = []
         for idx in range(len(self.__data)):
             if isinstance(self.__data[idx], np.ndarray | Image.Image):
-                items.append(self.__data[idx].tobytes())  # type: ignore[attr-defined]
+                items.append(hash(self.__data[idx].tobytes()))  # type: ignore[attr-defined]
             else:
-                items.append(self.__data[idx])
+                items.append(hash(self.__data[idx]))
         return hash(frozenset(items))
 
     def __eq__(self, other: object) -> bool:

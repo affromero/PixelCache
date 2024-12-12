@@ -44,7 +44,7 @@ def get_font(font_path: str, text_size: float) -> ImageFont.FreeTypeFont:
     if not Path(font_path).is_file():
         msg = f"Font file not found {font_path}"
         raise RuntimeError(msg)
-    return ImageFont.truetype(font_path, int(text_size))
+    return ImageFont.truetype(font_path, round(text_size))
 
 
 @beartype
@@ -191,7 +191,7 @@ def textsize(text: str, font: ImageFont.FreeTypeFont) -> tuple[int, int]:
     # _, _, width, height = draw.textbbox((0, 0), text=text, font=font)
     # return width, height
     _, _, width, height = font.getbbox(text)
-    return int(width), int(height)
+    return round(width), round(height)
 
 
 @beartype
@@ -251,7 +251,7 @@ def display_string(
             last_font_size = font_size
             font = ImageFont.truetype(font_path, size=font_size)
 
-        font_size = int(
+        font_size = round(
             font_size * 0.8
         )  # Slightly reduce font size for better fit
     font = ImageFont.truetype(font_path, size=font_size)
