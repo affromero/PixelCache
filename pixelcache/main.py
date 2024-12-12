@@ -2261,23 +2261,16 @@ class HashableImage:
 
     def draw_points(
         self,
-        points: Float[np.ndarray, "n 2"],
+        points: "Points",
         color: tuple[int, int, int],
         radius: int,
         thickness: int,
-        *,
-        from_normalized: bool = True,
-        epsilon: float = 1e-6,
     ) -> "HashableImage":
         """Draw circles at specified points on an image.
 
         Arguments:
-            points (np.ndarray): A numpy array of floating-point values
-                representing the coordinates (X, Y) of the points where circles
-                will be drawn. The shape of the array should be (n, 2),
-                where n is the number of points. Each point should be in the
-                range [0, 1]. The points are assumed to be within the bounds
-                of the image.
+            points (Points): A Points object containing the points at which
+                circles are to be drawn.
             color (Tuple[int, int, int]): A tuple of three integers
                 representing the RGB color values of the circle.
             radius (int): An integer representing the radius of each circle
@@ -2307,20 +2300,9 @@ class HashableImage:
         """
         canvas = self.numpy().copy()
         # points normalized
-        for point in points:
+        _points = points.list_tuple_int()
+        for point in _points:
             x, y = point
-            if not from_normalized:
-                x /= canvas.shape[1]
-                y /= canvas.shape[0]
-            if (
-                x < epsilon
-                or y < epsilon
-                or x > 1 - epsilon
-                or y > 1 - epsilon
-            ):
-                continue
-            x = int(x * canvas.shape[1])
-            y = int(y * canvas.shape[0])
             cv2.circle(canvas, (x, y), radius, color, thickness)
         return HashableImage(canvas)
 
