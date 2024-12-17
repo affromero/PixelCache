@@ -690,7 +690,7 @@ class HashableImage:
             [
                 HashableImage(i)
                 for i in group_regions_from_binary(
-                    self.pil(),
+                    self.to_binary().numpy(),
                     closing=closing,
                     margin=margin,
                     area_threshold=area_threshold,

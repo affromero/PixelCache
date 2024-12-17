@@ -63,6 +63,7 @@ def group_regions_from_binary(
         bbox_img,
         margin=margin,
         area_threshold=area_threshold,
+        normalized=True,
     )
     square_mask = [bbox2mask([i], image_size) for i in list_bbox]
     return [np.logical_and(i, bbox_img) for i in square_mask]
