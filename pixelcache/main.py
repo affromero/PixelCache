@@ -2607,7 +2607,7 @@ class HashableImage:
 
         """
         return HashableImage(
-            get_canny_edge(self.to_rgb().numpy(), threshold, to_gray)
+            get_canny_edge(self.to_rgb().numpy(), threshold, to_gray=to_gray)
         )
 
     def differential_mask(
