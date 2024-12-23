@@ -506,6 +506,33 @@ class HashableImage:
         new_image[image_np == value] = 255
         return HashableImage(new_image.astype(bool)[..., 0])
 
+    def convert_binary_to_value(self, value: int) -> "HashableImage":
+        """Convert the binary mask to the value in the HashableImage object.
+
+        This method converts the binary mask to the value in the HashableImage
+            object.
+
+        Arguments:
+            value (int): The value to which the binary mask will be converted.
+
+        Returns:
+            HashableImage: A new HashableImage object with the binary mask
+                converted to the value.
+
+        Example:
+            >>> image = HashableImage(...)
+            >>> new_image = image.convert_binary_to_value(10)
+
+        Note:
+            The binary mask is converted to the value based on the mode of the
+                image data.
+
+        """
+        image_np = self.to_rgb().numpy()
+        new_image: np.ndarray = np.zeros_like(image_np)
+        new_image[image_np.astype(bool)] = value
+        return HashableImage(new_image)
+
     def apply_palette(
         self, _palette: UInt8[np.ndarray, "256 3"] = PALETTE_DEFAULT, /
     ) -> "HashableImage":
