@@ -564,7 +564,7 @@ class LoggingRich:
 
         """
         if msg is not None:
-            self.error(msg)
+            self.error(msg, stack_offset=1)
         # check if already inside an exception
         if sys.exc_info()[0] is not None:
             self.console.print_exception(**kwargs)
