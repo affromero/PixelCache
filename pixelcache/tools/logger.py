@@ -14,7 +14,7 @@ from rich.console import Console
 from pixelcache.tools.utils import seed_everything
 
 LOG_DEBUG = os.getenv("LOG_DEBUG", "0")
-LOG_WARNING = os.getenv("LOG_WARNING", LOG_DEBUG)
+LOG_WARNING = os.getenv("LOG_WARNING", "1")
 DETERMINISTIC = os.getenv("DETERMINISTIC", "0")
 
 DEFAULT_VERBOSITY = {
@@ -206,7 +206,7 @@ class LoggingRich:
             return
         self.log(
             self.modes["warning"].format(msg),
-            stack_offset=self.stack_offset,
+            stack_offset=stack_offset,
             **kwargs,
         )
 
