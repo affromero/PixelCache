@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 from dataclasses import field
 from functools import lru_cache
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import Any
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from rich.console import Console
+from rich.progress import BarColumn, Progress, TimeRemainingColumn
 
 from pixelcache.tools.utils import seed_everything
 
@@ -765,3 +767,41 @@ def get_logger(verbosity: dict[str, bool] = DEFAULT_VERBOSITY) -> LoggingRich:
 
     """
     return LoggingRich(verbosity=verbosity)
+
+
+def wait_seconds_bar(total_seconds: int, /, description: str) -> None:
+    """Display a progress bar for a specified number of seconds.
+
+    This function displays a progress bar for a specified number of seconds.
+        The progress bar is updated every second until the specified number
+        of seconds has elapsed.
+
+    Arguments:
+        seconds (int): The number of seconds for which the progress bar
+            should be displayed.
+        description (str): The description to be displayed with the progress
+            bar.
+
+    Returns:
+        None: This function does not return any value.
+
+    Example:
+        >>> wait_seconds_bar(10)
+
+    Note:
+        The function uses the 'time' module to control the duration of the
+            progress bar.
+
+    """
+    # rich progress bar with time
+    with Progress(
+        "[progress.description]{task.description}",
+        BarColumn(),
+        "[progress.percentage]{task.percentage:>3.0f}%",
+        TimeRemainingColumn(),
+        console=Console(),
+    ) as progress:
+        task = progress.add_task(description, total=total_seconds)
+        for _ in range(total_seconds):
+            time.sleep(1)
+            progress.update(task, advance=1)
