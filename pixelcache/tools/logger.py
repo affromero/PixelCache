@@ -349,7 +349,7 @@ class LoggingRich:
         msg = msg.replace(os.getenv("HOME", "~"), "~")
         if self.is_file_enabled():
             # remove eg., 0x71878FBCF940 memory addresses
-            re_string = r"0x[0-9A-F]+"
+            re_string = r" 0x[0-9A-F]+"
             msg = re.sub(re_string, "0xXXXXXXXX", msg)
         # if there is a list "lipsum lorem ipsum ['a', 'b', 'c'] lipsum lorem ipsum dolor sit amet ["1", "2"]"
         # convert it to a beautiful list with bullets as follows
