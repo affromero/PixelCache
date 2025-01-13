@@ -17,7 +17,7 @@ from pixelcache.tools.utils import seed_everything
 
 LOG_DEBUG = os.getenv("LOG_DEBUG", "0")
 LOG_WARNING = os.getenv("LOG_WARNING", "1")
-DETERMINISTIC = os.getenv("DETERMINISTIC", "0")
+DETERMINISTIC = os.getenv("DETERMINISTIC", "1")
 
 DEFAULT_VERBOSITY = {
     "info": True,
