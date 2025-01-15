@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import sys
@@ -248,6 +249,24 @@ class LoggingRich:
             stack_offset=stack_offset,
             **kwargs,
         )
+
+    def info_json(self, msg: str, **kwargs: Any) -> None:
+        """Log an informational message in JSON format.
+
+        This method logs a message in JSON format.
+        """
+        stack_offset = kwargs.pop("stack_offset", 0)
+        jsonize = json.dumps(json.loads(msg), indent=4)
+        # Color the keys blue and values gold3 in the JSON string
+        jsonize = re.sub(r'(".*?"): ', r"[blue]\1[/blue]: ", jsonize)
+        jsonize = re.sub(r': (".*?")', r": [gold3]\1[/gold3]", jsonize)
+        jsonize = re.sub(
+            r": ([-+]?\d*\.?\d+)", r": [gold3]\1[/gold3]", jsonize
+        )
+        jsonize = re.sub(
+            r": (true|false|null)", r": [gold3]\1[/gold3]", jsonize
+        )
+        self.info("\n" + jsonize, stack_offset=stack_offset + 1, **kwargs)
 
     def debug(self, msg: str, **kwargs: Any) -> None:
         """Log debug messages with additional keyword arguments if debug.
