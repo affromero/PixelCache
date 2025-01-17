@@ -500,7 +500,7 @@ class LoggingRich:
         kwargs["_stack_offset"] = (
             self.stack_offset if stack_offset is None else stack_offset
         )
-        msg = self.preprocess_msg(msg)
+        msg = self.preprocess_msg(str(msg))
         if self.console.file.name == "<stdout>":
             return
         self.log(msg, **kwargs)
