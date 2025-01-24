@@ -334,13 +334,13 @@ def mask2bbox(
         ymin = max(0, ymin - bbox_h * margin)
         ymax = min(h, ymax + bbox_h * margin)
         if ymin == ymax:
-            msg = "ymin == ymax"
-            raise ValueError(msg)
+            # too small
+            continue
         xmin = max(0, xmin - bbox_w * margin)
         xmax = min(w, xmax + bbox_w * margin)
         if xmin == xmax:
-            msg = "xmin == xmax"
-            raise ValueError(msg)
+            # too small
+            continue
         bbox = (
             int(np.round(xmin)),
             int(np.round(ymin)),
@@ -839,9 +839,6 @@ def mask_blend(
     if with_bbox:
         # draw bbox
         binary_mask = to_binary(mask) if not is_mask_binary else mask
-        if not merge_bbox:
-            # closing the mask just for better visualization
-            binary_mask = morphologyEx(binary_mask, "close", np.ones((5, 5)))
 
         blend = draw_bbox(
             blend,
