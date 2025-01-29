@@ -862,4 +862,4 @@ def color_palette() -> UInt8[np.ndarray, "256 3"]:
         0,
         0,
     ]
-    return np.asarray(_palette).reshape(-1, 3)
+    return np.asarray(_palette, dtype=np.uint8).reshape(-1, 3)
