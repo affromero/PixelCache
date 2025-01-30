@@ -948,7 +948,7 @@ class HashableImage:
         """
         if self.__mode == "pil":
             return HashableImage(ImageOps.equalize(self.__image))
-        return HashableImage(cv2.equalizeHist(self.numpy()))
+        return HashableImage(cv2.equalizeHist(self.to_gray().numpy()))
 
     def to_space_color(
         self, color_space: str, getchannel: str | None = None
