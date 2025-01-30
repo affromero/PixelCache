@@ -676,33 +676,40 @@ def keep_n_largest_components(
 @beartype
 def remove_small_regions(
     mask: Bool[np.ndarray, "h w"],
-    area_thresh: float,
+    area_thresh: int,
     mode: Literal["holes", "islands"],
 ) -> tuple[Bool[np.ndarray, "h w"], bool]:
-    """Removes small disconnected regions and holes in a given mask.
+    """Removes small disconnected regions in a binary mask based on the specified mode.
 
-    This function operates on a binary mask, removing regions and holes that
-        are smaller than a specified size. It also returns an indicator flag
-        showing whether the original mask has been modified.
+    This function operates on a binary mask, removing regions that are smaller than a
+    specified area threshold. The mode determines whether to remove small background
+    regions (holes) or small foreground regions (islands).
 
     Arguments:
-        mask (np.array): A binary mask with 1s indicating the regions of
-            interest and 0s elsewhere.
-        min_size (int): The minimum size of regions or holes to be retained
-            in the mask.
-        connectivity (int): The connectivity defining the neighborhood of a
-            pixel. Defaults to 2.
+        mask (np.array): A binary mask with 1s indicating the foreground and 0s
+            indicating the background.
+        area_thresh (int): The minimum area (in pixels) for regions to be retained.
+            Regions smaller than this threshold will be removed.
+        mode (Literal["holes", "islands"]): Specifies the type of regions to remove:
+            - "holes": Removes small background regions (0s) completely surrounded by
+              foreground (1s).
+            - "islands": Removes small foreground regions (1s) completely surrounded by
+              background (0s).
 
     Returns:
-        Tuple[np.array, bool]: A tuple containing the modified mask and a
-            boolean indicating whether the mask has been modified.
+        Tuple[np.array, bool]: A tuple containing:
+            - The modified mask with small regions removed.
+            - A boolean indicating whether the mask was modified (True if changes were made).
 
     Example:
-        >>> remove_small_regions(mask, 100, 2)
+        >>> # Remove small holes (background regions)
+        >>> cleaned_mask, modified = remove_small_regions(mask, 100, mode="holes")
+        >>> # Remove small islands (foreground regions)
+        >>> cleaned_mask, modified = remove_small_regions(mask, 100, mode="islands")
 
     Note:
-        The mask should be a 2D numpy array. The function uses morphological
-            operations to remove small regions and holes.
+        - If all regions are smaller than the threshold, the largest region is retained.
+        - The function preserves the overall structure of the mask while removing noise.
 
     """
     correct_holes = mode == "holes"
