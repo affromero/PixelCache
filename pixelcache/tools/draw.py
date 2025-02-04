@@ -3,13 +3,13 @@ from pathlib import Path
 import numpy as np
 import torch
 from beartype import beartype
-from jaxtyping import Float, UInt8
+from jaxtyping import Float, UInt8, jaxtyped
 from PIL import Image, ImageDraw, ImageFont
 
 from pixelcache.tools.image import pil2tensor, tensor2pil
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def draw_bbox(
     image: (
         Image.Image

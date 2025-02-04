@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import torch
 from beartype import beartype
-from jaxtyping import Bool, Float, Int64, UInt8
+from jaxtyping import Bool, Float, Int64, UInt8, jaxtyped
 from PIL import Image
 
 from pixelcache.tools.bbox import bbox_iou, crop_from_bbox
@@ -69,7 +69,7 @@ def group_regions_from_binary(
     return [np.logical_and(i, bbox_img) for i in square_mask]
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def remove_disconnected_regions(
     masks: list[Bool[np.ndarray, "h w"]],
     area_thresh: float | list[float] = 0.0,
@@ -139,7 +139,7 @@ def remove_disconnected_regions(
     return fine_masks
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def morphologyEx(  # noqa: N802
     mask: Bool[np.ndarray, "h w"],
     mode: int,
@@ -247,7 +247,7 @@ def mask2points(
     return _points
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def mask2bbox(
     binary_mask: Bool[np.ndarray, "h w"],
     /,
@@ -378,7 +378,7 @@ def mask2bbox(
             )
             for bbox in bboxes
         ]
-    if merge and len(bboxes):
+    if merge and len(bboxes) > 0:
         # get min and max
         xmin = min([_bbox[0] for _bbox in bboxes])
         ymin = min([_bbox[1] for _bbox in bboxes])
@@ -396,7 +396,7 @@ def mask2bbox(
     ]
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def bbox2mask(
     bbox: list[tuple[float, float, float, float]],
     image_size: ImageSize,
@@ -446,7 +446,7 @@ def bbox2mask(
     return zeros
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def mask2squaremask(
     mask: Bool[np.ndarray, "h w"],
     margin: float,
@@ -496,12 +496,12 @@ def mask2squaremask(
     return bbox2mask(bbox, ImageSize.from_image(mask))
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def resize_squaremask(
     mask: Bool[np.ndarray, "h w"],
     size: ImageSize,
     **kwargs: Any,
-) -> Bool[np.ndarray, "h w"]:
+) -> Bool[np.ndarray, "h1 w1"]:
     """Resize an image mask to a square shape.
 
     This function takes in an image mask and resizes it to a square shape
@@ -531,7 +531,7 @@ def resize_squaremask(
     return mask2squaremask(tensor2numpy(mask_pt), 0.0, **kwargs)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def reduce_masks(
     mask: Bool[np.ndarray, "h w"],
     *,
@@ -616,7 +616,7 @@ def reduce_masks(
     for i in range(1, mask_segm.max() + 1):
         mask_i: Bool[np.ndarray, "h w"] = np.zeros_like(mask_np)
         mask_i[mask_segm == i] = True
-        if merge and len(mask_list):
+        if merge and len(mask_list) > 0:
             mask_i = np.logical_or(mask_i, mask_list[-1])
         mask_list.append(mask_i)
     if merge:
@@ -624,7 +624,7 @@ def reduce_masks(
     return mask_list
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def keep_n_largest_components(
     binary_mask: Bool[np.ndarray, "h w"],
     n: int,
@@ -673,7 +673,7 @@ def keep_n_largest_components(
     return largest_components_mask.astype(bool)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def remove_small_regions(
     mask: Bool[np.ndarray, "h w"],
     area_thresh: int,
@@ -732,7 +732,7 @@ def remove_small_regions(
     return mask, True
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def crop_from_mask(
     image: UInt8[np.ndarray, "h w c"],
     mask: Bool[np.ndarray, "h w"],
@@ -745,7 +745,7 @@ def crop_from_mask(
     opening: tuple[int, int] = (0, 0),
     area_threshold: float = 0.0,
     number_of_objects: int = -1,
-) -> UInt8[np.ndarray, "h w c"]:
+) -> UInt8[np.ndarray, "h1 w1 c"]:
     """Crop an image based on a bounding box defined by a mask.
 
     This function takes an image and a mask as input, along with an optional
@@ -801,7 +801,7 @@ def crop_from_mask(
     )
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def mask_blend(
     image: UInt8[np.ndarray, "h w 3"],
     mask: UInt8[np.ndarray, "h w 3"] | Bool[np.ndarray, "h w"],
@@ -984,7 +984,7 @@ def differential_mask(
     return out_uint[..., 0].astype(np.uint8)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def align_masks(
     base: Bool[torch.Tensor, "n h w"],
     anchors: Bool[torch.Tensor, "o m h w"],
@@ -1054,7 +1054,7 @@ def align_masks(
     return aligned_indexes, indexes
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def mask_iou(
     mask1: Bool[np.ndarray | torch.Tensor, "m n h w"],
     mask2: Bool[np.ndarray | torch.Tensor, "m n h w"],
@@ -1116,7 +1116,7 @@ def mask_iou(
     return intersection / union
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def mask_intersection(
     mask1: Bool[np.ndarray, "h w"],
     mask2: Bool[np.ndarray, "h w"],
@@ -1161,7 +1161,7 @@ def mask_intersection(
     return intersection / target_sum
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def contour_from_mask(
     mask: Image.Image | Bool[np.ndarray, "h w"],
 ) -> list[np.ndarray]:

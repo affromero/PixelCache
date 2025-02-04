@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from beartype import beartype
-from jaxtyping import Float, Int64, UInt8
+from jaxtyping import Float, Int64, UInt8, jaxtyped
 
 from pixelcache.tools.image import (
     ImageSize,
@@ -11,14 +11,14 @@ from pixelcache.tools.image import (
 )
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def crop_from_bbox(
     image_np: UInt8[np.ndarray, "h w c"],
     /,
     bboxes: list[tuple[float, float, float, float]],
     *,
     is_normalized: bool,
-) -> UInt8[np.ndarray, "h w c"]:
+) -> UInt8[np.ndarray, "h1 w1 c"]:
     """Crops an image based on provided bounding box coordinates.
 
     This function takes an image and a list of bounding boxes as input and
@@ -64,10 +64,10 @@ def crop_from_bbox(
     return image_np[ymin:ymax, xmin:xmax]
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def uncrop_from_bbox(
     base_image: UInt8[np.ndarray, "h w c"],
-    image: UInt8[np.ndarray, "h w c"],
+    image: UInt8[np.ndarray, "h1 w1 c"],
     bboxes: list[tuple[float, float, float, float]],
     *,
     is_normalized: bool,
@@ -131,7 +131,7 @@ def uncrop_from_bbox(
     return out_image
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def increase_bbox(
     bboxes: list[tuple[float, float, float, float]],
     image_size: ImageSize,
@@ -206,7 +206,7 @@ def increase_bbox(
     return new_bboxes
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def bbox_iou(
     boxes1: Int64[torch.Tensor, "n 4"],
     boxes2: Int64[torch.Tensor, "m 4"],
@@ -283,7 +283,7 @@ def bbox_iou(
     return inter_area / union_area if union_area != 0 else torch.FloatTensor(0)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def bbox_intersection(
     box1: tuple[int, int, int, int],
     box2: tuple[int, int, int, int],
@@ -325,7 +325,7 @@ def bbox_intersection(
     return intersection / (img1.sum() if is_bigger else img2.sum())
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def align_bounding_boxes(
     base: Int64[torch.Tensor, "n 4"],
     anchors: Int64[torch.Tensor, "o m 4"],
@@ -384,7 +384,7 @@ def align_bounding_boxes(
     return aligned_indexes, indexes
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def points2bbox(
     list_points: list[list[tuple[int, int]]],
     /,

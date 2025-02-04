@@ -10,7 +10,7 @@ import requests
 import torch
 import torchvision.utils as tv
 from beartype import beartype
-from jaxtyping import Bool, Float, UInt8
+from jaxtyping import Bool, Float, UInt8, jaxtyped
 from PIL import Image, ImageCms
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -23,7 +23,7 @@ from torchvision.io.image import (
 from torchvision.utils import make_grid
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def read_image(
     fname: str | Path,
     /,
@@ -70,7 +70,7 @@ def read_image(
     return image
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def save_image(
     img: (
         Float[torch.Tensor, "b c h w"]
@@ -142,7 +142,7 @@ def save_image(
         )
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def compress_image(
     image: Image.Image,
     *,
@@ -183,7 +183,7 @@ def compress_image(
     return jpg_file
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def numpy2tensor(
     imgs: (
         UInt8[np.ndarray, "h w c"]
@@ -224,7 +224,7 @@ def numpy2tensor(
     return img_pt / 255.0 if img_pt.dtype == torch.uint8 else img_pt
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def pil2tensor(
     img: Image.Image,
 ) -> Float[torch.Tensor, "1 c h w"] | Bool[torch.Tensor, "1 1 h w"]:
@@ -252,7 +252,7 @@ def pil2tensor(
     return numpy2tensor(np.asarray(img))
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def tensor2numpy(
     tensor: Float[torch.Tensor, "b c h w"] | Bool[torch.Tensor, "b c h w"],
     *,
@@ -331,7 +331,7 @@ def tensor2numpy(
     return img_np_typed
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def tensor2pil(
     tensor: Float[torch.Tensor, "b c h w"] | Bool[torch.Tensor, "b c h w"],
     *,
@@ -856,7 +856,7 @@ class ImageSize:
         raise TypeError(msg)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def crop_border(
     imgs: list[
         UInt8[np.ndarray, "h w 3"]
@@ -906,7 +906,7 @@ def crop_border(
     return imgs[crop_border:-crop_border, crop_border:-crop_border]
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def center_pad(
     image: UInt8[np.ndarray, "h w c"],
     size: ImageSize,
@@ -949,7 +949,7 @@ def center_pad(
     return new_np
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def to_binary(
     rgb: (
         Image.Image
@@ -1003,7 +1003,7 @@ def to_binary(
     return binary_pt
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def to_rgb(
     rgb: (
         Image.Image
@@ -1044,7 +1044,7 @@ def to_rgb(
     return einops.repeat(rgb, "1 1 h w -> 1 c h w", c=3)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def convert_to_space_color(
     image_np: UInt8[np.ndarray, "h w 3"],
     space: str,
@@ -1099,7 +1099,7 @@ def convert_to_space_color(
     return np.asarray(image)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def threshold_image(
     image: UInt8[np.ndarray, "h w 3"] | UInt8[np.ndarray, "h w"] | Image.Image,
     mode: Literal["<", "<=", ">", ">="],
@@ -1169,7 +1169,7 @@ def threshold_image(
     return image
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def resize_image(
     tensor: Float[torch.Tensor, "b c h w"] | Bool[torch.Tensor, "b 1 h w"],
     /,
@@ -1177,7 +1177,7 @@ def resize_image(
     mode: str,
     resize_min_max: Literal["min", "max"] = "min",
     modulo: int = 16,
-) -> Float[torch.Tensor, "b c h w"]:
+) -> Float[torch.Tensor, "b c h1 w1"]:
     """Resizes the provided image to a specified resolution while maintaining.
 
         the aspect ratio.
@@ -1229,7 +1229,7 @@ def resize_image(
         width *= k
         height = round(np.round(height / modulo)) * modulo
         width = round(np.round(width / modulo)) * modulo
-    output: Float[torch.Tensor, "b c h w"] = torch.nn.functional.interpolate(
+    output: Float[torch.Tensor, "b c h1 w1"] = torch.nn.functional.interpolate(
         tensor,
         size=(height, width),
         mode=mode,
@@ -1239,7 +1239,7 @@ def resize_image(
     return output
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def rgb2gray(rgb: UInt8[np.ndarray, "h w 3"]) -> UInt8[np.ndarray, "h w"]:
     """Convert an RGB image to grayscale using the luminance method.
 
@@ -1270,7 +1270,7 @@ def rgb2gray(rgb: UInt8[np.ndarray, "h w 3"]) -> UInt8[np.ndarray, "h w"]:
     return np.dot(rgb[:, :, :3], [0.299, 0.587, 0.114])
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def get_canny_edge(
     image: UInt8[np.ndarray, "h w 3"],
     threshold: tuple[int, int] = (100, 200),
@@ -1308,7 +1308,7 @@ def get_canny_edge(
     return cv2.Canny(image, *threshold)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def cv2_inpaint(
     image: np.ndarray | Image.Image,
     mask: np.ndarray | Image.Image,
@@ -1365,7 +1365,7 @@ def cv2_inpaint(
     return blended_image
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def add_sensor_noise_and_jpeg_compression(
     images: list[str | Path],
     *,
@@ -1444,7 +1444,7 @@ def add_sensor_noise_and_jpeg_compression(
     return processed_images
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def tile(image: Image.Image, mode: str = "1x1") -> dict[str, Image.Image]:
     """Tile an input image into smaller images based on a specified mode.
 

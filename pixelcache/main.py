@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 import string
 import tempfile
@@ -17,7 +19,7 @@ import cv2
 import numpy as np
 import torch
 from beartype import beartype
-from jaxtyping import Bool, Float, Float32, UInt8
+from jaxtyping import Bool, Float, Float32, UInt8, jaxtyped
 from PIL import Image, ImageOps
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -64,7 +66,7 @@ VALID_IMAGES = Literal["pil", "numpy", "torch"]
 PALETTE_DEFAULT = color_palette()
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def pseudo_hash(idx: int, length: int = 6) -> str:
     """Generate a pseudo-random hash based on the given index and length.
 
@@ -89,8 +91,10 @@ def pseudo_hash(idx: int, length: int = 6) -> str:
     return "".join(random.choice(string.ascii_letters) for _ in range(length))  # noqa: S311
 
 
-@beartype
 class HashableImage:
+    """Hashable image class."""
+
+    @jaxtyped(typechecker=beartype)
     def __init__(
         self,
         image: (
@@ -275,7 +279,7 @@ class HashableImage:
         """
         self.pil().show()
 
-    def downsample(self, factor: int) -> "HashableImage":
+    def downsample(self, factor: int) -> HashableImage:
         """Downsample the given image by a specified factor.
 
         Arguments:
@@ -299,10 +303,11 @@ class HashableImage:
         )
         return self.resize(new_size)
 
+    @jaxtyped(typechecker=beartype)
     def resize(
         self,
         size: ImageSize,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Resize the image to a specified size using different interpolation.
 
             methods based on the image mode.
@@ -350,9 +355,10 @@ class HashableImage:
             return HashableImage(__image)
         return self
 
+    @jaxtyped(typechecker=beartype)
     def resize_min_size(
         self, min_size: int, modulo: int = 16
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Resize the image to a specified minimum size.
 
         This method resizes the image to the specified minimum size while
@@ -390,6 +396,7 @@ class HashableImage:
         new_w = new_w - (new_w % modulo)
         return self.resize(ImageSize(height=new_h, width=new_w))
 
+    @jaxtyped(typechecker=beartype)
     def is_empty(self) -> bool:
         """Check if the HashableImage object is empty.
 
@@ -417,7 +424,8 @@ class HashableImage:
         return np.sum(np.asarray(self.__image)).item() == 0
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
-    def to_gray(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def to_gray(self) -> HashableImage:
         """Converts the current image to grayscale.
 
         This method does not take any arguments. It processes the current
@@ -451,7 +459,8 @@ class HashableImage:
         return HashableImage(self.__image.convert("L"))
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
-    def flip_lr(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def flip_lr(self) -> HashableImage:
         """Flip the image horizontally.
 
         This method in the 'HashableImage' class takes the instance of the
@@ -479,7 +488,8 @@ class HashableImage:
             return HashableImage(torch.flip(self.__image, [3]))
         return HashableImage(cv2.flip(self.__image, 1))
 
-    def extract_binary_from_value(self, value: int) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def extract_binary_from_value(self, value: int) -> HashableImage:
         """Extract the binary mask from the value in the HashableImage object.
 
         This method extracts the binary mask from the value in the
@@ -506,7 +516,8 @@ class HashableImage:
         new_image[image_np == value] = 255
         return HashableImage(new_image.astype(bool)[..., 0])
 
-    def convert_binary_to_value(self, value: int) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def convert_binary_to_value(self, value: int) -> HashableImage:
         """Convert the binary mask to the value in the HashableImage object.
 
         This method converts the binary mask to the value in the HashableImage
@@ -533,9 +544,10 @@ class HashableImage:
         new_image[image_np.astype(bool)] = value
         return HashableImage(new_image)
 
+    @jaxtyped(typechecker=beartype)
     def apply_palette(
         self, _palette: UInt8[np.ndarray, "256 3"] = PALETTE_DEFAULT, /
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Apply a color palette to the HashableImage object.
 
         This method applies a color palette to the HashableImage object.
@@ -576,7 +588,8 @@ class HashableImage:
         return HashableImage(new_image)
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
-    def to_rgb(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def to_rgb(self) -> HashableImage:
         """Convert an image to RGB format.
 
         This method transforms the current mode of a HashableImage object to
@@ -618,7 +631,8 @@ class HashableImage:
         return HashableImage(self.__image.convert("RGB"))
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
-    def to_binary(self, threshold: float = 0.0) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def to_binary(self, threshold: float = 0.0) -> HashableImage:
         """Convert an image to binary format.
 
         This function does not take any arguments. It uses the global state
@@ -646,6 +660,7 @@ class HashableImage:
         return HashableImage(to_binary(self.__image, threshold=threshold))
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
     def unique_values(self) -> tuple[list[float], torch.Tensor, list[float]]:
         """Get the unique values in the image.
 
@@ -676,12 +691,13 @@ class HashableImage:
         return _unique, _indices, _count
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
     def split_masks(
         self,
         closing: tuple[int, int] = (0, 0),
         margin: float = 0.0,
         area_threshold: float = 0.0,
-    ) -> "HashableList[HashableImage]":
+    ) -> HashableList[HashableImage]:
         """Split masks in a HashableImage object into multiple HashableImage.
 
             objects.
@@ -726,7 +742,8 @@ class HashableImage:
         )
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
-    def invert_binary(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def invert_binary(self) -> HashableImage:
         """Invert the binary representation of the image data in a.
 
             HashableImage object.
@@ -758,7 +775,8 @@ class HashableImage:
         return HashableImage(~self.to_binary().numpy())
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
-    def invert_rgb(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def invert_rgb(self) -> HashableImage:
         """Invert the RGB values of the HashableImage object.
 
         This method checks the mode of the HashableImage object and performs
@@ -790,7 +808,8 @@ class HashableImage:
         return HashableImage(255 - self.numpy())
 
     @staticmethod
-    def zeros_from_size(size: ImageSize) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def zeros_from_size(size: ImageSize) -> HashableImage:
         """Create a HashableImage object with all elements initialized to zero.
 
         This static method generates a HashableImage object of the specified
@@ -817,7 +836,8 @@ class HashableImage:
             torch.zeros((1, 3, int(size.height), int(size.width))),
         )
 
-    def zeros_like(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def zeros_like(self) -> HashableImage:
         """Create a new HashableImage object with all elements set to zero.
 
         This method generates a new HashableImage object, with the same
@@ -850,7 +870,8 @@ class HashableImage:
             Image.new(self.__image.mode, self.__image.size, 0),
         )
 
-    def ones_like(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def ones_like(self) -> HashableImage:
         """Create a new HashableImage object filled with ones.
 
         This method generates a new HashableImage object, maintaining the
@@ -886,7 +907,8 @@ class HashableImage:
             ),
         )
 
-    def rgb2bgr(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def rgb2bgr(self) -> HashableImage:
         """Convert the image from RGB to BGR color space in a HashableImage.
 
             object.
@@ -921,7 +943,8 @@ class HashableImage:
             )
         return HashableImage(self.__image[:, [2, 1, 0], :, :])
 
-    def equalize_hist(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def equalize_hist(self) -> HashableImage:
         """Equalizes the histogram of the image stored in the HashableImage.
 
             object.
@@ -950,9 +973,10 @@ class HashableImage:
             return HashableImage(ImageOps.equalize(self.__image))
         return HashableImage(cv2.equalizeHist(self.to_gray().numpy()))
 
+    @jaxtyped(typechecker=beartype)
     def to_space_color(
         self, color_space: str, getchannel: str | None = None
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Convert the image to a specified color space.
 
         This method converts the image stored in the HashableImage object to
@@ -986,6 +1010,7 @@ class HashableImage:
             )
         )
 
+    @jaxtyped(typechecker=beartype)
     def compress_image(
         self,
         *,
@@ -1016,7 +1041,8 @@ class HashableImage:
             jpeg_quality=jpeg_quality,
         )
 
-    def __add__(self, other: object) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def __add__(self, other: object) -> HashableImage:
         """Add a HashableImage object to another HashableImage or Number.
 
             object.
@@ -1056,7 +1082,8 @@ class HashableImage:
         other_value = other if isinstance(other, Number) else other.numpy()
         return HashableImage((self.numpy() + other_value).clip(0, 255))
 
-    def __sub__(self, other: object) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def __sub__(self, other: object) -> HashableImage:
         """Subtract pixel values of a HashableImage object or a number from.
 
             this HashableImage object.
@@ -1098,7 +1125,8 @@ class HashableImage:
         other_value = other if isinstance(other, Number) else other.numpy()
         return HashableImage((self.numpy() - other_value).clip(0, 255))
 
-    def __mul__(self, other: object) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def __mul__(self, other: object) -> HashableImage:
         """Performs element-wise multiplication between two HashableImage.
 
             objects or a HashableImage object and a Number.
@@ -1159,7 +1187,8 @@ class HashableImage:
             output.astype(bool) if is_bool else output.astype(np.uint8),
         )
 
-    def __truediv__(self, other: object) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def __truediv__(self, other: object) -> HashableImage:
         """Divide the HashableImage object by another object.
 
         This method is used to divide the current HashableImage object by
@@ -1199,6 +1228,7 @@ class HashableImage:
             (self.numpy() / other_value).clip(0, 255).astype(np.uint8),
         )
 
+    @jaxtyped(typechecker=beartype)
     def size(self) -> ImageSize:
         """Calculate the size of the HashableImage object.
 
@@ -1223,7 +1253,8 @@ class HashableImage:
         """
         return ImageSize.from_image(self.__image)
 
-    def copy(self) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def copy(self) -> HashableImage:
         """Create a copy of a HashableImage object.
 
         Arguments:
@@ -1249,6 +1280,7 @@ class HashableImage:
         image.set_filename(self.get_filename())
         return image
 
+    @jaxtyped(typechecker=beartype)
     def mean(self) -> float:
         """Calculate the mean value of the image data stored in the.
 
@@ -1274,6 +1306,7 @@ class HashableImage:
         # two decimal places
         return round(value, 2)
 
+    @jaxtyped(typechecker=beartype)
     def std(self) -> float:
         """Calculate the standard deviation of the image data.
 
@@ -1298,6 +1331,7 @@ class HashableImage:
             value = np.std(self.__image)
         return round(value, 2)
 
+    @jaxtyped(typechecker=beartype)
     def min(self) -> float:
         """Calculate and return the minimum value in the HashableImage object.
 
@@ -1325,6 +1359,7 @@ class HashableImage:
             value = float(np.min(self.__image))
         return round(value, 2)
 
+    @jaxtyped(typechecker=beartype)
     def max(self) -> float:
         """Calculate and return the maximum value in the HashableImage object.
 
@@ -1351,6 +1386,7 @@ class HashableImage:
             value = float(np.max(self.__image))
         return round(value, 2)
 
+    @jaxtyped(typechecker=beartype)
     def sum(self) -> float:
         """Calculate the sum of all elements in the HashableImage object.
 
@@ -1377,6 +1413,7 @@ class HashableImage:
             value = float(np.sum(self.__image))
         return round(value, 2)
 
+    @jaxtyped(typechecker=beartype)
     def dtype(self) -> str:
         """Return a string representing the data type and channels of the.
 
@@ -1413,6 +1450,7 @@ class HashableImage:
             return f"{self.__image.dtype} {channels}"
         return str(self.__image.mode)
 
+    @jaxtyped(typechecker=beartype)
     def __repr__(self) -> str:
         """Generate a string representation of the HashableImage object.
 
@@ -1443,6 +1481,7 @@ class HashableImage:
         )
         return f"HashableImage: {self.__mode} {self.dtype()} {self.size()} - mean: {self.mean()} std: {self.std()} min {self.min()} max {self.max()}{_filename}"
 
+    @jaxtyped(typechecker=beartype)
     def pil(self) -> Image.Image:
         """Convert the image data to a PIL Image object.
 
@@ -1472,6 +1511,7 @@ class HashableImage:
             return Image.fromarray(self.__image)
         return self.__image
 
+    @jaxtyped(typechecker=beartype)
     def numpy(
         self,
     ) -> (
@@ -1508,6 +1548,7 @@ class HashableImage:
         return np.asarray(self.__image)
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
     def tensor(
         self,
     ) -> Float[torch.Tensor, "1 c h w"] | Bool[torch.Tensor, "1 c h w"]:
@@ -1543,6 +1584,7 @@ class HashableImage:
         return pil2tensor(self.__image)
 
     @property
+    @jaxtyped(typechecker=beartype)
     def mode(self) -> Literal["pil", "numpy", "torch"]:
         """Retrieve the mode of the HashableImage object.
 
@@ -1567,6 +1609,7 @@ class HashableImage:
         """
         return self.__mode
 
+    @jaxtyped(typechecker=beartype)
     def is_binary(self) -> bool:
         """Check if the image data in the HashableImage object is binary.
 
@@ -1593,6 +1636,7 @@ class HashableImage:
             return self.__image.dtype == torch.bool
         return self.__image.dtype == bool
 
+    @jaxtyped(typechecker=beartype)
     def is_rgb(self) -> bool:
         """Check if the image in the HashableImage object is in RGB format.
 
@@ -1659,11 +1703,12 @@ class HashableImage:
             msg,
         )
 
+    @jaxtyped(typechecker=beartype)
     def concat(
         self,
-        other: list["HashableImage"],
+        other: list[HashableImage],
         mode: Literal["horizontal", "vertical"],
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Concatenate multiple images either horizontally or vertically.
 
         Arguments:
@@ -1703,6 +1748,7 @@ class HashableImage:
             np.concatenate([self.numpy(), *other_value], axis=0),
         )
 
+    @jaxtyped(typechecker=beartype)
     def raw(
         self,
     ) -> (
@@ -1738,7 +1784,8 @@ class HashableImage:
         """
         return self.__image
 
-    def logical_and(self, other: "HashableImage") -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def logical_and(self, other: HashableImage) -> HashableImage:
         """Perform a logical AND operation with another HashableImage.
 
         This method takes another HashableImage object as an input and
@@ -1780,10 +1827,11 @@ class HashableImage:
             ),
         )
 
+    @jaxtyped(typechecker=beartype)
     def logical_and_reduce(
         self,
-        other: list["HashableImage"],
-    ) -> "HashableImage":
+        other: list[HashableImage],
+    ) -> HashableImage:
         """Perform a logical AND operation on a list of HashableImage objects.
 
         This method takes a list of HashableImage objects and performs a
@@ -1824,7 +1872,8 @@ class HashableImage:
             ),
         )
 
-    def logical_or(self, other: "HashableImage") -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def logical_or(self, other: HashableImage, /) -> HashableImage:
         """Perform a logical OR operation with another HashableImage.
 
         This method takes another HashableImage object as input and performs
@@ -1864,10 +1913,11 @@ class HashableImage:
             ),
         )
 
+    @jaxtyped(typechecker=beartype)
     def logical_or_reduce(
         self,
-        other: list["HashableImage"],
-    ) -> "HashableImage":
+        other: list[HashableImage],
+    ) -> HashableImage:
         """Perform a logical OR operation on binary representations of.
 
             HashableImage objects.
@@ -1912,6 +1962,7 @@ class HashableImage:
             ),
         )
 
+    @jaxtyped(typechecker=beartype)
     def __hash__(self) -> int:
         """Calculate the hash value of a HashableImage object.
 
@@ -1938,6 +1989,7 @@ class HashableImage:
             return hash(self.__image)
         return hash(self.__image.tobytes())
 
+    @jaxtyped(typechecker=beartype)
     def __eq__(self, other: object) -> bool:
         """Compare two HashableImage objects for equality.
 
@@ -1971,11 +2023,12 @@ class HashableImage:
         return self.__image.tobytes() == other.__image.tobytes()
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
     def crop_from_mask(
         self,
-        mask: "HashableImage",
+        mask: HashableImage,
         **kwargs: Any,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Crop an image based on a provided mask image.
 
         Arguments:
@@ -2007,10 +2060,11 @@ class HashableImage:
         )
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
     def crop_from_bbox(
         self,
-        bboxes: "HashableList[BoundingBox]",
-    ) -> "HashableImage":
+        bboxes: HashableList[BoundingBox],
+    ) -> HashableImage:
         """Crop an image based on the provided bounding boxes.
 
         This method takes a list of bounding boxes and uses them to crop the
@@ -2054,13 +2108,14 @@ class HashableImage:
         )
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
     def uncrop_from_bbox(
         self,
-        base: "HashableImage",
-        bboxes: "HashableList[BoundingBox]",
+        base: HashableImage,
+        bboxes: HashableList[BoundingBox],
         *,
         resize: bool = False,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Uncrop an image from a specified list of bounding boxes using a.
 
             Least Recently Used (LRU) cache.
@@ -2103,6 +2158,7 @@ class HashableImage:
             )
         )
 
+    @jaxtyped(typechecker=beartype)
     def mask2points(
         self,
         npoints: int = 100,
@@ -2110,7 +2166,7 @@ class HashableImage:
         normalize: bool = False,
         rng: np.random.Generator | None = None,
         output: Literal["xy", "yx"] = "xy",
-    ) -> "Points":
+    ) -> Points:
         """Convert a mask image to a list of points.
 
         This method converts a mask image to a list of points. The number of
@@ -2154,6 +2210,7 @@ class HashableImage:
         )
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
     def mask2bbox(
         self,
         margin: float,
@@ -2165,7 +2222,7 @@ class HashableImage:
         opening: tuple[int, int] = (0, 0),
         area_threshold: float = 0.0,
         number_of_objects: int = -1,
-    ) -> "HashableList[BoundingBox]":
+    ) -> HashableList[BoundingBox]:
         """Convert a mask image to a bounding box in HashableList format.
 
         This method takes an instance of HashableImage class and additional
@@ -2236,7 +2293,8 @@ class HashableImage:
         return all_boxes
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
-    def mask2squaremask(self, **kwargs: Any) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def mask2squaremask(self, **kwargs: Any) -> HashableImage:
         """Convert the mask of a HashableImage object to a square mask.
 
         This method uses the mask2squaremask function from the image_tools
@@ -2267,14 +2325,15 @@ class HashableImage:
         )
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
     def blend(
         self,
-        mask: "HashableImage",
+        mask: HashableImage,
         alpha: float,
         *,
         with_bbox: bool,
         merge_bbox: bool = True,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Blend the current HashableImage object with another using a mask,.
 
             alpha value, and other parameters.
@@ -2313,13 +2372,14 @@ class HashableImage:
             )
         )
 
+    @jaxtyped(typechecker=beartype)
     def draw_points(
         self,
-        points: "Points",
+        points: Points,
         color: tuple[int, int, int],
         radius: int,
         thickness: int,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Draw circles at specified points on an image.
 
         Arguments:
@@ -2360,11 +2420,12 @@ class HashableImage:
             cv2.circle(canvas, (x, y), radius, color, thickness)
         return HashableImage(canvas)
 
+    @jaxtyped(typechecker=beartype)
     def morphologyEx(  # noqa: N802
         self,
         operation: Literal["erode", "dilate", "open", "close"],
         kernel: np.ndarray,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Perform morphological operations on an image.
 
         This function applies a specified morphological operation to the
@@ -2396,12 +2457,13 @@ class HashableImage:
             morphologyEx(self.to_binary().numpy(), _operation, kernel),
         )
 
+    @jaxtyped(typechecker=beartype)
     def draw_polygon(
         self,
-        points: "Points",
+        points: Points,
         alpha: float = 0.5,
         add_text: str = "",
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Draw a polygon on an image and return the modified image.
 
         This method in the 'HashableImage' class draws a polygon on an image
@@ -2447,13 +2509,14 @@ class HashableImage:
             )
         return out
 
+    @jaxtyped(typechecker=beartype)
     def draw_bbox(
         self,
-        bbox: "BoundingBox",
+        bbox: BoundingBox,
         alpha: float = 0.5,
         add_text: str = "",
         color: tuple[int, int, int] = (255, 255, 0),
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Draw a bounding box on the given image and optionally add text.
 
         Arguments:
@@ -2497,12 +2560,13 @@ class HashableImage:
             )
         return out
 
+    @jaxtyped(typechecker=beartype)
     def draw_lines(
         self,
         lines: list[tuple[tuple[int, int], tuple[int, int]]],
         color: tuple[int, int, int],
         thickness: int,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Draw specified lines on an image.
 
         This method takes a list of line coordinates, a RGB color tuple, and
@@ -2536,13 +2600,14 @@ class HashableImage:
             cv2.line(canvas, line[0], line[1], color, thickness)
         return HashableImage(canvas)
 
+    @jaxtyped(typechecker=beartype)
     def draw_text(
         self,
         text: str,
         coord_xy: tuple[int, int],
         font_size: float = 20.0,
         color: tuple[int, int, int] = (255, 255, 255),
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Draws text on the HashableImage object at the specified coordinates.
 
             with the given font size and color.
@@ -2579,11 +2644,12 @@ class HashableImage:
             ),
         )
 
+    @jaxtyped(typechecker=beartype)
     def center_pad(
         self,
         image_size: ImageSize,
         fill: int = 0,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Center pad an image to a specified size with a specified fill value.
 
         This method in the HashableImage class is used to center pad an
@@ -2612,9 +2678,10 @@ class HashableImage:
             center_pad(self.to_rgb().numpy(), image_size, fill)
         )
 
+    @jaxtyped(typechecker=beartype)
     def get_canny_edge(
         self, threshold: tuple[int, int] = (100, 200), *, to_gray: bool = False
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Get the Canny edge detection of the image.
 
         This method in the HashableImage class is used to get the Canny edge
@@ -2637,6 +2704,7 @@ class HashableImage:
             get_canny_edge(self.to_rgb().numpy(), threshold, to_gray=to_gray)
         )
 
+    @jaxtyped(typechecker=beartype)
     def differential_mask(
         self,
         dilation: int,
@@ -2644,7 +2712,7 @@ class HashableImage:
         scale_nonmask: float | None = None,
         *,
         invert: bool = False,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Get the differential mask of the image.
 
         This method in the HashableImage class is used to get the differential
@@ -2675,13 +2743,14 @@ class HashableImage:
             )
         )
 
+    @jaxtyped(typechecker=beartype)
     def group_regions_binary(
         self,
         *,
         closing: tuple[int, int],
         margin: float = 0.0,
         area_threshold: float = 0.0,
-    ) -> "list[HashableImage]":
+    ) -> list[HashableImage]:
         """Group regions in a binary image.
 
         This method groups regions in a binary image based on the specified
@@ -2711,12 +2780,13 @@ class HashableImage:
         ]
 
     @staticmethod
+    @jaxtyped(typechecker=beartype)
     def make_image_grid(
-        images: "HashableDict[str, HashableList[HashableImage]]",
+        images: HashableDict[str, HashableList[HashableImage]],
         *,
         orientation: Literal["horizontal", "vertical"] = "horizontal",
         with_text: bool = False,
-    ) -> "HashableImage":
+    ) -> HashableImage:
         """Arrange a dictionary of images into a grid either horizontally or.
 
             vertically.
@@ -2749,7 +2819,7 @@ class HashableImage:
         """
         # all list should have the same number of images
         image_as_list: dict[str, list[HashableImage]] = cast(
-            dict[str, list["HashableImage"]],
+            dict[str, list[HashableImage]],
             images.to_dict(),
         )
         max_images = max([len(imgs) for imgs in image_as_list.values()])
@@ -2808,7 +2878,8 @@ class HashableImage:
 
         return HashableImage(grid)
 
-    def set_minmax(self, _min: float, _max: float, /) -> "HashableImage":
+    @jaxtyped(typechecker=beartype)
+    def set_minmax(self, _min: float, _max: float, /) -> HashableImage:
         """Set the minimum and maximum values of the image.
 
         This method sets the minimum and maximum values of the image to the
@@ -2834,9 +2905,10 @@ class HashableImage:
         data = data * (_max - _min) + _min
         return HashableImage(data)
 
+    @jaxtyped(typechecker=beartype)
     def __setitem__(
-        self, mask: "HashableImage", value: float, /
-    ) -> "HashableImage":
+        self, mask: HashableImage, value: float, /
+    ) -> HashableImage:
         """Set the pixel values of the image based on a mask.
 
         This method sets the pixel values of the image to a specified value
@@ -2862,6 +2934,8 @@ class HashableImage:
 
 
 class HashableDict(MutableMapping[_KT, _VT]):
+    """Hashable dictionary class."""
+
     def __init__(self, data: dict[_KT, _VT]) -> None:
         """Initialize an instance of the HashableDict class.
 
@@ -2998,7 +3072,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
                 to_dict[k] = v
         return to_dict
 
-    def copy(self) -> "HashableDict[_KT, _VT]":
+    def copy(self) -> HashableDict[_KT, _VT]:
         """Create a copy of the HashableDict object.
 
         This method generates an exact replica of the current HashableDict
@@ -3227,6 +3301,8 @@ class HashableDict(MutableMapping[_KT, _VT]):
 
 
 class HashableList(MutableSequence[_T]):
+    """Hashable list class."""
+
     def __init__(self, data: list[_T]) -> None:
         """Initializes an instance of the HashableList class.
 
@@ -3410,7 +3486,7 @@ class HashableList(MutableSequence[_T]):
         """
         return f"HashableList: {self.__data}"
 
-    def copy(self) -> "HashableList[_T]":
+    def copy(self) -> HashableList[_T]:
         """Create a copy of the HashableList object.
 
         This method generates a new HashableList object by duplicating the
@@ -3464,13 +3540,13 @@ class HashableList(MutableSequence[_T]):
     def __getitem__(self, __index: SupportsIndex, /) -> _T: ...
 
     @overload
-    def __getitem__(self, __index: slice, /) -> "HashableList[_T]": ...
+    def __getitem__(self, __index: slice, /) -> HashableList[_T]: ...
 
     def __getitem__(
         self,
         __index: SupportsIndex | slice,
         /,
-    ) -> _T | "HashableList[_T]":
+    ) -> _T | HashableList[_T]:
         """Retrieve an element or a slice of elements from the HashableList.
 
             object.
@@ -3626,7 +3702,7 @@ class HashableList(MutableSequence[_T]):
         """
         self.__data.insert(__index, __value)
 
-    def __mul__(self, other: int) -> "HashableList[_T]":
+    def __mul__(self, other: int) -> HashableList[_T]:
         """Multiply all elements in the HashableList by a specified integer.
 
         This method iterates over each element in the HashableList,
@@ -3657,6 +3733,8 @@ class HashableList(MutableSequence[_T]):
 
 @dataclass(config=ConfigDict(extra="forbid"), kw_only=True)
 class ImageCrop:
+    """Image crop class."""
+
     left: float
     """The left coordinate of the crop area."""
     top: float
@@ -3843,6 +3921,8 @@ class ImageCrop:
 
 @dataclass(config=ConfigDict(extra="forbid"), frozen=True)
 class BoundingBox:
+    """Bounding box class."""
+
     xmin: float
     """The minimum x-coordinate of the bounding box."""
     ymin: float
@@ -4248,7 +4328,7 @@ class Points:
             )
         return self.points
 
-    def shift_points(self, shift: tuple[float, float]) -> "Points":
+    def shift_points(self, shift: tuple[float, float]) -> Points:
         """Shift the points in the Points object by a specified amount.
 
         This method shifts the points in the Points object by a specified

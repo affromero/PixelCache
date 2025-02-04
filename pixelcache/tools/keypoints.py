@@ -1,11 +1,11 @@
 import torch
 from beartype import beartype
-from jaxtyping import Float
+from jaxtyping import Float, jaxtyped
 
 from pixelcache.tools.image import ImageSize
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def kpts2bbox(
     kpts: (
         Float[torch.Tensor, "n 3"]

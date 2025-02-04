@@ -4,6 +4,7 @@ from typing import Literal
 import numpy as np
 import torch
 from beartype import beartype
+from jaxtyping import jaxtyped
 from PIL import Image, ImageDraw, ImageFont
 
 from pixelcache.tools.image import ImageSize, read_image
@@ -12,7 +13,7 @@ from pixelcache.tools.logger import get_logger
 logger = get_logger()
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def get_font(font_path: str, text_size: float) -> ImageFont.FreeTypeFont:
     """Generate a FreeTypeFont object using a specified font file and text.
 
@@ -47,7 +48,7 @@ def get_font(font_path: str, text_size: float) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(font_path, round(text_size))
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def get_font_path(font: str = "JetBrainsMono-Regular", /) -> str:
     """Retrieve the file path of a specified font.
 
@@ -78,7 +79,7 @@ def get_font_path(font: str = "JetBrainsMono-Regular", /) -> str:
     return str(font_path)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def create_text(
     img_path: str | Path | np.ndarray,
     texts: list[str],
@@ -194,7 +195,7 @@ def textsize(text: str, font: ImageFont.FreeTypeFont) -> tuple[int, int]:
     return round(width), round(height)
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def display_string(
     *,
     text: str,
@@ -291,7 +292,7 @@ def display_string(
     return img, font_size
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def remove_white_text(image: np.ndarray) -> np.ndarray:
     """Remove white text from the top and bottom of an image.
 
@@ -325,7 +326,7 @@ def remove_white_text(image: np.ndarray) -> np.ndarray:
     return image[start_row - 2 : min(end_row + 2, image.shape[0] - 1)]
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def draw_text(
     image: np.ndarray | Image.Image,
     text: str,

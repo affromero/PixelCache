@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, TypeVar, cast
 
 from beartype import beartype
+from jaxtyping import jaxtyped
 
 _T = TypeVar("_T")
 
@@ -165,7 +166,7 @@ def get_cache_dir() -> Path:
     return cache_dir
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def sha256sum(filename: str) -> str:
     """Calculate the SHA-256 hash of a file and return the first 8 characters.
 
@@ -193,7 +194,7 @@ def sha256sum(filename: str) -> str:
     return _sha256sum(filename)[:8]
 
 
-@beartype
+@jaxtyped(typechecker=beartype)
 def pseudo_hash(idx: int, length: int = 6) -> str:
     """Generate a pseudo-random hash based on the given index and length.
 
