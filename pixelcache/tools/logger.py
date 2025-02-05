@@ -346,52 +346,10 @@ class LoggingRich:
         return "\n" + l_string
 
     def preprocess_msg(self, msg: str) -> str:
-        """Preprocess a given message by performing several transformations.
-
-        This method replaces certain strings, converts hexadecimal numbers
-            to '0xXXXXXXXX',
-        and converts lists into bullet points.
-
-        Arguments:
-            self: The instance of the class.
-            msg (str): A string containing the message to be preprocessed.
-
-        Returns:
-            str: The preprocessed message as a string.
-
-        Example:
-            >>> preprocess_message(self, "Your message here")
-
-        Note:
-            The actual replacements and transformations are dependent on the
-                specific implementation of this method.
-
-        """
+        """Preprocess a given message by performing several transformations."""
         # replace $HOME with ~ for interuser compatibility
         msg = msg.replace(Path.cwd().as_posix(), ".")
-        msg = msg.replace(os.getenv("HOME", "~"), "~")
-        if self.is_file_enabled():
-            # remove eg., 0x71878FBCF940 memory addresses
-            re_string = r" 0x[0-9A-F]+"
-            msg = re.sub(re_string, "0xXXXXXXXX", msg)
-        # if there is a list "lipsum lorem ipsum ['a', 'b', 'c'] lipsum lorem ipsum dolor sit amet ["1", "2"]"
-        # convert it to a beautiful list with bullets as follows
-        # lipsum lorem ipsum:
-        # - a
-        # - b
-        # - c
-        # lipsum lorem ipsum dolor sit amet:
-        # - 1
-        # - 2
-        # if not self.is_file_enabled():
-        #     all_lists = re.findall(r"\[.*?\]", msg)
-        #     for l_string in all_lists:
-        #         # only if such lists include commas - ommit single values
-        #         if "," in l_string:
-        #             msg = msg.replace(
-        #                 l_string, self.convert_list_to_bullets(l_string)
-        #             )
-        return msg
+        return msg.replace(os.getenv("HOME", "~"), "~")
 
     def print(self, msg: str, **kwargs: Any) -> None:
         """Print a preprocessed message to the console.
