@@ -2379,6 +2379,7 @@ class HashableImage:
         color: tuple[int, int, int],
         radius: int,
         thickness: int,
+        with_label: list[str] | None = None,
     ) -> HashableImage:
         """Draw circles at specified points on an image.
 
@@ -2415,9 +2416,19 @@ class HashableImage:
         canvas = self.numpy().copy()
         # points normalized
         _points = points.list_tuple_int()
-        for point in _points:
+        for idx, point in enumerate(_points):
             x, y = point
             cv2.circle(canvas, (x, y), radius, color, thickness)
+            if with_label:
+                cv2.putText(
+                    canvas,
+                    str(with_label[idx]),
+                    (x, y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    max(int(radius / 10), 1),
+                    color,
+                    2,
+                )
         return HashableImage(canvas)
 
     @jaxtyped(typechecker=beartype)
