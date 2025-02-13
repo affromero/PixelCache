@@ -9,7 +9,9 @@ max_seed_value = np.iinfo(np.uint32).max
 min_seed_value = np.iinfo(np.uint32).min
 
 
-def seed_everything(seed: int | None = None, *, workers: bool = False) -> int:
+def seed_everything(
+    seed: int | None = None, *, workers: bool = False, verbose: bool = True
+) -> int:
     """Set the seed for pseudo-random number generators in torch, numpy, and.
 
         Python's random module.
@@ -61,7 +63,8 @@ def seed_everything(seed: int | None = None, *, workers: bool = False) -> int:
     if not (min_seed_value <= seed <= max_seed_value):
         seed = 0
 
-    print(f"Seed set to {seed}")
+    if verbose:
+        print(f"Seed set to {seed}")
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)  # noqa: NPY002
