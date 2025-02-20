@@ -3212,6 +3212,9 @@ class HashableDict(MutableMapping[_KT, _VT]):
                 object.
 
         """
+        if __name not in self.__data:
+            msg = f"Key {__name} not found in HashableDict"
+            raise KeyError(msg)
         return self.__data[__name]
 
     def __setitem__(self, __name: _KT, __value: _VT, /) -> None:
