@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 import torch
 from beartype import beartype
-from jaxtyping import Bool, Float, Float32, UInt8, jaxtyped
+from jaxtyping import Bool, Float, UInt8, jaxtyped
 from PIL import Image, ImageOps
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -4217,7 +4217,7 @@ class BoundingBox:
 class Points:
     """A class to represent a set of points in an image."""
 
-    points: Float32[np.ndarray, "n 2"]
+    points: np.ndarray
     """The points in the image, represented as a 2D NumPy array."""
 
     is_normalized: bool
