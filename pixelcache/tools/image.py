@@ -989,11 +989,13 @@ def to_binary(
     if isinstance(rgb, Image.Image | np.ndarray):
         rgb_np = np.asarray(rgb)
         if rgb_np.ndim == 3:
-            rgb_np = np.logical_or.reduce([
-                rgb_np[..., 0] > threshold,
-                rgb_np[..., 1] > threshold,
-                rgb_np[..., 2] > threshold,
-            ])
+            rgb_np = np.logical_or.reduce(
+                [
+                    rgb_np[..., 0] > threshold,
+                    rgb_np[..., 1] > threshold,
+                    rgb_np[..., 2] > threshold,
+                ]
+            )
         if isinstance(rgb, Image.Image):
             return Image.fromarray(rgb_np)
         return rgb_np
