@@ -9,6 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+import json5
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from rich import print as pprint
@@ -254,23 +255,60 @@ class LoggingRich:
             **kwargs,
         )
 
+    def __jsonize(self, msg: str) -> str:
+        """JSONize a message and add color formatting.
+        
+        Arguments:
+            msg (str): A valid JSON string to format
+            
+        Returns:
+            str: Formatted JSON string with Rich color markup
+            
+        Raises:
+            JSONDecodeError: If input is not valid JSON
+            
+        Example:
+            >>> msg = '{"name": "John", "age": 30, "active": true}'
+            >>> logger.__jsonize(msg)
+            {
+                [blue]"name"[/blue]: [gold3]"John"[/gold3],
+                [blue]"age"[/blue]: [gold3]30[/gold3],
+                [blue]"active"[/blue]: [gold3]true[/gold3]
+            }
+            
+            When printed with Rich, this will display as colored JSON with:
+            - Keys in blue
+            - String values in gold3
+            - Numbers in gold3
+            - Booleans/null in gold3
+        """
+        # Parse and reformat with consistent indentation
+        jsonize = json.dumps(json5.loads(msg), indent=4)
+        # Color the keys blue and values gold3 in the JSON string
+        jsonize = re.sub(r'(".*?"): ', r"[blue]\1[/blue]: ", jsonize)
+        jsonize = re.sub(r': (".*?")', r": [gold3]\1[/gold3]", jsonize)
+        jsonize = re.sub(r": ([-+]?\d*\.?\d+)", r": [gold3]\1[/gold3]", jsonize)
+        jsonize = re.sub(r": (true|false|null)", r": [gold3]\1[/gold3]", jsonize)
+        return jsonize.replace("\\n", "\n")
+
     def info_json(self, msg: str, **kwargs: Any) -> None:
         """Log an informational message in JSON format.
 
         This method logs a message in JSON format.
         """
         stack_offset = kwargs.pop("stack_offset", 0)
-        jsonize = json.dumps(json.loads(msg), indent=4)
-        # Color the keys blue and values gold3 in the JSON string
-        jsonize = re.sub(r'(".*?"): ', r"[blue]\1[/blue]: ", jsonize)
-        jsonize = re.sub(r': (".*?")', r": [gold3]\1[/gold3]", jsonize)
-        jsonize = re.sub(
-            r": ([-+]?\d*\.?\d+)", r": [gold3]\1[/gold3]", jsonize
+        self.info(
+            "\n" + self.__jsonize(msg),
+            stack_offset=stack_offset + 1,
+            **kwargs,
         )
-        jsonize = re.sub(
-            r": (true|false|null)", r": [gold3]\1[/gold3]", jsonize
-        )
-        self.info("\n" + jsonize, stack_offset=stack_offset + 1, **kwargs)
+
+    def error_json(self, msg: str, **kwargs: Any) -> None:
+        """Log an error message in JSON format.
+
+        This method logs a message in JSON format.
+        """
+        self.error("\n" + self.__jsonize(msg), **kwargs)
 
     def debug(self, msg: str, **kwargs: Any) -> None:
         """Log debug messages with additional keyword arguments if debug.
