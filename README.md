@@ -1,3 +1,6 @@
+[![Publish to PyPI](https://github.com/affromero/PixelCache/actions/workflows/publish.yml/badge.svg)](https://github.com/affromero/PixelCache/actions/workflows/publish.yml)
+![PyPI - Version](https://img.shields.io/pypi/v/pixelcache)
+
 # PixelCache
 
 <img src="pixelcache/assets/pixel_cache.png" width="100" height="100"/>
