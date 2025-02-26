@@ -19,8 +19,8 @@ dependencies = [
   "pydantic>=2.10.2,<3",
   "requests>=2.32.3,<3",
   "rich>=13.9.4,<14",
-  "torch",
-  "torchvision",
+  "torch>=2.4.1",
+  "torchvision>=0.19.1",
   "tyro>=0.9.2,<0.10"
 ]
 description = "A versatile image processing library for Python with built-in support for caching, using Pillow, NumPy, and PyTorch."
@@ -67,23 +67,4 @@ select = ["ALL"]
 all = true
 
 [tool.uv]
-
-[[tool.uv.index]]
-default = true
-name = "PyPI"
-url = "https://pypi.org/simple/"
-
-[[tool.uv.index]]
-explicit = true
-name = "Pytorch_Cuda"
-url = "https://download.pytorch.org/whl/cu121"
-
-[tool.uv.sources]
-torch = [
-  {index = "PyPI", marker = "sys_platform != 'linux'"},
-  {index = "Pytorch_Cuda", marker = "sys_platform == 'linux'"}
-]
-torchvision = [
-  {index = "PyPI", marker = "sys_platform != 'linux'"},
-  {index = "Pytorch_Cuda", marker = "sys_platform == 'linux'"}
-]
+no-build-isolation-package = ["torch", "torchvision"]
