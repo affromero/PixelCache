@@ -2471,9 +2471,10 @@ class HashableImage:
     @jaxtyped(typechecker=beartype)
     def draw_polygon(
         self,
-        points: Points,
+        points: list[Points],
         alpha: float = 0.5,
         add_text: str = "",
+        color_text: tuple[int, int, int] = (255, 255, 0),
     ) -> HashableImage:
         """Draw a polygon on an image and return the modified image.
 
@@ -2482,12 +2483,15 @@ class HashableImage:
             to be added to the image.
 
         Arguments:
-            points (List[Tuple[int, int]]): A list of tuples containing the
+            points (List[Points]): A list of Points objects containing the
                 coordinates of the points that define the polygon.
             alpha (float, optional): A float value representing the
                 transparency of the polygon. Defaults to 0.5.
             add_text (str, optional): A string representing the text to be
                 added to the image. Defaults to ''.
+            color_text (tuple[int, int, int], optional): A tuple of three
+                integers representing the RGB color values of the text.
+                Defaults to (255, 255, 0).
 
         Returns:
             HashableImage: A 'HashableImage' object with the polygon drawn
@@ -2503,20 +2507,20 @@ class HashableImage:
         """
         mask = HashableImage(
             polygon_to_mask(
-                points.list_tuple_int(),
+                [point.list_tuple_int() for point in points],
                 image_shape=(int(self.size().height), int(self.size().width)),
             ),
         )
         out = self.blend(mask, alpha, with_bbox=True)
+        min_x = min([point.min_x() for point in points])
+        min_y = min([point.min_y() for point in points])
         if add_text:
             # add text to the image in the upper left corner of the polygon
-            x_min = points.min_x()
-            y_min = points.min_y()
             out = out.draw_text(
                 add_text,
-                (x_min, y_min),
+                (min_x, min_y),
                 font_size=max(self.size().min() * 0.01, 30.0),
-                color=(255, 255, 0),
+                color=color_text,
             )
         return out
 

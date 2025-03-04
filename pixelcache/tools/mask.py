@@ -860,8 +860,50 @@ def mask_blend(
     return cast(np.ndarray, blend)
 
 
+@jaxtyped(typechecker=beartype)
+def mask_to_polygon(
+    mask: Bool[np.ndarray, "h w"], *, min_area: float = 100.0
+) -> list[list[tuple[int, int]]]:
+    """Convert a boolean mask into a polygon.
+
+    This function takes a boolean mask represented as a NumPy array and
+        converts it into a polygon. The polygon is represented as a list of
+        tuples where each tuple contains the x and y coordinates of a point
+        on the polygon.
+
+    Args:
+        mask (Bool[np.ndarray, "h w"]): The boolean mask to convert.
+        min_area (float): The minimum area of the polygon to return.
+
+    Returns:
+        list[list[tuple[int, int]]]: A list of polygons, where each polygon is a list of (x, y) coordinates.
+
+    """
+    # Find contours in the binary mask
+    contours, _ = cv2.findContours(
+        (mask * 255).astype(np.uint8),
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE,
+    )
+
+    # Find the contour with the largest area
+    largest_contour = max(contours, key=cv2.contourArea)
+    if cv2.contourArea(largest_contour) < min_area:
+        return []
+
+    all_valid_polygons = []
+    for contour in contours:
+        if cv2.contourArea(contour) < min_area:
+            continue
+        # Extract the vertices of the contour
+        _polygon = contour.reshape(-1, 2).tolist()
+        polygon = [tuple(i) for i in _polygon]
+        all_valid_polygons.append(polygon)
+    return all_valid_polygons
+
+
 def polygon_to_mask(
-    polygon: list[tuple[int, int]],
+    polygons: list[list[tuple[int, int]]],
     image_shape: tuple[int, int],
 ) -> Bool[np.ndarray, "h w"]:
     """Convert a polygon into a segmentation mask.
@@ -870,7 +912,7 @@ def polygon_to_mask(
         returns a binary mask with the polygon area filled.
 
     Arguments:
-        polygon (List[Tuple[int, int]]): List of (x, y) coordinates
+        polygon (List[List[Tuple[int, int]]]): List of list of (x, y) coordinates
             representing the vertices of the polygon. The coordinates are
             expected to be integers.
         image_shape (Tuple[int, int]): Shape of the image (height, width)
@@ -882,25 +924,57 @@ def polygon_to_mask(
             where the area within the polygon is filled with 1s and the rest
             with 0s.
 
-    Example:
-        >>> convert_polygon_to_mask([(10, 10), (20, 10), (20, 20), (10,
-            20)], (30, 30))
-
-    Note:
-        The vertices of the polygon should be provided in either clockwise
-            or counter-clockwise order.
 
     """
     # Create an empty mask
     mask = np.zeros(image_shape, dtype=np.uint8)
 
     # Convert polygon to an array of points
-    pts = np.array(polygon, dtype=np.int32)
+    for polygon in polygons:
+        pts = np.array(polygon, dtype=np.int32)
 
-    # Fill the polygon with white color (255)
-    cv2.fillPoly(mask, [pts], color=(255,))
+        # Fill the polygon with white color (255)
+        cv2.fillPoly(mask, [pts], color=(255,))
 
     return mask.astype(bool)
+
+
+def refine_masks(
+    masks_pt: Bool[torch.Tensor, "b 1 h w"],
+    min_area: float = 100.0,
+) -> Bool[torch.Tensor, "b 1 h w"]:
+    """Refine input masks by converting them to polygons and back to masks.
+
+    This function takes a binary mask as input, converts it to a set of polygons,
+    and then converts these polygons back to a binary mask. This process can help
+    to smooth the mask and remove small holes or inconsistencies.
+
+    Arguments:
+        mask (np.ndarray): A binary mask to be refined. This should be a 2D
+            numpy array where 1s represent the mask and 0s represent the
+            background.
+
+    Returns:
+        np.ndarray: The refined mask, in the same format as the input mask.
+
+    Example:
+        >>> refined_mask = refine_masks(original_mask)
+
+    Note:
+        This function can be slow for large masks, as the conversion to
+        polygons and back to masks is computationally intensive.
+
+    """
+    refined_mask = torch.zeros_like(masks_pt)
+    for idx, mask in enumerate(masks_pt):
+        shape = mask.shape[-2:]
+        polygon = mask_to_polygon(
+            tensor2numpy(mask[None], output_type=bool), min_area=min_area
+        )
+        mask = polygon_to_mask(polygon, shape)
+        refined_mask[idx] = numpy2tensor(mask)[0]
+
+    return refined_mask
 
 
 def differential_mask(
