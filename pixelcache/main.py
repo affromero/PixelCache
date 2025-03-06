@@ -132,7 +132,7 @@ class HashableImage:
         """
         # pytorch is hashable
         if isinstance(image, torch.Tensor):
-            self.__image = image
+            self.__image = image.detach().cpu()
         elif isinstance(image, str | Path):
             self.__image = read_image(image)
         elif isinstance(image, Image.Image):
