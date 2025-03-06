@@ -1477,7 +1477,9 @@ class HashableImage:
 
         """
         _filename = (
-            self.get_filename() if "/tmp" not in self.get_filename() else ""  # noqa: S108
+            f" {self.get_filename()}"
+            if "/tmp" not in self.get_filename()  # noqa: S108
+            else ""
         )
         return f"HashableImage: {self.__mode} {self.dtype()} {self.size()} - mean: {self.mean()} std: {self.std()} min {self.min()} max {self.max()}{_filename}"
 
