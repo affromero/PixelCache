@@ -229,7 +229,11 @@ class HashableImage:
         # in case the image has been modified during inpainting, but the filename is still the same
         self.__image_str = filename
 
-    def save(self, path: Path | str) -> None:
+    def save(
+        self,
+        path: Path | str,
+        transparency: Literal["white", "black"] | None = None,
+    ) -> None:
         """Save the image represented by the HashableImage object to a.
 
             specified file path.
@@ -254,7 +258,22 @@ class HashableImage:
                 file already exists, it will be overwritten.
 
         """
-        save_image(self.__image, path=str(path), normalize=False)
+        if transparency is not None:
+            image = self.pil()
+            image_np = self.to_binary().numpy()
+            if transparency == "white":
+                mask = image_np
+            elif transparency == "black":
+                mask = ~image_np
+            else:
+                msg = f"Invalid transparency: {transparency}"
+                raise ValueError(msg)
+            # convert to rgba
+            image = image.convert("RGBA")
+            image.putalpha(Image.fromarray(mask))
+            image.save(path, "PNG")
+        else:
+            save_image(self.__image, path=str(path), normalize=False)
 
     def show(self) -> None:
         """Display the image represented by the HashableImage object.
