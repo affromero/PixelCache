@@ -236,7 +236,7 @@ def display_string(
         initial_font_size = (
             min(_image_size) // 50
         )  # Initial font size - will be increase to fit the text
-        font_size = initial_font_size
+        font_size = max(initial_font_size, 5)
         font = ImageFont.truetype(font_path, size=font_size)
         # Estimate maximum font size
         last_font_size = font_size
