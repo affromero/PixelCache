@@ -233,10 +233,7 @@ def display_string(
         font_size = force_size
     else:
         # Load the default font
-        initial_font_size = (
-            min(_image_size) // 50
-        )  # Initial font size - will be increase to fit the text
-        font_size = max(initial_font_size, 5)
+        initial_font_size = font_size = 5  # will be increase to fit the text
         font = ImageFont.truetype(font_path, size=font_size)
         # Estimate maximum font size
         last_font_size = font_size
