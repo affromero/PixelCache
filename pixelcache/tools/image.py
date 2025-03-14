@@ -911,7 +911,7 @@ def center_pad(
     image: UInt8[np.ndarray, "h w c"],
     size: ImageSize,
     fill: int | tuple[int, int] = (0, 0),
-) -> UInt8[np.ndarray, "h w c"]:
+) -> UInt8[np.ndarray, "h1 w1 c"]:
     """Pads an image to the center with a specified size and fill value.
 
     Arguments:
