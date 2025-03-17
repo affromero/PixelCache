@@ -1604,6 +1604,26 @@ class HashableImage:
             return numpy2tensor(self.__image)
         return pil2tensor(self.__image)
 
+    def bytes(self) -> bytes:
+        """Convert the image data to a bytes object.
+
+        This method converts the image data stored in the HashableImage
+            object into a bytes object.
+
+        Returns:
+            bytes: The image data as a bytes object.
+
+        Example:
+            >>> image = HashableImage(...)
+            >>> image_bytes = image.bytes()
+
+        Note:
+            The bytes object can be used for further processing or
+                serialization.
+
+        """
+        return self.pil().tobytes()
+
     @property
     @jaxtyped(typechecker=beartype)
     def mode(self) -> Literal["pil", "numpy", "torch"]:
@@ -2888,19 +2908,18 @@ class HashableImage:
 
         # each index in the list is a different row
         all_images = []
-        for idx in range(max_images):
-            row_images = [imgs[idx].pil() for imgs in image_as_list.values()]
-            all_images.extend(row_images)
-        nrows = (
-            len(list(image_as_list.values()))
-            if orientation == "vertical"
-            else max_images
-        )
-        ncols = (
-            max_images
-            if orientation == "vertical"
-            else len(list(image_as_list.values()))
-        )
+        for imgs in image_as_list.values():
+            all_images.extend([img.pil() for img in imgs])
+        if orientation == "vertical":
+            # For vertical orientation, stack images column-wise
+            # Each column contains all images from one key
+            nrows = len(image_as_list)
+            ncols = max_images
+        else:
+            # For horizontal orientation, stack images row-wise
+            # Each row contains all images from one key
+            nrows = max_images
+            ncols = len(image_as_list)
 
         grid = make_image_grid(all_images, rows=nrows, cols=ncols)
         if with_text:

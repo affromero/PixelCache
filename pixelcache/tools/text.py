@@ -250,7 +250,7 @@ def display_string(
             font = ImageFont.truetype(font_path, size=font_size)
 
         font_size = round(
-            font_size * 0.8
+            font_size * 0.5
         )  # Slightly reduce font size for better fit
     font = ImageFont.truetype(font_path, size=font_size)
 
