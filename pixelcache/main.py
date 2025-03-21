@@ -259,19 +259,19 @@ class HashableImage:
 
         """
         if transparency is not None:
-            image = self.pil()
-            image_np = self.to_binary().numpy()
+            image = self.to_rgb().pil()
+            image_np = self.to_rgb().numpy()
             if transparency == "white":
-                mask = image_np
+                mask = (image_np != 255).all(axis=-1)
             elif transparency == "black":
-                mask = ~image_np
+                mask = (image_np != 0).all(axis=-1)
             else:
                 msg = f"Invalid transparency: {transparency}"
                 raise ValueError(msg)
             # convert to rgba
-            image = image.convert("RGBA")
-            image.putalpha(Image.fromarray(mask))
-            image.save(path, "PNG")
+            image_rgba = Image.new("RGBA", image.size)
+            image_rgba.paste(image, mask=Image.fromarray(mask))
+            image_rgba.save(path)
         else:
             save_image(self.__image, path=str(path), normalize=False)
 
