@@ -326,15 +326,17 @@ class HashableImage:
     def resize(
         self,
         size: ImageSize,
+        mode: Literal["bilinear", "lanczos", "nearest"] = "bilinear",
     ) -> HashableImage:
         """Resize the image to a specified size using different interpolation.
 
             methods based on the image mode.
 
         Arguments:
-            self (HashableImage): The instance of the HashableImage class.
             size (ImageSize): An object containing the desired image height
                 and width.
+            mode (Literal["bilinear", "lanczos", "nearest"], optional): The
+                interpolation method to use. Defaults to "bilinear".
 
         Returns:
             HashableImage: A new HashableImage object with the resized image
@@ -355,21 +357,43 @@ class HashableImage:
         width = int(size.width)
         if size != self.size():
             if self.__mode == "torch":
+                _kwargs: dict[str, Any] = {}
+                if mode == "nearest":
+                    _kwargs["mode"] = "nearest-exact"
+                else:
+                    _kwargs["mode"] = mode
+                if mode == "bilinear":
+                    _kwargs["align_corners"] = False
                 __image = torch.nn.functional.interpolate(
                     self.__image,
                     size=(height, width),
-                    mode="bilinear",
-                    align_corners=False,
+                    **_kwargs,
                 )
             elif self.__mode == "pil":
-                __image = self.__image.resize(
-                    (width, height), Image.Resampling.LANCZOS
-                )
+                if mode == "nearest":
+                    _mode = Image.Resampling.NEAREST
+                elif mode == "bilinear":
+                    _mode = Image.Resampling.BILINEAR
+                elif mode == "lanczos":
+                    _mode = Image.Resampling.LANCZOS
+                else:
+                    msg = f"Invalid mode: {mode}"
+                    raise ValueError(msg)
+                __image = self.__image.resize((width, height), _mode)
             else:
+                if mode == "nearest":
+                    _mode = cv2.INTER_NEAREST
+                elif mode == "bilinear":
+                    _mode = cv2.INTER_LINEAR
+                elif mode == "lanczos":
+                    _mode = cv2.INTER_LANCZOS4
+                else:
+                    msg = f"Invalid mode: {mode}"
+                    raise ValueError(msg)
                 __image = cv2.resize(
                     cast(np.ndarray, self.__image),
                     (width, height),
-                    interpolation=cv2.INTER_LANCZOS4,
+                    interpolation=_mode,
                 )
             return HashableImage(__image)
         return self
