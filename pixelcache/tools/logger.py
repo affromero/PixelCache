@@ -255,6 +255,7 @@ class LoggingRich:
         return self.log(
             self.modes["info"].format(msg),
             stack_offset=stack_offset,
+            force=force,
             **kwargs,
         )
 
@@ -439,6 +440,7 @@ class LoggingRich:
         /,
         *,
         stack_offset: int | None = None,
+        force: bool = False,
         **kwargs: Any,
     ) -> None:
         """Log a message with an optional stack offset and additional keyword.
@@ -469,7 +471,7 @@ class LoggingRich:
                 source of the log message.
 
         """
-        if not self.verbosity["log"]:
+        if not self.verbosity["log"] and not force:
             return
         ignore_unittest = kwargs.pop("ignore_unittest", False)
         if self.is_file_enabled() and ignore_unittest:
