@@ -221,7 +221,7 @@ class LoggingRich:
             **kwargs,
         )
 
-    def info(self, msg: str, **kwargs: Any) -> None:
+    def info(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
         """Log an informational message with the specified message and.
 
             additional keyword arguments.
@@ -248,7 +248,7 @@ class LoggingRich:
                 to be logged.
 
         """
-        if not self.verbosity["info"]:
+        if not self.verbosity["info"] and not force:
             return None
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
