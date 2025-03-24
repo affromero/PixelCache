@@ -18,17 +18,20 @@ from rich.progress import BarColumn, Progress, TimeRemainingColumn
 
 from pixelcache.tools.utils import seed_everything
 
-LOG_DEBUG = os.getenv("LOG_DEBUG", "0")
-LOG_WARNING = os.getenv("LOG_WARNING", "1")
 DETERMINISTIC = os.getenv("DETERMINISTIC", "1")
+DISABLE_LOGGING = bool(int(os.getenv("DISABLE_LOGGING", "0")))
+LOG_DEBUG = os.getenv("LOG_DEBUG", "0") == "1"
+LOG_WARNING = os.getenv("LOG_WARNING", "1") == "1"
 
 DEFAULT_VERBOSITY = {
-    "info": True,
-    "debug": LOG_DEBUG == "1",
-    "warning": LOG_WARNING == "1",
-    "error": True,
-    "success": True,
-    "rule": True,
+    "info": not DISABLE_LOGGING,
+    "debug": LOG_DEBUG and not DISABLE_LOGGING,
+    "warning": LOG_WARNING and not DISABLE_LOGGING,
+    "error": not DISABLE_LOGGING,
+    "success": not DISABLE_LOGGING,
+    "rule": not DISABLE_LOGGING,
+    "log": not DISABLE_LOGGING,
+    "print": not DISABLE_LOGGING,
 }
 
 if DETERMINISTIC == "1":
@@ -301,6 +304,8 @@ class LoggingRich:
 
         This method logs a message in JSON format.
         """
+        if not self.verbosity["log"]:
+            return
         stack_offset = kwargs.pop("stack_offset", 0)
         self.info(
             "\n" + self.__jsonize(msg),
@@ -313,6 +318,8 @@ class LoggingRich:
 
         This method logs a message in JSON format.
         """
+        if not self.verbosity["error"]:
+            return
         self.error("\n" + self.__jsonize(msg), **kwargs)
 
     def debug(self, msg: str, **kwargs: Any) -> None:
@@ -418,6 +425,8 @@ class LoggingRich:
                 the message when running in a unit test environment.
 
         """
+        if not self.verbosity["print"]:
+            return
         ignore_unittest = kwargs.pop("ignore_unittest", False)
         if self.is_file_enabled() and ignore_unittest:
             return
@@ -460,6 +469,8 @@ class LoggingRich:
                 source of the log message.
 
         """
+        if not self.verbosity["log"]:
+            return
         ignore_unittest = kwargs.pop("ignore_unittest", False)
         if self.is_file_enabled() and ignore_unittest:
             return
