@@ -1347,7 +1347,7 @@ class HashableImage:
         else:
             value = np.mean(self.__image)
         # two decimal places
-        return round(value, 2)
+        return round(value, 5)
 
     @jaxtyped(typechecker=beartype)
     def std(self) -> float:
@@ -1372,7 +1372,7 @@ class HashableImage:
             value = self.__image.float().std().item()
         else:
             value = np.std(self.__image)
-        return round(value, 2)
+        return round(value, 5)
 
     @jaxtyped(typechecker=beartype)
     def min(self) -> float:
@@ -1400,7 +1400,7 @@ class HashableImage:
             value = self.__image.float().min().item()
         else:
             value = float(np.min(self.__image))
-        return round(value, 2)
+        return round(value, 5)
 
     @jaxtyped(typechecker=beartype)
     def max(self) -> float:
@@ -1427,7 +1427,7 @@ class HashableImage:
             value = self.__image.float().max().item()
         else:
             value = float(np.max(self.__image))
-        return round(value, 2)
+        return round(value, 5)
 
     @jaxtyped(typechecker=beartype)
     def sum(self) -> float:
@@ -1454,7 +1454,7 @@ class HashableImage:
             value = self.__image.float().sum().item()
         else:
             value = float(np.sum(self.__image))
-        return round(value, 2)
+        return round(value, 5)
 
     @jaxtyped(typechecker=beartype)
     def dtype(self) -> str:
