@@ -1,4 +1,5 @@
 import tempfile
+from dataclasses import field
 from itertools import product
 from pathlib import Path
 from typing import Literal, cast
@@ -406,8 +407,14 @@ def make_image_grid(
 
 @dataclass(config=ConfigDict(extra="forbid"), kw_only=True)
 class ImageSize:
+    """Image size class."""
+
     height: int
+    """The height of the image."""
     width: int
+    """The width of the image."""
+    is_normalized: bool = field(init=False)
+    """Whether the height and width are normalized."""
 
     def __post_init__(self) -> None:
         """Validate the height and width attributes of the ImageSize instance.
