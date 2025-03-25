@@ -4288,7 +4288,7 @@ class BoundingBox:
 class Points:
     """A class to represent a set of points in an image."""
 
-    points: np.ndarray
+    points: np.ndarray | list[list[float]]
     """The points in the image, represented as a 2D NumPy array."""
 
     is_normalized: bool
@@ -4318,6 +4318,8 @@ class Points:
                 initialized.
 
         """
+        if isinstance(self.points, list):
+            self.points = np.array(self.points)
         if not isinstance(self.points, np.ndarray):
             msg = "The 'points' attribute must be a NumPy array."
             raise TypeError(msg)
@@ -4347,7 +4349,7 @@ class Points:
                 of points based on the properties of the Points object.
 
         """
-        return self.points.shape[0]
+        return self.points.shape[0]  # type: ignore[union-attr]
 
     @property
     def xy(self) -> Float[np.ndarray, "n 2"]:
