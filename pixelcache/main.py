@@ -143,9 +143,12 @@ class HashableImage:
         if isinstance(image, str | Path):
             self.__image_str = str(image)
         else:
-            # set a tmp unique file
-            self.__image_str = tempfile.NamedTemporaryFile(suffix=".png").name
-            self.save(self.__image_str)
+            self._create_tmp_file()
+
+    def _create_tmp_file(self) -> None:
+        """Create a temporary file."""
+        self.__image_str = tempfile.NamedTemporaryFile(suffix=".png").name
+        self.save(self.__image_str)
 
     @property
     def __mode(self) -> VALID_IMAGES:
@@ -175,6 +178,9 @@ class HashableImage:
                 name of the image for further processing.
 
         """
+        if HashableImage(self.__image_str) != self:
+            # update the filename
+            self._create_tmp_file()
         return self.__image_str
 
     def get_local_filename(self) -> str:
