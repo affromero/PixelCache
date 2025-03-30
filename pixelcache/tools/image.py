@@ -1003,6 +1003,8 @@ def to_binary(
                     rgb_np[..., 2] > threshold,
                 ]
             )
+        elif rgb_np.ndim == 2:
+            rgb_np = rgb_np > threshold
         if isinstance(rgb, Image.Image):
             return Image.fromarray(rgb_np)
         return rgb_np
