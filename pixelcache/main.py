@@ -710,7 +710,7 @@ class HashableImage:
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
-    def unique_values(self) -> tuple[list[float], torch.Tensor, list[float]]:
+    def unique_values(self) -> tuple[list[float], torch.Tensor, list[int]]:
         """Get the unique values in the image.
 
         This method does not take any arguments. It processes the image data
@@ -2279,6 +2279,55 @@ class HashableImage:
         return Points(
             _points_np, is_normalized=normalize, image_size=self.size()
         )
+
+    @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
+    def maskidx2bbox(
+        self,
+        *,
+        margin: float = 0.0,
+        normalized: bool = False,
+        verbose: bool = False,
+        closing: tuple[int, int] = (0, 0),
+        opening: tuple[int, int] = (0, 0),
+        area_threshold: float = 0.0,
+        number_of_objects: int = -1,
+    ) -> HashableList[BoundingBox]:
+        """Convert a mask image with multiple objects to a list of bounding boxes.
+
+        This method takes a mask image with multiple objects and converts it
+            into a list of bounding boxes. Each bounding box represents a
+            distinct object in the mask.
+
+        Returns:
+            A list of bounding boxes.
+
+        """
+        maskidx: UInt8[np.uint8, "h w"] = self.numpy()
+        if len(maskidx.shape) == 2:
+            unique_values: list[float] = self.unique_values()[
+                0
+            ]  # between 0 and 1
+            bboxes: HashableList[BoundingBox] = HashableList([])
+            for i in unique_values:
+                if i == 0:
+                    continue
+                mask = HashableImage(maskidx == int(i * 255))
+                bboxes.append(
+                    mask.mask2bbox(
+                        margin=margin,
+                        normalized=normalized,
+                        merge=True,
+                        verbose=verbose,
+                        closing=closing,
+                        opening=opening,
+                        area_threshold=area_threshold,
+                        number_of_objects=number_of_objects,
+                    )[0]
+                )
+            return bboxes
+        msg = "maskidx must be a 2D array"
+        raise ValueError(msg)
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
