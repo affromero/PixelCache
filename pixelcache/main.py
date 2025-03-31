@@ -132,31 +132,31 @@ class HashableImage:
         """
         # pytorch is hashable
         if isinstance(image, torch.Tensor):
-            self.__image = image.detach().cpu()
+            self._image = image.detach().cpu()
         elif isinstance(image, str | Path):
-            self.__image = read_image(image)
+            self._image = read_image(image)
         elif isinstance(image, Image.Image):
-            self.__image = image
+            self._image = image
         else:
-            self.__image = image
+            self._image = image
 
         if isinstance(image, str | Path):
-            self.__image_str = str(image)
+            self._image_str = str(image)
         else:
             self._create_tmp_file()
 
     def _create_tmp_file(self) -> None:
         """Create a temporary file."""
-        self.__image_str = tempfile.NamedTemporaryFile(suffix=".png").name
-        self.save(self.__image_str)
+        self._image_str = tempfile.NamedTemporaryFile(suffix=".png").name
+        self.save(self._image_str)
 
     @property
-    def __mode(self) -> VALID_IMAGES:
-        if isinstance(self.__image, torch.Tensor):
+    def _mode(self) -> VALID_IMAGES:
+        if isinstance(self._image, torch.Tensor):
             return "torch"
-        if isinstance(self.__image, np.ndarray):
+        if isinstance(self._image, np.ndarray):
             return "numpy"
-        if isinstance(self.__image, Image.Image):
+        if isinstance(self._image, Image.Image):
             return "pil"
         msg = "Invalid image type"
         raise ValueError(msg)
@@ -178,10 +178,10 @@ class HashableImage:
                 name of the image for further processing.
 
         """
-        if HashableImage(self.__image_str) != self:
+        if HashableImage(self._image_str) != self:
             # update the filename
             self._create_tmp_file()
-        return self.__image_str
+        return self._image_str
 
     def get_local_filename(self) -> str:
         """Retrieve the local filename of the HashableImage object.
@@ -233,7 +233,7 @@ class HashableImage:
 
         """
         # in case the image has been modified during inpainting, but the filename is still the same
-        self.__image_str = filename
+        self._image_str = filename
 
     def save(
         self,
@@ -279,7 +279,7 @@ class HashableImage:
             image_rgba.paste(image, mask=Image.fromarray(mask))
             image_rgba.save(path)
         else:
-            save_image(self.__image, path=str(path), normalize=False)
+            save_image(self._image, path=str(path), normalize=False)
 
     def show(self) -> None:
         """Display the image represented by the HashableImage object.
@@ -362,7 +362,7 @@ class HashableImage:
         height = int(size.height)
         width = int(size.width)
         if size != self.size():
-            if self.__mode == "torch":
+            if self._mode == "torch":
                 _kwargs: dict[str, Any] = {}
                 if mode == "nearest":
                     _kwargs["mode"] = "nearest-exact"
@@ -370,12 +370,12 @@ class HashableImage:
                     _kwargs["mode"] = mode
                 if mode == "bilinear":
                     _kwargs["align_corners"] = False
-                __image = torch.nn.functional.interpolate(
-                    self.__image,
+                _image = torch.nn.functional.interpolate(
+                    self._image,
                     size=(height, width),
                     **_kwargs,
                 )
-            elif self.__mode == "pil":
+            elif self._mode == "pil":
                 if mode == "nearest":
                     _mode = Image.Resampling.NEAREST
                 elif mode == "bilinear":
@@ -385,7 +385,7 @@ class HashableImage:
                 else:
                     msg = f"Invalid mode: {mode}"
                     raise ValueError(msg)
-                __image = self.__image.resize((width, height), _mode)
+                _image = self._image.resize((width, height), _mode)
             else:
                 if mode == "nearest":
                     _mode = cv2.INTER_NEAREST
@@ -396,12 +396,12 @@ class HashableImage:
                 else:
                     msg = f"Invalid mode: {mode}"
                     raise ValueError(msg)
-                __image = cv2.resize(
-                    cast(np.ndarray, self.__image),
+                _image = cv2.resize(
+                    cast(np.ndarray, self._image),
                     (width, height),
                     interpolation=_mode,
                 )
-            return HashableImage(__image)
+            return HashableImage(_image)
         return self
 
     @jaxtyped(typechecker=beartype)
@@ -466,11 +466,11 @@ class HashableImage:
             >>> image.is_empty()
 
         """
-        if self.__mode == "torch":
-            return torch.sum(self.__image).item() == 0
-        if self.__mode == "numpy":
-            return np.sum(cast(np.ndarray, self.__image)).item() == 0
-        return np.sum(np.asarray(self.__image)).item() == 0
+        if self._mode == "torch":
+            return torch.sum(self._image).item() == 0
+        if self._mode == "numpy":
+            return np.sum(cast(np.ndarray, self._image)).item() == 0
+        return np.sum(np.asarray(self._image)).item() == 0
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
@@ -493,19 +493,19 @@ class HashableImage:
                 is created and returned.
 
         """
-        if self.__mode == "torch":
-            if self.__image.shape[1] == 3:
+        if self._mode == "torch":
+            if self._image.shape[1] == 3:
                 return HashableImage(
-                    self.__image.mean(1, keepdim=True).float(),
+                    self._image.mean(1, keepdim=True).float(),
                 )
             return self
-        if self.__mode == "numpy":
-            if len(self.__image.shape) == 3 and self.__image.shape[2] == 3:
+        if self._mode == "numpy":
+            if len(self._image.shape) == 3 and self._image.shape[2] == 3:
                 return HashableImage(
-                    cv2.cvtColor(self.__image, cv2.COLOR_RGB2GRAY),
+                    cv2.cvtColor(self._image, cv2.COLOR_RGB2GRAY),
                 )
             return self
-        return HashableImage(self.__image.convert("L"))
+        return HashableImage(self._image.convert("L"))
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
@@ -533,9 +533,9 @@ class HashableImage:
                 instance is returned.
 
         """
-        if self.__mode == "torch":
-            return HashableImage(torch.flip(self.__image, [3]))
-        return HashableImage(cv2.flip(self.__image, 1))
+        if self._mode == "torch":
+            return HashableImage(torch.flip(self._image, [3]))
+        return HashableImage(cv2.flip(self._image, 1))
 
     @jaxtyped(typechecker=beartype)
     def extract_binary_from_value(self, value: int) -> HashableImage:
@@ -660,24 +660,24 @@ class HashableImage:
                 is returned.
 
         """
-        if self.__mode == "torch":
-            if self.__image.shape[1] == 1:
-                return HashableImage(self.__image.repeat(1, 3, 1, 1).float())
+        if self._mode == "torch":
+            if self._image.shape[1] == 1:
+                return HashableImage(self._image.repeat(1, 3, 1, 1).float())
             return self
-        if self.__mode == "numpy":
-            if len(self.__image.shape) == 2:
-                if self.__image.dtype == bool:
+        if self._mode == "numpy":
+            if len(self._image.shape) == 2:
+                if self._image.dtype == bool:
                     return HashableImage(
                         cv2.cvtColor(
-                            (self.__image * 255).astype(np.uint8),
+                            (self._image * 255).astype(np.uint8),
                             cv2.COLOR_GRAY2RGB,
                         ),
                     )
                 return HashableImage(
-                    cv2.cvtColor(self.__image, cv2.COLOR_GRAY2RGB),
+                    cv2.cvtColor(self._image, cv2.COLOR_GRAY2RGB),
                 )
             return self
-        return HashableImage(self.__image.convert("RGB"))
+        return HashableImage(self._image.convert("RGB"))
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
@@ -701,12 +701,12 @@ class HashableImage:
         """
         # check if it is bool already
         if (
-            (self.__mode == "torch" and self.__image.dtype == torch.bool)
-            or (self.__mode == "numpy" and self.__image.dtype == bool)
-            or (self.__mode == "pil" and self.__image.mode == "1")
+            (self._mode == "torch" and self._image.dtype == torch.bool)
+            or (self._mode == "numpy" and self._image.dtype == bool)
+            or (self._mode == "pil" and self._image.mode == "1")
         ):
             return self
-        return HashableImage(to_binary(self.__image, threshold=threshold))
+        return HashableImage(to_binary(self._image, threshold=threshold))
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
@@ -819,7 +819,7 @@ class HashableImage:
                 original image data.
 
         """
-        if self.__mode == "torch":
+        if self._mode == "torch":
             return HashableImage(~self.to_binary().tensor())
         return HashableImage(~self.to_binary().numpy())
 
@@ -852,7 +852,7 @@ class HashableImage:
                 are inverted.
 
         """
-        if self.__mode == "torch":
+        if self._mode == "torch":
             return HashableImage(1 - self.tensor())
         return HashableImage(255 - self.numpy())
 
@@ -911,12 +911,12 @@ class HashableImage:
                 it is a separate instance.
 
         """
-        if self.__mode == "torch":
-            return HashableImage(torch.zeros_like(self.__image))
-        if self.__mode == "numpy":
-            return HashableImage(np.zeros_like(self.__image))
+        if self._mode == "torch":
+            return HashableImage(torch.zeros_like(self._image))
+        if self._mode == "numpy":
+            return HashableImage(np.zeros_like(self._image))
         return HashableImage(
-            Image.new(self.__image.mode, self.__image.size, 0),
+            Image.new(self._image.mode, self._image.size, 0),
         )
 
     @jaxtyped(typechecker=beartype)
@@ -944,15 +944,15 @@ class HashableImage:
                 the original, but all pixel values are set to one.
 
         """
-        if self.__mode == "torch":
-            return HashableImage(torch.ones_like(self.__image))
-        if self.__mode == "numpy":
-            return HashableImage(np.ones_like(self.__image))
+        if self._mode == "torch":
+            return HashableImage(torch.ones_like(self._image))
+        if self._mode == "numpy":
+            return HashableImage(np.ones_like(self._image))
         return HashableImage(
             Image.new(
-                self.__image.mode,
-                self.__image.size,
-                255 if self.__image.mode != "RGB" else (255, 255, 255),
+                self._image.mode,
+                self._image.size,
+                255 if self._image.mode != "RGB" else (255, 255, 255),
             ),
         )
 
@@ -982,15 +982,15 @@ class HashableImage:
                 will be in BGR color space.
 
         """
-        if self.__mode == "numpy":
-            return HashableImage(cv2.cvtColor(self.__image, cv2.COLOR_RGB2BGR))
-        if self.__mode == "pil":
+        if self._mode == "numpy":
+            return HashableImage(cv2.cvtColor(self._image, cv2.COLOR_RGB2BGR))
+        if self._mode == "pil":
             return HashableImage(
                 Image.fromarray(
-                    cv2.cvtColor(np.asarray(self.__image), cv2.COLOR_RGB2BGR),
+                    cv2.cvtColor(np.asarray(self._image), cv2.COLOR_RGB2BGR),
                 ),
             )
-        return HashableImage(self.__image[:, [2, 1, 0], :, :])
+        return HashableImage(self._image[:, [2, 1, 0], :, :])
 
     @jaxtyped(typechecker=beartype)
     def equalize_hist(self) -> HashableImage:
@@ -1018,8 +1018,8 @@ class HashableImage:
                 may also amplify noise.
 
         """
-        if self.__mode == "pil":
-            return HashableImage(ImageOps.equalize(self.__image))
+        if self._mode == "pil":
+            return HashableImage(ImageOps.equalize(self._image))
         return HashableImage(cv2.equalizeHist(self.to_gray().numpy()))
 
     @jaxtyped(typechecker=beartype)
@@ -1055,7 +1055,7 @@ class HashableImage:
         """
         return HashableImage(
             convert_to_space_color(
-                self.__image, color_space, getchannel=getchannel
+                self._image, color_space, getchannel=getchannel
             )
         )
 
@@ -1123,7 +1123,7 @@ class HashableImage:
         """
         if not isinstance(other, HashableImage | Number):
             return NotImplemented
-        if self.__mode == "torch":
+        if self._mode == "torch":
             other_value = (
                 other if isinstance(other, Number) else other.tensor()
             )
@@ -1166,7 +1166,7 @@ class HashableImage:
         """
         if not isinstance(other, HashableImage | Number):
             return NotImplemented
-        if self.__mode == "torch":
+        if self._mode == "torch":
             other_value = (
                 other if isinstance(other, Number) else other.tensor()
             )
@@ -1210,7 +1210,7 @@ class HashableImage:
         """
         if not isinstance(other, HashableImage | Number):
             return NotImplemented
-        if self.__mode == "torch":
+        if self._mode == "torch":
             self_value = self.tensor()
             other_value = (
                 other if isinstance(other, Number) else other.tensor()
@@ -1267,7 +1267,7 @@ class HashableImage:
         """
         if not isinstance(other, HashableImage | Number):
             return NotImplemented
-        if self.__mode == "torch":
+        if self._mode == "torch":
             other_value = (
                 other if isinstance(other, Number) else other.tensor()
             )
@@ -1300,7 +1300,7 @@ class HashableImage:
             >>> size = hash_img.get_size()
 
         """
-        return ImageSize.from_image(self.__image)
+        return ImageSize.from_image(self._image)
 
     @jaxtyped(typechecker=beartype)
     def copy(self) -> HashableImage:
@@ -1322,10 +1322,10 @@ class HashableImage:
                 complete copy of the original object.
 
         """
-        if self.__mode == "torch":
-            image = HashableImage(self.__image.clone())
+        if self._mode == "torch":
+            image = HashableImage(self._image.clone())
         else:
-            image = HashableImage(self.__image.copy())
+            image = HashableImage(self._image.copy())
         image.set_filename(self.get_filename())
         return image
 
@@ -1348,10 +1348,10 @@ class HashableImage:
             The HashableImage object should already contain image data.
 
         """
-        if self.__mode == "torch":
-            value = self.__image.float().mean().item()
+        if self._mode == "torch":
+            value = self._image.float().mean().item()
         else:
-            value = np.mean(self.__image)
+            value = np.mean(self._image)
         # two decimal places
         return round(value, 5)
 
@@ -1374,10 +1374,10 @@ class HashableImage:
                 calling this method.
 
         """
-        if self.__mode == "torch":
-            value = self.__image.float().std().item()
+        if self._mode == "torch":
+            value = self._image.float().std().item()
         else:
-            value = np.std(self.__image)
+            value = np.std(self._image)
         return round(value, 5)
 
     @jaxtyped(typechecker=beartype)
@@ -1402,10 +1402,10 @@ class HashableImage:
                 this method.
 
         """
-        if self.__mode == "torch":
-            value = self.__image.float().min().item()
+        if self._mode == "torch":
+            value = self._image.float().min().item()
         else:
-            value = float(np.min(self.__image))
+            value = float(np.min(self._image))
         return round(value, 5)
 
     @jaxtyped(typechecker=beartype)
@@ -1429,10 +1429,10 @@ class HashableImage:
                 method.
 
         """
-        if self.__mode == "torch":
-            value = self.__image.float().max().item()
+        if self._mode == "torch":
+            value = self._image.float().max().item()
         else:
-            value = float(np.max(self.__image))
+            value = float(np.max(self._image))
         return round(value, 5)
 
     @jaxtyped(typechecker=beartype)
@@ -1456,48 +1456,44 @@ class HashableImage:
                 only.
 
         """
-        if self.__mode == "torch":
-            value = self.__image.float().sum().item()
+        if self._mode == "torch":
+            value = self._image.float().sum().item()
         else:
-            value = float(np.sum(self.__image))
+            value = float(np.sum(self._image))
         return round(value, 5)
 
     @jaxtyped(typechecker=beartype)
-    def dtype(self) -> str:
-        """Return a string representing the data type and channels of the.
+    def dtype(self) -> Literal["L", "RGB", "1"]:
+        """Get the dtype of the image.
 
+        This method returns the dtype of the image based on the mode of the
             image.
 
-        This method in the 'HashableImage' class determines the image's data
-            type and channels based on its mode (torch or numpy).
-
-        Arguments:
-            self (HashableImage): The instance of the 'HashableImage' class.
-
         Returns:
-            str: A string representing the data type and channels of the
-                image.
-
-        Example:
-            >>> image = HashableImage(...)
-            >>> print(image.dtype())
-
-        Note:
-            The image's mode (torch or numpy) influences the returned
-                string.
+            str: The dtype of the image.
 
         """
-        if self.__mode == "torch":
-            channels = "RGB" if self.__image.shape[1] == 3 else "L"
-            return f"{self.__image.dtype} {channels}"
-        if self.__mode == "numpy":
-            channels = (
-                "RGB"
-                if len(self.__image.shape) == 3 and self.__image.shape[2] == 3
-                else "L"
-            )
-            return f"{self.__image.dtype} {channels}"
-        return str(self.__image.mode)
+        if self._mode == "pil":
+            return self._image.mode
+        if self._mode == "numpy":
+            if self._image.ndim == 2 and self._image.dtype == np.uint8:
+                return "L"
+            if self._image.ndim == 3 and self._image.dtype == np.uint8:
+                return "RGB"
+            if self._image.ndim == 2 and self._image.dtype == bool:
+                return "1"
+            msg = "Invalid numpy image type"
+            raise ValueError(msg)
+        if self._mode == "torch":
+            if self._image.size(1) == 3 or (
+                self._image.size(1) == 1 and self._image.dtype == torch.float32
+            ):
+                return "RGB"
+            if self._image.size(1) == 1 and self._image.dtype == torch.bool:
+                return "1"
+            msg = "Invalid torch image type"
+            raise ValueError(msg)
+        return None
 
     @jaxtyped(typechecker=beartype)
     def __repr__(self) -> str:
@@ -1530,7 +1526,7 @@ class HashableImage:
             if "/tmp" not in self.get_filename()  # noqa: S108
             else ""
         )
-        return f"HashableImage: {self.__mode} {self.dtype()} {self.size()} - mean: {self.mean()} std: {self.std()} min {self.min()} max {self.max()}{_filename}"
+        return f"HashableImage: {self._mode} {self.dtype()} {self.size()} - mean: {self.mean()} std: {self.std()} min {self.min()} max {self.max()}{_filename}"
 
     @jaxtyped(typechecker=beartype)
     def pil(self) -> Image.Image:
@@ -1556,11 +1552,11 @@ class HashableImage:
                 processing or visualization.
 
         """
-        if self.__mode == "torch":
-            return tensor2pil(self.__image)
-        if self.__mode == "numpy":
-            return Image.fromarray(self.__image)
-        return self.__image
+        if self._mode == "torch":
+            return tensor2pil(self._image)
+        if self._mode == "numpy":
+            return Image.fromarray(self._image)
+        return self._image
 
     @jaxtyped(typechecker=beartype)
     def numpy(
@@ -1587,16 +1583,16 @@ class HashableImage:
                 the image data.
 
         """
-        if self.__mode == "torch":
+        if self._mode == "torch":
             return tensor2numpy(
-                self.__image,
+                self._image,
                 output_type=(
-                    bool if self.__image.dtype == torch.bool else np.uint8
+                    bool if self._image.dtype == torch.bool else np.uint8
                 ),
             )
-        if self.__mode == "numpy":
-            return self.__image
-        return np.asarray(self.__image)
+        if self._mode == "numpy":
+            return self._image
+        return np.asarray(self._image)
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
@@ -1628,11 +1624,11 @@ class HashableImage:
                 tensor using the pil2tensor function.
 
         """
-        if self.__mode == "torch":
-            return self.__image
-        if self.__mode == "numpy":
-            return numpy2tensor(self.__image)
-        return pil2tensor(self.__image)
+        if self._mode == "torch":
+            return self._image
+        if self._mode == "numpy":
+            return numpy2tensor(self._image)
+        return pil2tensor(self._image)
 
     def bytes(self) -> bytes:
         """Convert the image data to a bytes object.
@@ -1678,7 +1674,7 @@ class HashableImage:
             This method does not take any arguments.
 
         """
-        return self.__mode
+        return self._mode
 
     @jaxtyped(typechecker=beartype)
     def is_binary(self) -> bool:
@@ -1703,9 +1699,9 @@ class HashableImage:
                 values for each pixel.
 
         """
-        if self.__mode == "torch":
-            return self.__image.dtype == torch.bool
-        return self.__image.dtype == bool
+        if self._mode == "torch":
+            return self._image.dtype == torch.bool
+        return self._image.dtype == bool
 
     @jaxtyped(typechecker=beartype)
     def is_rgb(self) -> bool:
@@ -1730,9 +1726,9 @@ class HashableImage:
                 digital imaging.
 
         """
-        if self.__mode == "torch":
-            return self.__image.shape[1] == 3
-        return len(self.__image.shape) == 3 and self.__image.shape[2] == 3
+        if self._mode == "torch":
+            return self._image.shape[1] == 3
+        return len(self._image.shape) == 3 and self._image.shape[2] == 3
 
     @property
     def shape(self) -> tuple[int, int] | tuple[int, int, int]:
@@ -1801,7 +1797,7 @@ class HashableImage:
                 they appear in the list.
 
         """
-        if self.__mode == "torch":
+        if self._mode == "torch":
             other_value = [img.tensor() for img in other]
             if mode == "horizontal":
                 return HashableImage(
@@ -1853,7 +1849,7 @@ class HashableImage:
                 format of the image stored in the HashableImage object.
 
         """
-        return self.__image
+        return self._image
 
     @jaxtyped(typechecker=beartype)
     def logical_and(self, other: HashableImage) -> HashableImage:
@@ -1884,7 +1880,7 @@ class HashableImage:
                 representations of the images.
 
         """
-        if self.__mode == "torch":
+        if self._mode == "torch":
             return HashableImage(
                 torch.logical_and(
                     self.to_binary().tensor(),
@@ -1928,7 +1924,7 @@ class HashableImage:
                 the HashableImage objects.
 
         """
-        if self.__mode == "torch":
+        if self._mode == "torch":
             other_value = self.to_binary().tensor()
             for img in other:
                 other_value = torch.logical_and(
@@ -1970,7 +1966,7 @@ class HashableImage:
             The input images must be of the same dimensions.
 
         """
-        if self.__mode == "torch":
+        if self._mode == "torch":
             return HashableImage(
                 torch.logical_or(
                     self.to_binary().tensor(),
@@ -2018,7 +2014,7 @@ class HashableImage:
                 operation to be successful.
 
         """
-        if self.__mode == "torch":
+        if self._mode == "torch":
             other_value = self.to_binary().tensor()
             for img in other:
                 other_value = torch.logical_or(
@@ -2056,9 +2052,18 @@ class HashableImage:
                 HashableImage object.
 
         """
-        if self.__mode == "torch":
-            return hash(self.__image)
-        return hash(self.__image.tobytes())
+        if self._mode == "torch":
+            _bytest = hash(self._image)
+        else:
+            _bytest = hash(self._image.tobytes())
+        frozen_set = frozenset(
+            {
+                self._mode,
+                self.dtype(),
+                _bytest,
+            }
+        )
+        return hash(frozen_set)
 
     @jaxtyped(typechecker=beartype)
     def __eq__(self, other: object) -> bool:
@@ -2087,11 +2092,11 @@ class HashableImage:
         """
         if not isinstance(other, HashableImage):
             return NotImplemented
-        if self.__mode != other.mode:
+        if self._mode != other.mode:
             return False
-        if self.__mode == "torch":
-            return torch.equal(self.__image, other.__image)
-        return self.__image.tobytes() == other.__image.tobytes()
+        if self._mode == "torch":
+            return torch.equal(self._image, other._image)
+        return self._image.tobytes() == other._image.tobytes()
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
