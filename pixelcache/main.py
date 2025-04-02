@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 import random
 import string
@@ -1659,6 +1660,26 @@ class HashableImage:
         pil_image.save(img_bytes, format="PNG")
         # Turn the BytesIO object back into a bytes object
         return img_bytes.getvalue()
+
+    def b64(self) -> str:
+        """Convert the image data to a base64 string.
+
+        This method converts the image data stored in the HashableImage
+            object into a base64 string.
+
+        Returns:
+            str: The image data as a base64 string.
+
+        Example:
+            >>> image = HashableImage(...)
+            >>> image_b64 = image.b64()
+
+        Note:
+            The base64 string can be used for further processing or
+                serialization.
+
+        """
+        return base64.b64encode(self.bytes()).decode("utf-8")
 
     @property
     @jaxtyped(typechecker=beartype)
