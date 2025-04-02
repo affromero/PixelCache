@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import random
 import string
 import tempfile
@@ -100,6 +101,7 @@ class HashableImage:
         image: (
             str
             | Path
+            | bytes
             | Image.Image
             | UInt8[np.ndarray, "h w 3"]
             | UInt8[np.ndarray, "h w"]
@@ -115,9 +117,9 @@ class HashableImage:
             to a temporary file.
 
         Arguments:
-            image (Union[str, Path, Image, np.ndarray, torch.Tensor,
+            image (Union[str, Path, bytes, Image, np.ndarray, torch.Tensor,
                 np.bool_]): The input image data. This can be a string file
-                path, Path object, PIL Image object, numpy array, torch
+                path, Path object, bytes, PIL Image object, numpy array, torch
                 tensor, or boolean array.
 
         Returns:
@@ -137,6 +139,8 @@ class HashableImage:
             self._image = read_image(image)
         elif isinstance(image, Image.Image):
             self._image = image
+        elif isinstance(image, bytes):
+            self._image = Image.open(io.BytesIO(image))
         else:
             self._image = image
 
@@ -1648,7 +1652,13 @@ class HashableImage:
                 serialization.
 
         """
-        return self.pil().tobytes()
+        pil_image = self.pil()
+        # BytesIO is a file-like buffer stored in memory
+        img_bytes = io.BytesIO()
+        # image.save expects a file-like as a argument
+        pil_image.save(img_bytes, format="PNG")
+        # Turn the BytesIO object back into a bytes object
+        return img_bytes.getvalue()
 
     @property
     @jaxtyped(typechecker=beartype)
