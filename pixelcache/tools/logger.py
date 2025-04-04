@@ -12,7 +12,6 @@ from typing import Any
 import json5
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
-from rich import print as pprint
 from rich.console import Console
 from rich.progress import BarColumn, Progress, TimeRemainingColumn
 
@@ -35,10 +34,10 @@ DEFAULT_VERBOSITY = {
 }
 
 if DETERMINISTIC == "1":
-    seed_everything(42)
-    pprint(
-        f"{'*' * 70}\nIf you want to disable seeding, set env variable DETERMINISTIC to 0\n{'*' * 70}"
-    )
+    seed_everything(42, verbose=False)
+    # pprint(
+    #     f"{'*' * 70}\nIf you want to disable seeding, set env variable DETERMINISTIC to 0\n{'*' * 70}"
+    # )
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True, extra="forbid"))
