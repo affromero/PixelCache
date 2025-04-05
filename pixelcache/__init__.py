@@ -10,6 +10,7 @@ from pixelcache.main import (
     Points,
 )
 from pixelcache.tools.image import ImageSize
+from pixelcache.tools.logger import get_logger
 
 __all__ = [
     "MAX_IMG_CACHE",
@@ -20,6 +21,7 @@ __all__ = [
     "ImageCrop",
     "ImageSize",
     "Points",
+    "get_logger",
 ]
 
 __version__ = version("pixelcache")

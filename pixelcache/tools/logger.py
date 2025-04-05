@@ -410,7 +410,7 @@ class LoggingRich:
         msg = msg.replace(Path.cwd().as_posix(), ".")
         return msg.replace(os.getenv("HOME", "~"), "~")
 
-    def print(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
+    def print(self, msg: Any, *, force: bool = False, **kwargs: Any) -> None:
         """Print a preprocessed message to the console.
 
         This function takes a message as input, preprocesses it, and prints
@@ -439,12 +439,23 @@ class LoggingRich:
         ignore_unittest = kwargs.pop("ignore_unittest", False)
         if self.is_file_enabled() and ignore_unittest:
             return
-        msg = self.preprocess_msg(msg)
+        if isinstance(msg, str):
+            msg = self.preprocess_msg(msg)
         self.console.print(msg, **kwargs)
+
+    def input(self, msg: str, **kwargs: Any) -> str:
+        """Input a message to the console.
+
+        This method takes a message as input and returns the input from the
+            console.
+        """
+        if isinstance(msg, str):
+            msg = self.preprocess_msg(msg)
+        return self.console.input(msg, **kwargs)
 
     def log(
         self,
-        msg: str,
+        msg: Any,
         /,
         *,
         stack_offset: int | None = None,
@@ -487,7 +498,8 @@ class LoggingRich:
         kwargs["_stack_offset"] = (
             self.stack_offset if stack_offset is None else stack_offset
         )
-        msg = self.preprocess_msg(msg)
+        if isinstance(msg, str):
+            msg = self.preprocess_msg(msg)
         self.console.log(msg, **kwargs)
 
     def log_unittest(
