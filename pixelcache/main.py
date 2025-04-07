@@ -9,6 +9,7 @@ from collections.abc import Iterable, Iterator, MutableMapping, MutableSequence
 from numbers import Number
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
     SupportsIndex,
@@ -21,14 +22,13 @@ import cv2
 import numpy as np
 import torch
 from beartype import beartype
-from jaxtyping import Bool, Float, UInt8, jaxtyped
 from PIL import Image, ImageOps
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from torchvision.transforms import functional as TF
 
 from pixelcache.tools.bbox import crop_from_bbox, uncrop_from_bbox
-from pixelcache.tools.cache import lru_cache
+from pixelcache.tools.cache import jaxtyped, lru_cache
 from pixelcache.tools.image import (
     ImageSize,
     center_pad,
@@ -58,6 +58,9 @@ from pixelcache.tools.mask import (
 )
 from pixelcache.tools.text import create_text, draw_text
 from pixelcache.tools.utils import color_palette
+
+if TYPE_CHECKING:
+    from jaxtyping import Bool, Float, UInt8
 
 _T = TypeVar("_T")
 _KT = TypeVar("_KT")

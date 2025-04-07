@@ -7,12 +7,13 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, TypeVar, cast
 
+import jaxtyping
 from beartype import beartype
-from jaxtyping import jaxtyped
 
 _T = TypeVar("_T")
 
 DISABLE_LRU_CACHE = os.getenv("DISABLE_LRU_CACHE", "False") == "True"
+DISABLE_JAXTYPING = os.getenv("DISABLE_JAXTYPING", "False") == "True"
 
 
 def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
@@ -114,6 +115,28 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
             return func(*args, **kwargs)
 
         return wrapper
+
+    return cast(Callable[[_T], _T], decorator)
+
+
+def jaxtyped(typechecker: Callable[[_T], _T] = beartype) -> Callable[[_T], _T]:
+    """Decorate a function with jaxtyping, unless in unit test mode.
+
+    This decorator wraps a function with jaxtyping, providing
+        type checking for the function's arguments and return value.
+
+    """
+
+    def decorator(func: Callable[[_T], _T]) -> Callable[[_T], _T]:
+        """Apply jaxtyping to the input function or return the function.
+
+        This decorator function applies jaxtyping to the given function
+            if the code is not running in unittest mode. If it is in
+            unittest mode, the function is returned as is.
+        """
+        if DISABLE_JAXTYPING:
+            return func
+        return jaxtyping.jaxtyped(typechecker=typechecker)(func)
 
     return cast(Callable[[_T], _T], decorator)
 
