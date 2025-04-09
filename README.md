@@ -51,7 +51,7 @@ HashableImage receives as input several types of inputs, such as URLs, paths, or
 Example:
 
 ```python
-from pixelcache import HashableImage
+from pixelcache.main import HashableImage
 import torch
 image = HashableImage(torch.rand(1, 3, 256, 256).float())
 image_pil = image.pil()
@@ -82,7 +82,7 @@ Blending two images using PixelCache:
 ```python
 from pathlib import Path
 
-from pixelcache import HashableDict, HashableImage, HashableList
+from pixelcache.main import HashableDict, HashableImage, HashableList
 from pixelcache.tools.logger import get_logger
 
 logger = get_logger()
@@ -131,7 +131,7 @@ Extracting bounding boxes for cropping / unpadding from binary masks using Pixel
 ```python
 from pathlib import Path
 
-from pixelcache import HashableDict, HashableImage, HashableList, ImageSize
+from pixelcache.main import HashableDict, HashableImage, HashableList, ImageSize
 from pixelcache.tools.logger import get_logger
 
 logger = get_logger()
