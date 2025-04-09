@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import json5
+from dotenv import load_dotenv
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from rich.console import Console
@@ -17,7 +18,10 @@ from rich.progress import BarColumn, Progress, TimeRemainingColumn
 
 from pixelcache.tools.utils import seed_everything
 
-DETERMINISTIC = os.getenv("DETERMINISTIC", "1")
+load_dotenv()
+
+SEED_EVERYTHING = os.getenv("SEED_EVERYTHING", "-1")
+CUDA_DETERMINISTIC = os.getenv("CUDA_DETERMINISTIC", "False")
 DISABLE_LOGGING = bool(int(os.getenv("DISABLE_LOGGING", "0")))
 LOG_DEBUG = os.getenv("LOG_DEBUG", "0") == "1"
 LOG_WARNING = os.getenv("LOG_WARNING", "1") == "1"
@@ -33,11 +37,12 @@ DEFAULT_VERBOSITY = {
     "print": not DISABLE_LOGGING,
 }
 
-if DETERMINISTIC == "1":
-    seed_everything(42, verbose=False)
-    # pprint(
-    #     f"{'*' * 70}\nIf you want to disable seeding, set env variable DETERMINISTIC to 0\n{'*' * 70}"
-    # )
+if SEED_EVERYTHING != "-1":
+    seed_everything(
+        int(SEED_EVERYTHING),
+        verbose=False,
+        cuda_deterministic=CUDA_DETERMINISTIC == "True",
+    )
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True, extra="forbid"))
