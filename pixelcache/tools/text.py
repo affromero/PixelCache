@@ -145,7 +145,7 @@ def create_text(
         msg = f"Text orientation {orientation} not supported"
         raise RuntimeError(msg)
 
-    if orientation == "vertical":
+    if orientation == "horizontal":
         image = np.rot90(image, k=-1)
         texts.reverse()
 
@@ -180,7 +180,7 @@ def create_text(
     white_image = remove_white_text(white_image)
     image = np.vstack((white_image, image))
 
-    if orientation == "vertical":
+    if orientation == "horizontal":
         image = np.rot90(image, k=1)
     return image
 

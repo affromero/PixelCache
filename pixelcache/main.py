@@ -3026,18 +3026,22 @@ class HashableImage:
 
         # each index in the list is a different row
         all_images = []
-        for imgs in image_as_list.values():
-            all_images.extend([img.pil() for img in imgs])
-        if orientation == "vertical":
-            # For vertical orientation, stack images column-wise
+        if orientation == "horizontal":
+            # For horizontal orientation, stack images column-wise
             # Each column contains all images from one key
             nrows = len(image_as_list)
             ncols = max_images
+            # all the first images from each key, then the second images from each key, etc.
+            for imgs in image_as_list.values():
+                all_images.extend([img.pil() for img in imgs])
         else:
-            # For horizontal orientation, stack images row-wise
+            # For vertical orientation, stack images row-wise
             # Each row contains all images from one key
             nrows = max_images
             ncols = len(image_as_list)
+            for idx in range(nrows):
+                for key in image_as_list:
+                    all_images.append(image_as_list[key][idx].pil())
 
         grid = make_image_grid(all_images, rows=nrows, cols=ncols)
         if with_text:
