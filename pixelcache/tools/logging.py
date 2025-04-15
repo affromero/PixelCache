@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -5,7 +7,7 @@ import sys
 import tempfile
 from dataclasses import field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import json5
 from dotenv import load_dotenv
@@ -13,11 +15,14 @@ from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from rich.console import Console
 
+if TYPE_CHECKING:
+    from pixelcache.main import HashableDict, HashableImage, HashableList
+
 load_dotenv()
 
-DISABLE_LOGGING = bool(int(os.getenv("DISABLE_LOGGING", "0")))
-LOG_DEBUG = os.getenv("LOG_DEBUG", "0") == "1"
-LOG_WARNING = os.getenv("LOG_WARNING", "1") == "1"
+DISABLE_LOGGING = os.getenv("DISABLE_LOGGING", "False") == "True"
+LOG_DEBUG = os.getenv("LOG_DEBUG", "False") == "True"
+LOG_WARNING = os.getenv("LOG_WARNING", "True") == "True"
 
 DEFAULT_VERBOSITY = {
     "info": not DISABLE_LOGGING,
@@ -28,6 +33,7 @@ DEFAULT_VERBOSITY = {
     "rule": not DISABLE_LOGGING,
     "log": not DISABLE_LOGGING,
     "print": not DISABLE_LOGGING,
+    "make_image_grid": not DISABLE_LOGGING,
 }
 
 
@@ -787,3 +793,54 @@ class LoggingRich:
         else:
             color_msg = [level, msg, filename]
         return " ".join(color_msg)
+
+    def make_image_grid(
+        self,
+        images: HashableDict[str, HashableList[HashableImage]],
+        *,
+        orientation: Literal["horizontal", "vertical"] = "horizontal",
+        with_text: bool = False,
+        output: str,
+        verbose: bool = True,
+    ) -> None:
+        """Create a grid of images and display them in the console.
+
+        This method creates a grid of images and displays them in the console.
+        The images are arranged in a grid based on the orientation specified.
+
+        Arguments:
+            images (HashableDict[str, HashableList[HashableImage]]): A dictionary
+                containing lists of HashableImage objects.
+            orientation (Literal["horizontal", "vertical"]): Specifies the
+                orientation of the grid. It can be either 'horizontal' or
+                'vertical'.
+            with_text (bool): Indicates whether to include text labels on
+                the grid. Defaults to False.
+            output (str): The output file path to save the grid image.
+            verbose (bool): Whether to print a message when the grid is saved.
+                Defaults to True.
+
+        Returns:
+            None: This method does not return any value.
+
+        Example:
+            >>> logger = LoggingRich()
+            >>> logger.make_image_grid(images, orientation="horizontal", with_text=True)
+
+        Note:
+            The images are arranged in a grid based on the orientation
+                specified.
+
+        """
+        from pixelcache.main import (
+            HashableImage,  # not at the top of the file to avoid circular import
+        )
+
+        if not self.verbosity["make_image_grid"]:
+            return
+        image = HashableImage.make_image_grid(
+            images, orientation=orientation, with_text=with_text
+        )
+        if verbose:
+            self.log(f"{image=} grid saved to {output}", stack_offset=1)
+        image.save(output)
