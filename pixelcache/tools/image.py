@@ -946,8 +946,8 @@ def center_pad(
     h, w = image.shape[:2]
     h_pad = size.height // 2
     w_pad = size.width // 2
-    h_mod = max(size.height % 2, 0)
-    w_mod = max(size.width % 2, 0)
+    h_mod = max(h % 2, 0)
+    w_mod = max(w % 2, 0)
     new_np = np.zeros((size.height, size.width, 3), dtype=np.uint8) + fill
     new_np[
         h_pad - h // 2 : h_pad + h // 2 + h_mod,
