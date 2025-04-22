@@ -72,6 +72,7 @@ def uncrop_from_bbox(
     *,
     is_normalized: bool,
     resize: bool = False,
+    blend_width: int = 0,
 ) -> UInt8[np.ndarray, "h w c"]:
     """Uncrop an image from given bounding boxes and return the resulting.
 
@@ -88,12 +89,13 @@ def uncrop_from_bbox(
             coordinates are normalized.
         resize (bool): A flag indicating whether to resize the image to fit
             the bounding boxes. Defaults to False.
+        blend_width (int): Width of the blending region in pixels. Defaults to 10.
 
     Returns:
-        np.ndarray: The uncropped image as a np.ndarray object.
+        np.ndarray: The uncropped image with blended edges.
 
     Example:
-        >>> uncrop_image(base_image, image, bboxes, resize=True)
+        >>> uncrop_image(base_image, image, bboxes, resize=True, blend_width=15)
 
     Note:
         The bounding boxes can be in normalized or absolute coordinates. If
@@ -127,7 +129,22 @@ def uncrop_from_bbox(
                 "bilinear",
             )
         )
-    out_image[ymin:ymax, xmin:xmax] = image
+    # Create a mask for blending
+    mask = np.ones_like(image, dtype=np.float32)
+    if blend_width > 0:
+        # Apply blending to the edges
+        for c in range(mask.shape[2]):
+            mask[:blend_width, :, c] *= np.linspace(0, 1, blend_width)[:, None]
+            mask[-blend_width:, :, c] *= np.linspace(1, 0, blend_width)[
+                :, None
+            ]
+            mask[:, :blend_width, c] *= np.linspace(0, 1, blend_width)
+            mask[:, -blend_width:, c] *= np.linspace(1, 0, blend_width)
+
+    # Blend the image into the base_image
+    out_image[ymin:ymax, xmin:xmax] = (
+        out_image[ymin:ymax, xmin:xmax] * (1 - mask) + image * mask
+    ).astype(np.uint8)
     return out_image
 
 

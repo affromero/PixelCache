@@ -2225,6 +2225,7 @@ class HashableImage:
         bboxes: HashableList[BoundingBox],
         *,
         resize: bool = False,
+        blend_width: int = 10,
     ) -> HashableImage:
         """Uncrop an image from a specified list of bounding boxes using a.
 
@@ -2265,6 +2266,7 @@ class HashableImage:
                 _bboxes,
                 resize=resize,
                 is_normalized=is_normalized,
+                blend_width=blend_width,
             )
         )
 
