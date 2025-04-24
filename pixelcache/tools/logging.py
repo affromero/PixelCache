@@ -586,8 +586,6 @@ class LoggingRich:
     def print_exception(
         self,
         msg: str | None = None,
-        *,
-        continue_on_error: bool = False,
         **kwargs: Any,
     ) -> None:
         """Print an error message and exception details if an exception is.
@@ -596,16 +594,12 @@ class LoggingRich:
 
         This method handles exceptions by printing a given error message and
             the details of the exception.
-        If the continue_on_error flag is set to False, the program will stop
-            after printing the exception.
         Additional keyword arguments can be passed to further customize the
             print_exception method.
 
         Arguments:
             msg (str): A string message to be printed along with the error
                 details.
-            continue_on_error (bool): A flag indicating whether the program
-                should continue running after printing the exception.
             **kwargs: Additional keyword arguments to be passed to the
                 print_exception method.
 
@@ -626,10 +620,6 @@ class LoggingRich:
         # check if already inside an exception
         if sys.exc_info()[0] is not None:
             self.console.print_exception(**kwargs)
-            if not continue_on_error:
-                sys.exit()
-        elif not continue_on_error:
-            sys.exit()
 
     def exception(self, msg: str, **kwargs: Any) -> None:
         """Log an exception message with a specified message and additional.
