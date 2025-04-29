@@ -127,12 +127,12 @@ def remove_disconnected_regions(
         area_abs = np.prod([i * area_rel for i in mask.shape[:2]])
         mask_removed: Bool[np.ndarray, "h w"] = remove_small_regions(
             mask,
-            area_thresh=area_abs,
+            area_thresh=int(area_abs),
             mode="holes",
         )[0]
         mask_removed = remove_small_regions(
             mask_removed,
-            area_thresh=area_abs,
+            area_thresh=int(area_abs),
             mode="islands",
         )[0]
         fine_masks.append(mask_removed)
@@ -678,6 +678,7 @@ def remove_small_regions(
     mask: Bool[np.ndarray, "h w"],
     area_thresh: int,
     mode: Literal["holes", "islands"],
+    connectivity: int = 8,
 ) -> tuple[Bool[np.ndarray, "h w"], bool]:
     """Removes small disconnected regions in a binary mask based on the specified mode.
 
@@ -716,7 +717,7 @@ def remove_small_regions(
     working_mask = (correct_holes ^ mask).astype(np.uint8)
     n_labels, regions, stats, _ = cv2.connectedComponentsWithStats(
         working_mask,
-        8,
+        connectivity=connectivity,
     )
     sizes = stats[:, -1][1:]  # Row 0 is background label
     small_regions = [i + 1 for i, s in enumerate(sizes) if s < area_thresh]

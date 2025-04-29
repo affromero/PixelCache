@@ -55,6 +55,7 @@ from pixelcache.tools.mask import (
     mask_blend,
     morphologyEx,
     polygon_to_mask,
+    remove_small_regions,
 )
 from pixelcache.tools.text import create_text, draw_text
 from pixelcache.tools.utils import color_palette
@@ -689,11 +690,15 @@ class HashableImage:
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
-    def to_binary(self, threshold: float = 0.0) -> HashableImage:
+    def to_binary(
+        self, threshold: float = 0.0, area_min: int = 0, connectivity: int = 8
+    ) -> HashableImage:
         """Convert an image to binary format.
 
-        This function does not take any arguments. It uses the global state
-            of the program to find the image to convert.
+        Arguments:
+            threshold (float): The threshold for converting the image to binary.
+            area_min (int): The minimum area for removing disconnected
+                regions.
 
         Returns:
             HashableImage: A HashableImage object representing the converted
@@ -714,7 +719,15 @@ class HashableImage:
             or (self._mode == "pil" and self._image.mode == "1")
         ):
             return self
-        return HashableImage(to_binary(self._image, threshold=threshold))
+        mask = to_binary(self.numpy(), threshold=threshold)
+        if area_min > 0:
+            mask = remove_small_regions(
+                mask, area_min, mode="holes", connectivity=connectivity
+            )[0]
+            mask = remove_small_regions(
+                mask, area_min, mode="islands", connectivity=connectivity
+            )[0]
+        return HashableImage(mask)
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
