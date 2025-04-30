@@ -33,6 +33,7 @@ DEFAULT_VERBOSITY = {
     "rule": not DISABLE_LOGGING,
     "log": not DISABLE_LOGGING,
     "print": not DISABLE_LOGGING,
+    "save_image": not DISABLE_LOGGING,
     "make_image_grid": not DISABLE_LOGGING,
 }
 
@@ -783,6 +784,37 @@ class LoggingRich:
         else:
             color_msg = [level, msg, filename]
         return " ".join(color_msg)
+
+    def save_image(
+        self, image: HashableImage, output: str, *, verbose: bool = True
+    ) -> None:
+        """Save an image to a file.
+
+        This method saves the image represented by the HashableImage object
+            to a specified file path.
+
+        Arguments:
+            image (HashableImage): The image to save.
+            output (str): The file path where the image will be saved.
+            verbose (bool, optional): Whether to print verbose output.
+                Defaults to True.
+
+        Returns:
+            None: This method does not return any value.
+
+        Example:
+            >>> logger.save_image(image, "output.png")
+
+        Note:
+            Make sure the path exists and you have write permissions. If the
+                file already exists, it will be overwritten.
+
+        """
+        if not self.verbosity["save_image"]:
+            return
+        if verbose:
+            self.log(f"{image=} saved to {output}", stack_offset=1)
+        image.save(output)
 
     def make_image_grid(
         self,
