@@ -502,19 +502,20 @@ class HashableImage:
                 is created and returned.
 
         """
+        image = self.to_rgb()
         if self._mode == "torch":
-            if self._image.shape[1] == 3:
+            if image._image.shape[1] == 3:
                 return HashableImage(
-                    self._image.mean(1, keepdim=True).float(),
+                    image._image.mean(1, keepdim=True).float(),
                 )
             return self
         if self._mode == "numpy":
-            if len(self._image.shape) == 3 and self._image.shape[2] == 3:
+            if len(image._image.shape) == 3 and image._image.shape[2] == 3:
                 return HashableImage(
-                    cv2.cvtColor(self._image, cv2.COLOR_RGB2GRAY),
+                    cv2.cvtColor(image._image, cv2.COLOR_RGB2GRAY),
                 )
             return self
-        return HashableImage(self._image.convert("L"))
+        return HashableImage(image._image.convert("L"))
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
