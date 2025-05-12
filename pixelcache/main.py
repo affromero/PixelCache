@@ -6,6 +6,7 @@ import random
 import string
 import tempfile
 from collections.abc import Iterable, Iterator, MutableMapping, MutableSequence
+from copy import deepcopy
 from numbers import Number
 from pathlib import Path
 from typing import (
@@ -2972,7 +2973,7 @@ class HashableImage:
     @staticmethod
     @jaxtyped(typechecker=beartype)
     def make_image_grid(
-        images: HashableDict[str, HashableList[HashableImage]],
+        images: dict[str, list[HashableImage]],
         *,
         orientation: Literal["horizontal", "vertical"] = "horizontal",
         with_text: bool = False,
@@ -3007,11 +3008,7 @@ class HashableImage:
                 width in the grid.
 
         """
-        # all list should have the same number of images
-        image_as_list: dict[str, list[HashableImage]] = cast(
-            dict[str, list[HashableImage]],
-            images.to_dict(),
-        )
+        image_as_list = deepcopy(images)
         max_images = max([len(imgs) for imgs in image_as_list.values()])
         for key, imgs in image_as_list.items():
             if len(imgs) < max_images:

@@ -16,7 +16,7 @@ from pydantic.dataclasses import dataclass
 from rich.console import Console
 
 if TYPE_CHECKING:
-    from pixelcache.main import HashableDict, HashableImage, HashableList
+    from pixelcache.main import HashableImage
 
 load_dotenv()
 
@@ -818,7 +818,7 @@ class LoggingRich:
 
     def make_image_grid(
         self,
-        images: HashableDict[str, HashableList[HashableImage]],
+        images: dict[str, list[HashableImage]],
         *,
         orientation: Literal["horizontal", "vertical"] = "horizontal",
         with_text: bool = False,
