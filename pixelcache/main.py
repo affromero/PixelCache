@@ -1679,7 +1679,7 @@ class HashableImage:
         # Turn the BytesIO object back into a bytes object
         return img_bytes.getvalue()
 
-    def b64(self) -> str:
+    def b64(self, *, open_rb: bool = False) -> str:
         """Convert the image data to a base64 string.
 
         This method converts the image data stored in the HashableImage
@@ -1697,6 +1697,9 @@ class HashableImage:
                 serialization.
 
         """
+        if open_rb:
+            with Path(self.get_filename()).open("rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
         return base64.b64encode(self.bytes()).decode("utf-8")
 
     @property
