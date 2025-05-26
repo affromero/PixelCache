@@ -50,6 +50,7 @@ class LoggingRich:
             "warning": "[italic yellow][[:warning: WARNING]] {}[/italic yellow]",
             "error": "[bold red][[:x:ERROR]] {}[/bold red]",
             "success": "[bold green][[:white_check_mark:SUCCESS]] {}[/bold green]",
+            "log": "{}",
         },
     )
     """ Modes for logging. """
@@ -64,6 +65,9 @@ class LoggingRich:
         default_factory=lambda: DEFAULT_VERBOSITY,
     )
     """ Verbosity levels. """
+
+    id: str = ""
+    """ ID for the logger. """
 
     def __post_init__(self) -> None:
         """Disable the omission of repeated times in console's log render.
@@ -92,14 +96,27 @@ class LoggingRich:
         # default is True, i.e. omit timestamp if it's the same as last log line
         # https://github.com/Textualize/rich/issues/459
 
+    def set_id(self, _id: str, /) -> None:
+        """Set the ID for the logger."""
+        self.id = _id
+
+    def get_modes(self) -> dict[str, str]:
+        """Get the modes for the logger."""
+        modes = self.modes.copy()
+        if self.id:
+            for mode in modes:
+                modes[mode] = (
+                    f"[uu slate_blue1]ID:{self.id}[/uu slate_blue1] "
+                    + modes[mode]
+                )
+            return modes
+        return modes
+
     def is_file_enabled(self) -> bool:
         """Check if the logging file is enabled.
 
         This method checks if the logging file for the instance of the
             LoggingRich class is enabled or not.
-
-        Arguments:
-            self (LoggingRich): The instance of the LoggingRich class.
 
         Returns:
             bool: A boolean value indicating whether the logging file is
@@ -149,7 +166,7 @@ class LoggingRich:
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
         self.log(
-            self.modes["success"].format(msg),
+            self.get_modes()["success"].format(msg),
             stack_offset=stack_offset,
             force=force,
             **kwargs,
@@ -184,7 +201,7 @@ class LoggingRich:
         if not self.verbosity["error"] and not force:
             return
         self.log(
-            self.modes["error"].format(msg),
+            self.get_modes()["error"].format(msg),
             stack_offset=stack_offset,
             force=force,
             **kwargs,
@@ -217,7 +234,7 @@ class LoggingRich:
         if not self.verbosity["warning"] and not force:
             return
         self.log(
-            self.modes["warning"].format(msg),
+            self.get_modes()["warning"].format(msg),
             stack_offset=stack_offset,
             force=force,
             **kwargs,
@@ -255,7 +272,7 @@ class LoggingRich:
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
         return self.log(
-            self.modes["info"].format(msg),
+            self.get_modes()["info"].format(msg),
             stack_offset=stack_offset,
             force=force,
             **kwargs,
@@ -365,7 +382,7 @@ class LoggingRich:
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
         self.log(
-            self.modes["debug"].format(msg),
+            self.get_modes()["debug"].format(msg),
             stack_offset=stack_offset,
             force=force,
             **kwargs,
@@ -500,7 +517,7 @@ class LoggingRich:
         )
         if isinstance(msg, str):
             msg = self.preprocess_msg(msg)
-        self.console.log(msg, **kwargs)
+        self.console.log(self.get_modes()["log"].format(msg), **kwargs)
 
     def log_unittest(
         self,
@@ -774,7 +791,7 @@ class LoggingRich:
             last_line = f.readlines()[-1].strip()
         splitname = last_line.split(msg)
         time = f"[cyan] {splitname[0]} [/cyan]" if len(splitname) > 1 else ""
-        level = self.modes[name].format("")
+        level = self.get_modes()[name].format("")
         filename = (
             splitname[1].split()[0] if len(splitname) > 1 else splitname[0]
         )
