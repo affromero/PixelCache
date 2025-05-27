@@ -104,12 +104,10 @@ class LoggingRich:
         """Get the modes for the logger."""
         modes = self.modes.copy()
         if self.id:
-            for mode in modes:
-                modes[mode] = (
-                    f"[uu slate_blue1]ID:{self.id}[/uu slate_blue1] "
-                    + modes[mode]
-                )
-            return modes
+            modes["log"] = (
+                f"[uu slate_blue1]ID:{self.id}[/uu slate_blue1] "
+                + modes["log"]
+            )
         return modes
 
     def is_file_enabled(self) -> bool:
