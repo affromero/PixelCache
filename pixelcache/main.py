@@ -155,10 +155,11 @@ class HashableImage:
         else:
             self._create_tmp_file()
 
-    def _create_tmp_file(self) -> None:
+    def _create_tmp_file(self) -> str:
         """Create a temporary file."""
         self._image_str = tempfile.NamedTemporaryFile(suffix=".png").name
         self.save(self._image_str)
+        return self._image_str
 
     @property
     def _mode(self) -> VALID_IMAGES:
@@ -216,10 +217,7 @@ class HashableImage:
         """
         _filename = self.get_filename()
         if _filename.startswith("http"):
-            # write it as a temp file
-            temp_file = Path(tempfile.NamedTemporaryFile(suffix=".png").name)
-            self.save(temp_file)
-            return str(temp_file)
+            return self._create_tmp_file()
         return _filename
 
     def set_filename(self, filename: str) -> None:
