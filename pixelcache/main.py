@@ -4470,8 +4470,9 @@ class Points:
         mask = np.zeros(
             (self.image_size.height, self.image_size.width), dtype=np.uint8
         )
-        for point in self.points:
-            mask[point[1], point[0]] = 255
+        xy = self.xy
+        for point in xy:
+            mask[int(point[1]), int(point[0])] = 255
         return HashableImage(mask)
 
     @property
