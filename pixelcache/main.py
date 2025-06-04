@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    ParamSpec,
     SupportsIndex,
     TypeVar,
     cast,
@@ -67,6 +68,10 @@ if TYPE_CHECKING:
 _T = TypeVar("_T")
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
+
+PCropArgs = ParamSpec("PCropArgs")
+PSquareMaskArgs = ParamSpec("PSquareMaskArgs")
+P_PathStr = TypeVar("P_PathStr", bound=Path | str)
 
 MAX_IMG_CACHE = 5
 VALID_IMAGES = Literal["pil", "numpy", "torch"]
@@ -2153,7 +2158,8 @@ class HashableImage:
     def crop_from_mask(
         self,
         mask: HashableImage,
-        **kwargs: Any,
+        *args: PCropArgs.args,
+        **kwargs: PCropArgs.kwargs,
     ) -> HashableImage:
         """Crop an image based on a provided mask image.
 
@@ -2181,9 +2187,25 @@ class HashableImage:
         kwargs.setdefault("verbose", False)
         return HashableImage(
             crop_from_mask(
-                self.to_rgb().numpy(), mask.to_binary().numpy(), **kwargs
+                self.to_rgb().numpy(),
+                mask.to_binary().numpy(),
+                *args,
+                **kwargs,
             )
         )
+
+    @lru_cache(maxsize=MAX_IMG_CACHE)
+    @jaxtyped(typechecker=beartype)
+    def crop_from_points(
+        self,
+        points: Points,
+        *args: PCropArgs.args,
+        **kwargs: PCropArgs.kwargs,
+    ) -> HashableImage:
+        """Crop an image based on the provided points."""
+        # convert points to mask first
+        mask = points.to_mask()
+        return self.crop_from_mask(mask, *args, **kwargs)
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
@@ -2471,7 +2493,11 @@ class HashableImage:
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
-    def mask2squaremask(self, **kwargs: Any) -> HashableImage:
+    def mask2squaremask(
+        self,
+        *args: PSquareMaskArgs.args,
+        **kwargs: PSquareMaskArgs.kwargs,
+    ) -> HashableImage:
         """Convert the mask of a HashableImage object to a square mask.
 
         This method uses the mask2squaremask function from the image_tools
@@ -2498,7 +2524,7 @@ class HashableImage:
 
         """
         return HashableImage(
-            mask2squaremask(self.to_binary().numpy(), **kwargs)
+            mask2squaremask(self.to_binary().numpy(), *args, **kwargs)
         )
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
@@ -4438,6 +4464,15 @@ class Points:
         if self.points.ndim != 2:
             msg = "The 'points' attribute must be a 2D NumPy array."
             raise ValueError(msg)
+
+    def to_mask(self) -> HashableImage:
+        """Convert the points to a mask."""
+        mask = np.zeros(
+            (self.image_size.height, self.image_size.width), dtype=np.uint8
+        )
+        for point in self.points:
+            mask[point[1], point[0]] = 255
+        return HashableImage(mask)
 
     @property
     def num_points(self) -> int:
