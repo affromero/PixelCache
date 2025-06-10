@@ -518,7 +518,7 @@ class LoggingRich:
             "filename": f"{filename}:{line_no}",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "message": msg,
-            "level": level,
+            "level": level.upper(),
         }
         # self.console.log(
         #     RichJSON(json.dumps(data), indent=4, sort_keys=True),
