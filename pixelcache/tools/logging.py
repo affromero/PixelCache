@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 import sys
 import tempfile
 from dataclasses import field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -23,6 +25,7 @@ load_dotenv()
 DISABLE_LOGGING = os.getenv("DISABLE_LOGGING", "False") == "True"
 LOG_DEBUG = os.getenv("LOG_DEBUG", "False") == "True"
 LOG_WARNING = os.getenv("LOG_WARNING", "True") == "True"
+JSON_FORMATTER = os.getenv("JSON_FORMATTER", "False") == "True"
 
 DEFAULT_VERBOSITY = {
     "info": not DISABLE_LOGGING,
@@ -163,6 +166,11 @@ class LoggingRich:
             return
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
+        if JSON_FORMATTER:
+            self.log_json(
+                msg, stack_offset=stack_offset + 1, level="success", **kwargs
+            )
+            return
         self.log(
             self.get_modes()["success"].format(msg),
             stack_offset=stack_offset,
@@ -198,6 +206,11 @@ class LoggingRich:
         stack_offset += self.stack_offset + 1
         if not self.verbosity["error"] and not force:
             return
+        if JSON_FORMATTER:
+            self.log_json(
+                msg, stack_offset=stack_offset + 1, level="error", **kwargs
+            )
+            return
         self.log(
             self.get_modes()["error"].format(msg),
             stack_offset=stack_offset,
@@ -230,6 +243,11 @@ class LoggingRich:
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
         if not self.verbosity["warning"] and not force:
+            return
+        if JSON_FORMATTER:
+            self.log_json(
+                msg, stack_offset=stack_offset + 1, level="warning", **kwargs
+            )
             return
         self.log(
             self.get_modes()["warning"].format(msg),
@@ -269,6 +287,11 @@ class LoggingRich:
             return None
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
+        if JSON_FORMATTER:
+            self.log_json(
+                msg, stack_offset=stack_offset, level="info", **kwargs
+            )
+            return None
         return self.log(
             self.get_modes()["info"].format(msg),
             stack_offset=stack_offset,
@@ -379,6 +402,11 @@ class LoggingRich:
             return
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
+        if JSON_FORMATTER:
+            self.log_json(
+                msg, stack_offset=stack_offset + 1, level="debug", **kwargs
+            )
+            return
         self.log(
             self.get_modes()["debug"].format(msg),
             stack_offset=stack_offset,
@@ -468,6 +496,39 @@ class LoggingRich:
             msg = self.preprocess_msg(msg)
         return self.console.input(msg, **kwargs)
 
+    def log_json(
+        self,
+        msg: Any,
+        /,
+        *,
+        level: str,
+        force: bool = False,
+        indent: int = 4,
+        sort_keys: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """Log a message in JSON format."""
+        if not self.verbosity[level] and not force:
+            return
+        stack_offset = kwargs.pop("stack_offset", 0)
+        filename, line_no, _ = self.console._caller_frame_info(stack_offset)
+        with contextlib.suppress(ValueError):
+            filename = Path(filename).relative_to(Path.cwd()).as_posix()
+        data = {
+            "filename": f"{filename}:{line_no}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "message": msg,
+            "level": level,
+        }
+        # self.console.log(
+        #     RichJSON(json.dumps(data), indent=4, sort_keys=True),
+        #     **kwargs,
+        # )
+        kwargs.pop("style", None)  # remove style from kwargs
+        self.console.print_json(
+            json.dumps(data), indent=indent, sort_keys=sort_keys, **kwargs
+        )
+
     def log(
         self,
         msg: Any,
@@ -515,6 +576,12 @@ class LoggingRich:
         )
         if isinstance(msg, str):
             msg = self.preprocess_msg(msg)
+        if JSON_FORMATTER:
+            stack_offset = kwargs.pop("_stack_offset", 0) + 1
+            self.log_json(
+                msg, level="log", stack_offset=stack_offset, **kwargs
+            )
+            return
         self.console.log(self.get_modes()["log"].format(msg), **kwargs)
 
     def log_unittest(
