@@ -868,7 +868,12 @@ class LoggingRich:
         return " ".join(color_msg)
 
     def save_image(
-        self, image: HashableImage, output: str, *, verbose: bool = True
+        self,
+        image: HashableImage,
+        output: str,
+        *,
+        verbose: bool = True,
+        force: bool = False,
     ) -> None:
         """Save an image to a file.
 
@@ -892,7 +897,7 @@ class LoggingRich:
                 file already exists, it will be overwritten.
 
         """
-        if not self.verbosity["save_image"]:
+        if not self.verbosity["save_image"] and not force:
             return
         if verbose:
             self.log(f"{image=} saved to {output}", stack_offset=1)
@@ -906,6 +911,7 @@ class LoggingRich:
         with_text: bool = False,
         output: str,
         verbose: bool = True,
+        force: bool = False,
     ) -> None:
         """Create a grid of images and display them in the console.
 
@@ -940,7 +946,7 @@ class LoggingRich:
             HashableImage,  # not at the top of the file to avoid circular import
         )
 
-        if not self.verbosity["make_image_grid"]:
+        if not self.verbosity["make_image_grid"] and not force:
             return
         image = HashableImage.make_image_grid(
             images, orientation=orientation, with_text=with_text
