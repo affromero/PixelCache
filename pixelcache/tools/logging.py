@@ -520,6 +520,8 @@ class LoggingRich:
             "message": msg,
             "level": level.upper(),
         }
+        if self.id:
+            data["trace_id"] = self.id
         # self.console.log(
         #     RichJSON(json.dumps(data), indent=4, sort_keys=True),
         #     **kwargs,
