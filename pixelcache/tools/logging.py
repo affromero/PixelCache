@@ -671,6 +671,7 @@ class LoggingRich:
     def print_exception(
         self,
         msg: str | None = None,
+        stack_offset: int = 1,
         **kwargs: Any,
     ) -> None:
         """Print an error message and exception details if an exception is.
@@ -701,12 +702,14 @@ class LoggingRich:
 
         """
         if msg is not None:
-            self.error(msg, stack_offset=1)
+            self.error(msg, stack_offset=stack_offset)
         # check if already inside an exception
         if sys.exc_info()[0] is not None:
             self.console.print_exception(**kwargs)
 
-    def exception(self, msg: str, **kwargs: Any) -> None:
+    def exception(
+        self, msg: str, stack_offset: int = 1, **kwargs: Any
+    ) -> None:
         """Log an exception message with a specified message and additional.
 
             keyword arguments.
@@ -730,7 +733,7 @@ class LoggingRich:
                 occur.
 
         """
-        self.print_exception(msg, **kwargs)
+        self.print_exception(msg, stack_offset=stack_offset + 1, **kwargs)
 
     def status(self, msg: str, **kwargs: Any) -> Any:
         """Display a status message along with any additional keyword arguments.
