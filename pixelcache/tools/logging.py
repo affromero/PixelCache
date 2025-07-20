@@ -16,8 +16,11 @@ from dotenv import load_dotenv
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from rich.console import Console
+from rich.progress import track
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pixelcache.main import HashableImage
 
 load_dotenv()
@@ -133,6 +136,10 @@ class LoggingRich:
 
         """
         return self.console.file.name != "<stdout>"
+
+    def track(self, iterable: Iterable, /, **kwargs: Any) -> Iterable:
+        """Track an iterable with a progress bar."""
+        return track(iterable, **kwargs)
 
     def success(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
         """Log a success message if the verbosity level for success messages is.
