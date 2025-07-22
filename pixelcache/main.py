@@ -166,6 +166,11 @@ class HashableImage:
         self.save(self._image_str)
         return self._image_str
 
+    @staticmethod
+    def from_base64(base64_str: str) -> HashableImage:
+        """Create a HashableImage from a base64 string."""
+        return HashableImage(base64.b64decode(base64_str))
+
     @property
     def _mode(self) -> VALID_IMAGES:
         if isinstance(self._image, torch.Tensor):
@@ -4194,8 +4199,13 @@ class BoundingBox:
             for coord in [self.xmin, self.ymin, self.xmax, self.ymax]
         )
 
+    def size(self) -> ImageSize:
+        """Get the size of the bounding box."""
+        xyxy = self.xyxy
+        return ImageSize(width=xyxy[2] - xyxy[0], height=xyxy[3] - xyxy[1])
+
     @property
-    def xyxy(self) -> tuple[float, float, float, float]:
+    def xyxy(self) -> tuple[int, int, int, int]:
         """Calculate the minimum and maximum X and Y coordinates of the.
 
             bounding box.
@@ -4207,7 +4217,7 @@ class BoundingBox:
         Arguments:
             None
         Returns:
-            Tuple[float, float, float, float]: A tuple in the format (min_x,
+            Tuple[int, int, int, int]: A tuple in the format (min_x,
                 min_y, max_x, max_y)
             representing the minimum and maximum X and Y coordinates of the
                 bounding box.
@@ -4225,19 +4235,24 @@ class BoundingBox:
         """
         if self.is_normalized() and self.image_size is not None:
             return (
-                self.xmin * self.image_size.width,
-                self.ymin * self.image_size.height,
-                self.xmax * self.image_size.width,
-                self.ymax * self.image_size.height,
+                int(self.xmin * self.image_size.width),
+                int(self.ymin * self.image_size.height),
+                int(self.xmax * self.image_size.width),
+                int(self.ymax * self.image_size.height),
             )
         if not self.is_normalized():
-            return (self.xmin, self.ymin, self.xmax, self.ymax)
+            return (
+                int(self.xmin),
+                int(self.ymin),
+                int(self.xmax),
+                int(self.ymax),
+            )
 
         msg = "Image size must be provided for normalized bounding boxes. Use xyxyn instead."
         raise ValueError(msg)
 
     @property
-    def xywh(self) -> tuple[float, float, float, float]:
+    def xywh(self) -> tuple[int, int, int, int]:
         """Calculate and return the coordinates and dimensions of a bounding.
 
             box.
@@ -4262,7 +4277,7 @@ class BoundingBox:
 
         """
         x, y, x2, y2 = self.xyxy
-        return x, y, x2 - x, y2 - y
+        return int(x), int(y), int(x2 - x), int(y2 - y)
 
     @property
     def xyxyn(self) -> tuple[float, float, float, float]:
