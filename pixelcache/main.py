@@ -651,8 +651,8 @@ class HashableImage:
         # replace the values with the palette
         unique_values = np.unique(image_np)
         new_image = np.zeros_like(rgb)
-        for i, value in enumerate(unique_values):
-            new_image[image_np == value] = _palette[i]
+        for value in unique_values:
+            new_image[image_np == value] = _palette[value]
         return HashableImage(new_image)
 
     @lru_cache(maxsize=MAX_IMG_CACHE)

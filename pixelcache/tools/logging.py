@@ -20,6 +20,9 @@ from rich.progress import track
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from typing import TypeVar
+
+    _T = TypeVar("_T")
 
     from pixelcache.main import HashableImage
 
@@ -137,7 +140,7 @@ class LoggingRich:
         """
         return self.console.file.name != "<stdout>"
 
-    def track(self, iterable: Iterable, /, **kwargs: Any) -> Iterable:
+    def track(self, iterable: Iterable[_T], /, **kwargs: Any) -> Iterable[_T]:
         """Track an iterable with a progress bar."""
         return track(iterable, **kwargs)
 
