@@ -15,8 +15,11 @@ import json5
 from dotenv import load_dotenv
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
+from rich.box import ROUNDED, Box
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import track
+from rich.table import Table
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -45,6 +48,22 @@ DEFAULT_VERBOSITY = {
     "save_image": not DISABLE_LOGGING,
     "make_image_grid": not DISABLE_LOGGING,
 }
+
+
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True, extra="forbid"))
+class LoggingTable:
+    """LoggingTable class."""
+
+    columns: list[str]
+    """Columns of the table."""
+    colors: list[str]
+    """Colors of the table. Same length as columns."""
+    rows: list[list[str]]
+    """Rows of the table. Same length as columns."""
+    title: str
+    """Title of the table."""
+    box: Box = ROUNDED
+    """Box style of the table. Default is ROUNDED."""
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True, extra="forbid"))
@@ -143,6 +162,38 @@ class LoggingRich:
     def track(self, iterable: Iterable[_T], /, **kwargs: Any) -> Iterable[_T]:
         """Track an iterable with a progress bar."""
         return track(iterable, **kwargs)
+
+    def panel(
+        self,
+        msg: list[str],
+        *,
+        title: str,
+        subtitle: str | None = None,
+        border_style: str = "none",
+        style: str = "none",
+    ) -> None:
+        """Print a panel with a title and border style."""
+        self.print(
+            Panel(
+                "\n".join(msg),
+                title=title,
+                subtitle=subtitle,
+                border_style=border_style,
+                style=style,
+            )
+        )
+
+    def table(self, table: LoggingTable) -> None:
+        """Print a table with a title and border style."""
+        logging_table = Table(title=table.title, box=table.box)
+
+        for column, color in zip(table.columns, table.colors, strict=False):
+            logging_table.add_column(column, style=color)
+
+        for row in table.rows:
+            logging_table.add_row(*row)
+
+        self.print(logging_table)
 
     def success(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
         """Log a success message if the verbosity level for success messages is.
