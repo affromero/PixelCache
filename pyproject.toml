@@ -14,7 +14,7 @@ dependencies = [
   "jaxtyping>=0.2.36,<0.3",
   "json5>=0.10.0,<0.11",
   "numpy",
-  "opencv-python>=4.10.0.84,<5",
+  "opencv-python>=4.6,<5",
   "pathlib>=1.0.1,<2",
   "pillow>=11.0.0,<12",
   "pydantic>=2.10.2,<3",
