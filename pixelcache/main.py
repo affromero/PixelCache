@@ -463,6 +463,20 @@ class HashableImage:
         new_w = new_w - (new_w % modulo)
         return self.resize(ImageSize(height=new_h, width=new_w))
 
+    def rotate(
+        self,
+        rotation: float,
+        mode: TF.InterpolationMode = TF.InterpolationMode.BILINEAR,
+        *,
+        expand: bool = True,
+    ) -> HashableImage:
+        """Rotate the image by a given angle."""
+        image_pt = self.tensor()
+        image_pt = TF.rotate(
+            image_pt, rotation, interpolation=mode, expand=expand
+        )
+        return HashableImage(image_pt)
+
     @jaxtyped(typechecker=beartype)
     def is_empty(self) -> bool:
         """Check if the HashableImage object is empty.
