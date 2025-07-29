@@ -162,7 +162,9 @@ class HashableImage:
 
     def _create_tmp_file(self) -> str:
         """Create a temporary file."""
-        self._image_str = tempfile.NamedTemporaryFile(suffix=".png").name
+        self._image_str = tempfile.NamedTemporaryFile(
+            prefix="pixelcache_", suffix=".png"
+        ).name
         self.save(self._image_str)
         return self._image_str
 

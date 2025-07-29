@@ -15,6 +15,7 @@ import json5
 from dotenv import load_dotenv
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
+from rich import progress
 from rich.box import ROUNDED, Box
 from rich.console import Console
 from rich.panel import Panel
@@ -162,6 +163,30 @@ class LoggingRich:
     def track(self, iterable: Iterable[_T], /, **kwargs: Any) -> Iterable[_T]:
         """Track an iterable with a progress bar."""
         return track(iterable, **kwargs)
+
+    def progress(self) -> progress.Progress:
+        """Create and return a Rich Progress context manager with a custom progress bar.
+
+        Returns:
+            progress.Progress: A Rich Progress context manager configured with
+                description, bar, percentage, time remaining, and time elapsed columns.
+
+        Example:
+            with logger.progress() as prog:
+                task = prog.add_task("Processing", total=100)
+                for i in range(100):
+                    # do work
+                    prog.update(task, advance=1)
+
+        """
+        return progress.Progress(
+            "[progress.description]{task.description}",
+            progress.BarColumn(),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            progress.TimeRemainingColumn(),
+            progress.TimeElapsedColumn(),
+            refresh_per_second=1,  # bit slower updates
+        )
 
     def panel(
         self,
