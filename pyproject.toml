@@ -27,7 +27,7 @@ dependencies = [
 description = "A versatile image processing library for Python with built-in support for caching, using Pillow, NumPy, and PyTorch."
 name = "pixelcache"
 readme = "README.md"
-requires-python = "~=3.10"
+requires-python = ">=3.10"
 version = "0.0.3"
 
 [tool.pydantic-mypy]
