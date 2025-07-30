@@ -2316,8 +2316,8 @@ class HashableImage:
                 performance optimization.
 
         """
-        is_normalized = False
-        _bboxes = [bbox.xyxy for bbox in bboxes.to_list()]
+        is_normalized = True
+        _bboxes = [bbox.xyxyn for bbox in bboxes.to_list()]
         return HashableImage(
             uncrop_from_bbox(
                 base.to_rgb().numpy(),
