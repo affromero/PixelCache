@@ -2983,6 +2983,24 @@ class HashableImage:
         )
 
     @jaxtyped(typechecker=beartype)
+    def merge_rgb(self, other: list[HashableImage]) -> HashableImage:
+        """Merge two RGB images."""
+        current_np = self.to_rgb().numpy()
+        for img in other:
+            # Convert the image to RGB numpy array
+            other_color = img.to_rgb().numpy()
+            # Ensure the array is writeable to avoid ValueError
+            if not current_np.flags.writeable:
+                current_np = np.copy(current_np)
+            # Create a mask where any channel is nonzero (i.e., the pixel is not black)
+            update_mask = np.any(other_color != 0, axis=2)
+            # Use np.where to avoid assignment to read-only arrays
+            current_np = np.where(
+                update_mask[..., None], other_color, current_np
+            )
+        return HashableImage(current_np)
+
+    @jaxtyped(typechecker=beartype)
     def group_regions_binary(
         self,
         *,
