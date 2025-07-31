@@ -4178,16 +4178,16 @@ class BoundingBox:
     def __post_init__(self) -> None:
         """Validate the bounding box coordinates."""
         if self.xmin >= self.xmax:
-            msg = "xmin must be smaller than xmax."
+            msg = f"xmin must be smaller than xmax. Got {self.xmin} and {self.xmax}"
             raise ValueError(msg)
         if self.ymin >= self.ymax:
-            msg = "ymin must be smaller than ymax."
+            msg = f"ymin must be smaller than ymax. Got {self.ymin} and {self.ymax}"
             raise ValueError(msg)
         if self.xmin < 0 or self.ymin < 0 or self.xmax < 0 or self.ymax < 0:
-            msg = "Bounding box coordinates must be positive."
+            msg = f"Bounding box coordinates must be positive. Got {self.xmin}, {self.ymin}, {self.xmax}, {self.ymax}"
             raise ValueError(msg)
         if not self.is_normalized() and self.image_size is None:
-            msg = "Image size must be provided for non-normalized bounding boxes."
+            msg = f"Image size must be provided for non-normalized bounding boxes. Got {self.xmin}, {self.ymin}, {self.xmax}, {self.ymax}"
             raise ValueError(msg)
 
     def is_normalized(self) -> bool:
