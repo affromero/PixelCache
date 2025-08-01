@@ -1,4 +1,4 @@
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, overload
 
 import cv2
 import numpy as np
@@ -69,12 +69,26 @@ def group_regions_from_binary(
     return [np.logical_and(i, bbox_img) for i in square_mask]
 
 
-@jaxtyped(typechecker=beartype)
+@overload
+def remove_disconnected_regions(
+    mask: Bool[np.ndarray, "h w"],
+    area_thresh: float,
+) -> Bool[np.ndarray, "h w"]: ...
+
+
+@overload
 def remove_disconnected_regions(
     masks: list[Bool[np.ndarray, "h w"]],
     area_thresh: float | list[float] = 0.0,
+) -> list[Bool[np.ndarray, "h w"]]: ...
+
+
+@jaxtyped(typechecker=beartype)
+def remove_disconnected_regions(
+    masks: list[Bool[np.ndarray, "h w"]] | Bool[np.ndarray, "h w"],
+    area_thresh: float | list[float] = 0.0,
     /,
-) -> list[Bool[np.ndarray, "h w"]]:
+) -> list[Bool[np.ndarray, "h w"]] | Bool[np.ndarray, "h w"]:
     """Remove disconnected regions from a mask or a list of masks based on an.
 
         area threshold.
@@ -102,8 +116,10 @@ def remove_disconnected_regions(
             same area threshold is applied to all masks.
 
     """
+    if isinstance(masks, Bool[np.ndarray, "h w"]):
+        masks = [masks]
     if isinstance(area_thresh, float) and area_thresh == 0.0:
-        return masks
+        return masks[0]
     if isinstance(area_thresh, float):
         area_thresh_list: list[float] = [area_thresh] * len(masks)
     elif isinstance(area_thresh, list) and len(area_thresh) != len(masks):
@@ -124,18 +140,19 @@ def remove_disconnected_regions(
 
     fine_masks: list[Bool[np.ndarray, "h w"]] = []
     for mask, area_rel in zip(masks, area_thresh_list, strict=False):
-        area_abs = np.prod([i * area_rel for i in mask.shape[:2]])
         mask_removed: Bool[np.ndarray, "h w"] = remove_small_regions(
             mask,
-            area_thresh=int(area_abs),
+            area_thresh=area_rel,
             mode="holes",
         )[0]
         mask_removed = remove_small_regions(
             mask_removed,
-            area_thresh=int(area_abs),
+            area_thresh=area_rel,
             mode="islands",
         )[0]
         fine_masks.append(mask_removed)
+    if len(fine_masks) == 1:
+        return fine_masks[0]
     return fine_masks
 
 
@@ -676,7 +693,7 @@ def keep_n_largest_components(
 @jaxtyped(typechecker=beartype)
 def remove_small_regions(
     mask: Bool[np.ndarray, "h w"],
-    area_thresh: int,
+    area_thresh: float,
     mode: Literal["holes", "islands"],
     connectivity: int = 8,
 ) -> tuple[Bool[np.ndarray, "h w"], bool]:
@@ -689,7 +706,7 @@ def remove_small_regions(
     Arguments:
         mask (np.array): A binary mask with 1s indicating the foreground and 0s
             indicating the background.
-        area_thresh (int): The minimum area (in pixels) for regions to be retained.
+        area_thresh (float): The minimum area (in percentage of the image area) for regions to be retained.
             Regions smaller than this threshold will be removed.
         mode (Literal["holes", "islands"]): Specifies the type of regions to remove:
             - "holes": Removes small background regions (0s) completely surrounded by
@@ -704,15 +721,20 @@ def remove_small_regions(
 
     Example:
         >>> # Remove small holes (background regions)
-        >>> cleaned_mask, modified = remove_small_regions(mask, 100, mode="holes")
+        >>> cleaned_mask, modified = remove_small_regions(mask, 0.01, mode="holes")
         >>> # Remove small islands (foreground regions)
-        >>> cleaned_mask, modified = remove_small_regions(mask, 100, mode="islands")
+        >>> cleaned_mask, modified = remove_small_regions(mask, 0.01, mode="islands")
 
     Note:
         - If all regions are smaller than the threshold, the largest region is retained.
         - The function preserves the overall structure of the mask while removing noise.
 
     """
+    image_area = mask.shape[0] * mask.shape[1]
+    if area_thresh > 1:
+        msg = f"area_thresh must be between 0 and 1. {area_thresh}"
+        raise ValueError(msg)
+    area_thresh = area_thresh * image_area
     correct_holes = mode == "holes"
     working_mask = (correct_holes ^ mask).astype(np.uint8)
     n_labels, regions, stats, _ = cv2.connectedComponentsWithStats(

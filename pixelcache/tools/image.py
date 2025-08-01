@@ -461,6 +461,10 @@ class ImageSize:
                 msg,
             )
 
+    def area(self) -> int:
+        """Calculate the area of the image."""
+        return self.height * self.width
+
     def min(self) -> int | float:
         """Return the minimum value between the height and width of an image.
 

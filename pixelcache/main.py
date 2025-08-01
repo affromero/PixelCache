@@ -717,14 +717,17 @@ class HashableImage:
     @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def to_binary(
-        self, threshold: float = 0.0, area_min: int = 0, connectivity: int = 8
+        self,
+        threshold: float = 0.0,
+        area_min: float = 0,
+        connectivity: int = 8,
     ) -> HashableImage:
         """Convert an image to binary format.
 
         Arguments:
             threshold (float): The threshold for converting the image to binary.
-            area_min (int): The minimum area for removing disconnected
-                regions.
+            area_min (float): The minimum area for removing disconnected
+                regions. Area is in percentage of the image area.
 
         Returns:
             HashableImage: A HashableImage object representing the converted
