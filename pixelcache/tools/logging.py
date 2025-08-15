@@ -160,9 +160,24 @@ class LoggingRich:
         """
         return self.console.file.name != "<stdout>"
 
-    def track(self, iterable: Iterable[_T], /, **kwargs: Any) -> Iterable[_T]:
+    def track(
+        self,
+        iterable: Iterable[_T],
+        /,
+        *,
+        description: str,
+        transient: bool = False,
+        **kwargs: Any,
+    ) -> Iterable[_T]:
         """Track an iterable with a progress bar."""
-        return track(iterable, **kwargs)
+        console = kwargs.pop("console", self.console)
+        return track(
+            iterable,
+            description=description,
+            console=console,
+            transient=transient,
+            **kwargs,
+        )
 
     def progress(self) -> progress.Progress:
         """Create and return a Rich Progress context manager with a custom progress bar.

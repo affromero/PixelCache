@@ -24,6 +24,7 @@ import cv2
 import numpy as np
 import torch
 from beartype import beartype
+from matplotlib import colormaps
 from PIL import Image, ImageOps
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -630,7 +631,7 @@ class HashableImage:
 
     @jaxtyped(typechecker=beartype)
     def apply_palette(
-        self, _palette: UInt8[np.ndarray, "256 3"] = PALETTE_DEFAULT, /
+        self, _palette: UInt8[np.ndarray, "256 3"] | str = PALETTE_DEFAULT, /
     ) -> HashableImage:
         """Apply a color palette to the HashableImage object.
 
@@ -641,6 +642,8 @@ class HashableImage:
                 color palette will be applied.
             _palette (np.ndarray, optional): The color palette to be applied
                 to the HashableImage object. Defaults to PALETTE_DEFAULT.
+                Can be a string, in which case it will be converted to a
+                matplotlib colormap.
 
         Returns:
             HashableImage: A new HashableImage object with the color palette
@@ -667,6 +670,12 @@ class HashableImage:
         # replace the values with the palette
         unique_values = np.unique(image_np)
         new_image = np.zeros_like(rgb)
+        if isinstance(_palette, str) and _palette in colormaps:
+            _palette = colormaps.get_cmap(_palette)(range(256))[:, :3]
+            _palette = (_palette * 255).astype(np.uint8)
+        elif isinstance(_palette, str):
+            msg = f"Invalid palette: {_palette}. Valid colormaps are: {list(colormaps.keys())}"
+            raise ValueError(msg)
         for value in unique_values:
             new_image[image_np == value] = _palette[value]
         return HashableImage(new_image)
