@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+import dotenv
 import json5
 from dotenv import load_dotenv
 from pydantic import ConfigDict
@@ -23,7 +24,7 @@ from rich.progress import track
 from rich.table import Table
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
     from typing import TypeVar
 
     _T = TypeVar("_T")
@@ -51,7 +52,48 @@ DEFAULT_VERBOSITY = {
 }
 
 
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True, extra="forbid"))
+def override_from_dotenv(
+    env_var_name: str,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Decorator that overrides self.verbosity with the value from the specified environment variable.
+
+    This decorator checks if the specified environment variable exists and has a non-empty value.
+    If it does, it attempts to parse the value as JSON and replace self.verbosity with the parsed dictionary.
+    If the environment variable is not found or parsing fails, it falls back to the original method behavior.
+
+    Args:
+        env_var_name: The name of the environment variable to check for verbosity configuration.
+
+    Returns:
+        The decorated function with potentially overridden verbosity.
+
+    Example:
+        >>> @override_from_dotenv("LOG_DEBUG")
+        >>> def debug(self, msg: str, **kwargs: Any) -> None:
+        ...     # self.verbosity will be overridden if LOG_DEBUG env var is set
+        ...     pass
+
+    """
+
+    def decorator(func: Callable) -> Callable:
+        def wrapper(self: LoggingRich, *args: Any, **kwargs: Any) -> Any:
+            # Check if the environment variable exists and has a value
+            env_value = dotenv.get_key(dotenv.find_dotenv(), env_var_name)
+            if env_value and env_value.strip():
+                name = env_var_name.split("_")[1].lower()
+                if name not in self.verbosity:
+                    msg = f"{name=} not in {self.verbosity=}"
+                    raise ValueError(msg)
+                self.verbosity[name] = env_value.lower() == "true"
+
+            # Call the original function
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 class LoggingTable:
     """LoggingTable class."""
 
@@ -469,6 +511,7 @@ class LoggingRich:
             return
         self.error("\n" + self.__jsonize(msg), **kwargs)
 
+    @override_from_dotenv("LOG_DEBUG")
     def debug(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
         """Log debug messages with additional keyword arguments if debug.
 
@@ -502,7 +545,9 @@ class LoggingRich:
         if not self.verbosity["debug"] and not force:
             return
         stack_offset = kwargs.pop("stack_offset", 0)
-        stack_offset += self.stack_offset + 1
+        stack_offset += (
+            self.stack_offset + 2
+        )  # counting the override_from_dotenv decorator
         if JSON_FORMATTER:
             self.log_json(
                 msg, stack_offset=stack_offset + 1, level="debug", **kwargs
