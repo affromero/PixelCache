@@ -610,7 +610,7 @@ class LoggingRich:
         return msg.replace(os.getenv("HOME", "~"), "~")
 
     @lru_cache(maxsize=1)
-    def print_once(self, msg: Any, *, **kwargs: Any) -> None:
+    def print_once(self, msg: Any, **kwargs: Any) -> None:
         """Print a preprocessed message to the console once."""
         self.print(msg, **kwargs)
 
