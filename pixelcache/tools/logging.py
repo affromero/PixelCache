@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import dotenv
 import json5
 from dotenv import load_dotenv
+from pixelcache.tools.cache import lru_cache
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from rich import progress
@@ -141,31 +142,19 @@ class LoggingRich:
     """ ID for the logger. """
 
     def __post_init__(self) -> None:
-        """Disable the omission of repeated times in console's log render.
-
-        This method is used in the 'LoggingRich' class to set the
-            'omit_repeated_times' attribute
-        of the console's log render to False.
-
-        Arguments:
-            self (LoggingRich): The instance of the 'LoggingRich' class.
-
-        Returns:
-            None: This method does not return any value.
-
-        Example:
-            >>> logger = LoggingRich()
-            >>> logger.set_omit_repeated_times()
-
-        Note:
-            This method modifies the state of the 'LoggingRich' instance by
-                altering its
-            'omit_repeated_times' attribute.
-
-        """
+        """Disable the omission of repeated times in console's log render."""
         self.console._log_render.omit_repeated_times = False
         # default is True, i.e. omit timestamp if it's the same as last log line
         # https://github.com/Textualize/rich/issues/459
+
+    def __hash__(self) -> int:
+        """Hash the logger."""
+        return hash((self.id, frozenset(self.verbosity.items())))
+
+    
+    def __eq__(self, other: object) -> bool:
+        """Check if the logger is equal to another object."""
+        return isinstance(other, LoggingRich) and self.id == other.id and self.verbosity == other.verbosity
 
     def set_id(self, _id: str, /) -> None:
         """Set the ID for the logger."""
@@ -277,6 +266,13 @@ class LoggingRich:
 
         self.print(logging_table)
 
+    @lru_cache(maxsize=1)
+    def success_once(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
+        """Log a warning message once."""
+        stack_offset = kwargs.pop("stack_offset", 0)
+        stack_offset += self.stack_offset + 1
+        self.warning(msg, force=force, stack_offset=stack_offset, **kwargs)
+
     def success(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
         """Log a success message if the verbosity level for success messages is.
 
@@ -361,6 +357,13 @@ class LoggingRich:
             **kwargs,
         )
 
+    @lru_cache(maxsize=1)
+    def warning_once(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
+        """Log a warning message once."""
+        stack_offset = kwargs.pop("stack_offset", 0)
+        stack_offset += self.stack_offset + 1
+        self.warning(msg, force=force, stack_offset=stack_offset, **kwargs)
+
     def warning(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
         """Log a warning message if the verbosity level for warnings is.
 
@@ -398,6 +401,13 @@ class LoggingRich:
             force=force,
             **kwargs,
         )
+
+    @lru_cache(maxsize=1)
+    def info_once(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
+        """Log an informational message once."""
+        stack_offset = kwargs.pop("stack_offset", 0)
+        stack_offset += self.stack_offset + 1
+        self.info(msg, force=force, stack_offset=stack_offset, **kwargs)
 
     def info(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
         """Log an informational message with the specified message and.
@@ -598,6 +608,11 @@ class LoggingRich:
         # replace $HOME with ~ for interuser compatibility
         msg = msg.replace(Path.cwd().as_posix(), ".")
         return msg.replace(os.getenv("HOME", "~"), "~")
+
+    @lru_cache(maxsize=1)
+    def print_once(self, msg: Any, *, **kwargs: Any) -> None:
+        """Print a preprocessed message to the console once."""
+        self.print(msg, **kwargs)
 
     def print(self, msg: Any, *, force: bool = False, **kwargs: Any) -> None:
         """Print a preprocessed message to the console.
