@@ -625,23 +625,19 @@ class LoggingRich:
         Arguments:
             msg (str): The message to be printed.
             **kwargs (Any): Additional keyword arguments.
-                - ignore_unittest (bool): A flag to ignore printing if
-                running in a unit test environment. Defaults to False.
 
         Returns:
             None
         Example:
-            >>> print_message("Hello, World!", ignore_unittest=False)
+            >>> print_message("Hello, World!")
 
         Note:
-            If 'ignore_unittest' is set to True, the function will not print
-                the message when running in a unit test environment.
+            The function will not print the message when running in a unit test environment.
 
         """
         if not self.verbosity["print"] and not force:
             return
-        ignore_unittest = kwargs.pop("ignore_unittest", False)
-        if self.is_file_enabled() and ignore_unittest:
+        if self.is_file_enabled():
             return
         if isinstance(msg, str):
             msg = self.preprocess_msg(msg)
@@ -731,8 +727,7 @@ class LoggingRich:
         """
         if not self.verbosity["log"] and not force:
             return
-        ignore_unittest = kwargs.pop("ignore_unittest", False)
-        if self.is_file_enabled() and ignore_unittest:
+        if self.is_file_enabled():
             return
         kwargs["_stack_offset"] = (
             self.stack_offset if stack_offset is None else stack_offset
@@ -799,9 +794,6 @@ class LoggingRich:
 
         Arguments:
             msg (str): The message to be logged with rule formatting.
-            ignore_unittest (bool, optional): Flag to ignore unittest when
-                logging
-            the message. Defaults to False.
             **kwargs (Any): Additional keyword arguments that can be passed
                 to
             customize the rule formatting.
@@ -812,7 +804,7 @@ class LoggingRich:
             rule formatting.
 
         Example:
-            >>> log_rule_message("Test message", ignore_unittest=True,
+            >>> log_rule_message("Test message",
             custom_format="bold")
 
         Note:
@@ -821,8 +813,7 @@ class LoggingRich:
             method.
 
         """
-        ignore_unittest = kwargs.pop("ignore_unittest", False)
-        if (self.is_file_enabled() and ignore_unittest) or not self.verbosity[
+        if self.is_file_enabled() or not self.verbosity[
             "rule"
         ]:
             return
