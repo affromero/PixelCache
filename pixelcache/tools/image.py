@@ -23,6 +23,9 @@ from torchvision.io.image import (
 )
 from torchvision.utils import make_grid
 
+from pillow_heif import register_heif_opener
+
+register_heif_opener()
 
 @jaxtyped(typechecker=beartype)
 def read_image(
@@ -48,12 +51,14 @@ def read_image(
             are installed and imported before using this function.
 
     """
-    if Path(fname).exists():
+    if Path(fname).exists() and not str(fname).lower().endswith(".heic"):
         data = read_file(str(fname))
         try:
             tensor = decode_jpeg(data, device="cpu")
         except RuntimeError:
             tensor = decode_png(data, ImageReadMode.RGB)
+    elif str(fname).lower().endswith(".heic"):
+        tensor = torch.from_numpy(np.array(Image.open(str(fname)))).permute(2, 0, 1)
     elif "http" in str(fname):
         raw_np = np.asarray(
             cast(
