@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Any, Literal
 import dotenv
 import json5
 from dotenv import load_dotenv
-from pixelcache.tools.cache import lru_cache
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from rich import progress
@@ -23,6 +22,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import track
 from rich.table import Table
+
+from pixelcache.tools.cache import lru_cache
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -151,10 +152,13 @@ class LoggingRich:
         """Hash the logger."""
         return hash((self.id, frozenset(self.verbosity.items())))
 
-    
     def __eq__(self, other: object) -> bool:
         """Check if the logger is equal to another object."""
-        return isinstance(other, LoggingRich) and self.id == other.id and self.verbosity == other.verbosity
+        return (
+            isinstance(other, LoggingRich)
+            and self.id == other.id
+            and self.verbosity == other.verbosity
+        )
 
     def set_id(self, _id: str, /) -> None:
         """Set the ID for the logger."""
@@ -267,7 +271,9 @@ class LoggingRich:
         self.print(logging_table)
 
     @lru_cache(maxsize=1)
-    def success_once(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
+    def success_once(
+        self, msg: str, *, force: bool = False, **kwargs: Any
+    ) -> None:
         """Log a warning message once."""
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
@@ -358,7 +364,9 @@ class LoggingRich:
         )
 
     @lru_cache(maxsize=1)
-    def warning_once(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
+    def warning_once(
+        self, msg: str, *, force: bool = False, **kwargs: Any
+    ) -> None:
         """Log a warning message once."""
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
@@ -403,7 +411,9 @@ class LoggingRich:
         )
 
     @lru_cache(maxsize=1)
-    def info_once(self, msg: str, *, force: bool = False, **kwargs: Any) -> None:
+    def info_once(
+        self, msg: str, *, force: bool = False, **kwargs: Any
+    ) -> None:
         """Log an informational message once."""
         stack_offset = kwargs.pop("stack_offset", 0)
         stack_offset += self.stack_offset + 1
@@ -813,9 +823,7 @@ class LoggingRich:
             method.
 
         """
-        if self.is_file_enabled() or not self.verbosity[
-            "rule"
-        ]:
+        if self.is_file_enabled() or not self.verbosity["rule"]:
             return
         msg = self.preprocess_msg(msg)
         self.console.rule(msg, **kwargs)

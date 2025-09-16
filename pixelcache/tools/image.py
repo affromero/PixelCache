@@ -13,6 +13,7 @@ import torchvision.utils as tv
 from beartype import beartype
 from jaxtyping import Bool, Float, UInt8, jaxtyped
 from PIL import Image, ImageCms
+from pillow_heif import register_heif_opener
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from torchvision.io.image import (
@@ -23,9 +24,8 @@ from torchvision.io.image import (
 )
 from torchvision.utils import make_grid
 
-from pillow_heif import register_heif_opener
-
 register_heif_opener()
+
 
 @jaxtyped(typechecker=beartype)
 def read_image(
@@ -58,7 +58,9 @@ def read_image(
         except RuntimeError:
             tensor = decode_png(data, ImageReadMode.RGB)
     elif str(fname).lower().endswith(".heic"):
-        tensor = torch.from_numpy(np.array(Image.open(str(fname)))).permute(2, 0, 1)
+        tensor = torch.from_numpy(np.array(Image.open(str(fname)))).permute(
+            2, 0, 1
+        )
     elif "http" in str(fname):
         raw_np = np.asarray(
             cast(
