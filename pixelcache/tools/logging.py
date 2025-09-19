@@ -647,8 +647,6 @@ class LoggingRich:
         """
         if not self.verbosity["print"] and not force:
             return
-        if self.is_file_enabled():
-            return
         if isinstance(msg, str):
             msg = self.preprocess_msg(msg)
         self.console.print(msg, **kwargs)
@@ -737,8 +735,6 @@ class LoggingRich:
         """
         if not self.verbosity["log"] and not force:
             return
-        if self.is_file_enabled():
-            return
         kwargs["_stack_offset"] = (
             self.stack_offset if stack_offset is None else stack_offset
         )
@@ -823,7 +819,7 @@ class LoggingRich:
             method.
 
         """
-        if self.is_file_enabled() or not self.verbosity["rule"]:
+        if not self.verbosity["rule"]:
             return
         msg = self.preprocess_msg(msg)
         self.console.rule(msg, **kwargs)
