@@ -29,7 +29,7 @@ description = "A versatile image processing library for Python with built-in sup
 name = "pixelcache"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "0.0.3"
+version = "0.0.4"
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
