@@ -1,7 +1,8 @@
 from pathlib import Path
 
-from pixelcache.main import HashableDict, HashableImage, HashableList
-from pixelcache.tools.logger import get_logger
+from difflogtest import get_logger
+
+from pixelcache import HashableDict, HashableImage, HashableList
 
 logger = get_logger()
 

@@ -24,6 +24,7 @@ import cv2
 import numpy as np
 import torch
 from beartype import beartype
+from difflogtest import get_logger
 from matplotlib import colormaps
 from PIL import Image, ImageOps
 from pydantic import ConfigDict
@@ -77,6 +78,8 @@ P_PathStr = TypeVar("P_PathStr", bound=Path | str)
 MAX_IMG_CACHE = 5
 VALID_IMAGES = Literal["pil", "numpy", "torch"]
 PALETTE_DEFAULT = color_palette()
+
+logger = get_logger()
 
 
 @jaxtyped(typechecker=beartype)
@@ -3055,6 +3058,8 @@ class HashableImage:
         *,
         orientation: Literal["horizontal", "vertical"] = "horizontal",
         with_text: bool = False,
+        verbose: bool = False,
+        output: str | None = None,
     ) -> HashableImage:
         """Arrange a dictionary of images into a grid either horizontally or.
 
@@ -3144,7 +3149,12 @@ class HashableImage:
                 ),
             )
 
-        return HashableImage(grid)
+        image_grid = HashableImage(grid)
+        if output is not None:
+            image_grid.save(output)
+        if verbose:
+            logger.log(f"{image_grid=} grid saved to {output}", stack_offset=1)
+        return image_grid
 
     @jaxtyped(typechecker=beartype)
     def set_minmax(self, _min: float, _max: float, /) -> HashableImage:

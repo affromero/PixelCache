@@ -1,5 +1,7 @@
 from importlib.metadata import version
 
+from difflogtest import DEFAULT_VERBOSITY, LoggingRich, get_logger
+
 from pixelcache.main import (
     MAX_IMG_CACHE,
     BoundingBox,
@@ -13,8 +15,6 @@ from pixelcache.tools.cache import pseudo_hash
 from pixelcache.tools.image import (
     ImageSize,
 )
-from pixelcache.tools.logger import get_logger
-from pixelcache.tools.logging import DEFAULT_VERBOSITY, LoggingRich
 from pixelcache.tools.text import display_string
 from pixelcache.tools.utils import seed_everything
 

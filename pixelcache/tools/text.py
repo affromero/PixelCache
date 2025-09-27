@@ -4,11 +4,11 @@ from typing import Literal
 import numpy as np
 import torch
 from beartype import beartype
+from difflogtest import get_logger
 from jaxtyping import jaxtyped
 from PIL import Image, ImageDraw, ImageFont
 
-from pixelcache.tools.image import ImageSize, read_image
-from pixelcache.tools.logger import get_logger
+from .image import ImageSize, read_image
 
 logger = get_logger()
 

@@ -1,12 +1,13 @@
 from pathlib import Path
 
+from difflogtest import get_logger
+
 from pixelcache.main import (
     HashableDict,
     HashableImage,
     HashableList,
     ImageSize,
 )
-from pixelcache.tools.logger import get_logger
 
 logger = get_logger()
 

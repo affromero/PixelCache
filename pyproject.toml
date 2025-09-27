@@ -9,6 +9,7 @@ dev = ["pre-commit>=4.0.1,<5"]
 authors = [{email = "me@afromero.co", name = "Andres"}]
 dependencies = [
   "beartype>=0.19.0",
+  "difflogtest>=0.0.1",
   "dotenv>=0.9.9",
   "einops>=0.8.0",
   "jaxtyping>=0.2.36",
@@ -29,7 +30,7 @@ description = "A versatile image processing library for Python with built-in sup
 name = "pixelcache"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "0.0.4"
+version = "0.0.6"
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
@@ -39,8 +40,7 @@ warn_required_dynamic_aliases = true
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
-  "logs/",
-  "poetry.lock"
+  "logs/"
 ]
 indent-width = 4
 # Same as Black.

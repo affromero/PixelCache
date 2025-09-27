@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import torch
 from beartype import beartype
+from difflogtest import get_logger
 from jaxtyping import Bool, Float, Int64, UInt8, jaxtyped
 from PIL import Image
 
@@ -16,7 +17,6 @@ from pixelcache.tools.image import (
     tensor2numpy,
     to_binary,
 )
-from pixelcache.tools.logger import get_logger
 
 logger = get_logger()
 

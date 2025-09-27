@@ -82,8 +82,8 @@ Blending two images using PixelCache:
 ```python
 from pathlib import Path
 
-from pixelcache.main import HashableDict, HashableImage, HashableList
-from pixelcache.tools.logger import get_logger
+from pixelcache import HashableDict, HashableImage, HashableList
+from difflogtest import get_logger
 
 logger = get_logger()
 
@@ -131,8 +131,8 @@ Extracting bounding boxes for cropping / unpadding from binary masks using Pixel
 ```python
 from pathlib import Path
 
-from pixelcache.main import HashableDict, HashableImage, HashableList, ImageSize
-from pixelcache.tools.logger import get_logger
+from pixelcache import HashableDict, HashableImage, HashableList, ImageSize
+from difflogtest import get_logger
 
 logger = get_logger()
 
