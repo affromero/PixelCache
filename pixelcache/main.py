@@ -1055,6 +1055,20 @@ class HashableImage:
         return HashableImage(self._image[:, [2, 1, 0], :, :])
 
     @jaxtyped(typechecker=beartype)
+    def bgr2rgb(self) -> HashableImage:
+        """Convert the image from BGR to RGB color space in a HashableImage.
+        """
+        if self._mode == "numpy":
+            return HashableImage(cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB))
+        if self._mode == "pil":
+            return HashableImage(
+                Image.fromarray(
+                    cv2.cvtColor(np.asarray(self._image), cv2.COLOR_BGR2RGB),
+                ),
+            )
+        return HashableImage(self._image[:, [0, 1, 2], :, :])
+
+    @jaxtyped(typechecker=beartype)
     def equalize_hist(self) -> HashableImage:
         """Equalizes the histogram of the image stored in the HashableImage.
 
