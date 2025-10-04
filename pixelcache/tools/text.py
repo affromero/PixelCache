@@ -206,6 +206,7 @@ def display_string(
     background: tuple[int, int, int] = (255, 255, 255),
     foreground: tuple[int, int, int] = (0, 0, 0),
     words_per_line: int | None = None,
+    scale_font_size: float = 0.5,
 ) -> tuple[Image.Image, int]:
     """Create a black image with wrapped text, adjusting the font size and justification.
 
@@ -231,6 +232,20 @@ def display_string(
     img = Image.new("RGB", _image_size, color=background)
     draw = ImageDraw.Draw(img)
 
+    # Text Wrapping
+    if words_per_line is not None:
+        # introduce "\n" every words_per_line words
+        text_words = text.split(" ")
+        text = "\n".join(
+            [
+                " ".join(text_words[i : i + words_per_line])
+                for i in range(0, len(text_words), words_per_line)
+            ]
+        )
+
+    text_per_lines = text.split("\n")
+    longest_line = max(text_per_lines, key=lambda x: len(x))
+
     if force_size is not None:
         font_size = force_size
     else:
@@ -240,7 +255,7 @@ def display_string(
         # Estimate maximum font size
         last_font_size = font_size
         while True:
-            test_size = textsize(text, font=font)
+            test_size = textsize(longest_line, font=font)
             if test_size[0] > _image_size[0] or test_size[1] > _image_size[1]:
                 break
             font_size = max(
@@ -252,16 +267,11 @@ def display_string(
             font = ImageFont.truetype(font_path, size=font_size)
 
         font_size = round(
-            font_size * 0.5
+            font_size * scale_font_size
         )  # Slightly reduce font size for better fit
     font = ImageFont.truetype(font_path, size=font_size)
 
-    # Text Wrapping
-    if words_per_line is not None:
-        # introduce "\n" every words_per_line words
-        text = "\n".join(
-            [text[i : i + words_per_line] for i in range(0, len(text), words_per_line)]
-        )
+    lines = []
 
     for line in text.split("\n"):
         words = line.split()
