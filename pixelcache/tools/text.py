@@ -205,6 +205,7 @@ def display_string(
     force_size: int | None = None,
     background: tuple[int, int, int] = (255, 255, 255),
     foreground: tuple[int, int, int] = (0, 0, 0),
+    words_per_line: int | None = None,
 ) -> tuple[Image.Image, int]:
     """Create a black image with wrapped text, adjusting the font size and justification.
 
@@ -216,6 +217,7 @@ def display_string(
         font_size (int): Font size of the text.
         background (Tuple[int, int, int], optional): Background color of the image. Defaults to (255, 255, 255).
         foreground (Tuple[int, int, int], optional): Foreground color of the text. Defaults to (0, 0, 0).
+        words_per_line (int, optional): Number of words per line. Defaults to None.
 
     Returns:
         Image.Image: A PIL Image object with the text rendered on it.
@@ -255,7 +257,12 @@ def display_string(
     font = ImageFont.truetype(font_path, size=font_size)
 
     # Text Wrapping
-    lines = []
+    if words_per_line is not None:
+        # introduce "\n" every words_per_line words
+        text = "\n".join(
+            [text[i : i + words_per_line] for i in range(0, len(text), words_per_line)]
+        )
+
     for line in text.split("\n"):
         words = line.split()
         current_line: list[str] = []
