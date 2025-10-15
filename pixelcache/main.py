@@ -1056,8 +1056,7 @@ class HashableImage:
 
     @jaxtyped(typechecker=beartype)
     def bgr2rgb(self) -> HashableImage:
-        """Convert the image from BGR to RGB color space in a HashableImage.
-        """
+        """Convert the image from BGR to RGB color space in a HashableImage."""
         if self._mode == "numpy":
             return HashableImage(cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB))
         if self._mode == "pil":
@@ -3167,7 +3166,7 @@ class HashableImage:
         if output is not None:
             image_grid.save(output)
         if verbose:
-            logger.log(f"{image_grid=} grid saved to {output}", stack_offset=1)
+            logger.log(f"{image_grid=} grid saved to {output}", stack_offset=3)
         return image_grid
 
     @jaxtyped(typechecker=beartype)
