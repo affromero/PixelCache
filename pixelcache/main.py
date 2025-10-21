@@ -4510,7 +4510,7 @@ class BoundingBox:
 class Points:
     """A class to represent a set of points in an image."""
 
-    points: np.ndarray | list[list[float]]
+    points: Float[np.ndarray, "_ 2"]
     """The points in the image, represented as a 2D NumPy array."""
 
     is_normalized: bool
@@ -4559,6 +4559,30 @@ class Points:
             mask[int(point[1]), int(point[0])] = 255
         return HashableImage(mask)
 
+    def clip_to_image_bounds(self, image_size: ImageSize) -> Points:
+        """Clip points to stay within the specified image bounds.
+
+        Filters out points that are outside the image boundaries or have negative coordinates.
+        Only keeps points where 0 <= x < width and 0 <= y < height.
+
+        Arguments:
+            image_size (ImageSize): The target image dimensions to clip points to.
+
+        Returns:
+            Points: A new Points object containing only points within the bounds.
+
+        """
+        return Points(
+            points=self.xy[
+                (self.xy[:, 0] >= 0)
+                & (self.xy[:, 1] >= 0)
+                & (self.xy[:, 0] < image_size.width)
+                & (self.xy[:, 1] < image_size.height)
+            ],
+            is_normalized=False,
+            image_size=image_size,
+        )
+
     @property
     def num_points(self) -> int:
         """Return the number of points in the Points object.
@@ -4581,10 +4605,10 @@ class Points:
                 of points based on the properties of the Points object.
 
         """
-        return self.points.shape[0]  # type: ignore[union-attr]
+        return self.points.shape[0]
 
     @property
-    def xy(self) -> Float[np.ndarray, "n 2"]:
+    def xy(self) -> Float[np.ndarray, "_ 2"]:
         """Return the X and Y coordinates of the points.
 
         This method returns the X and Y coordinates of the points in the
@@ -4614,7 +4638,7 @@ class Points:
         return self.points
 
     @property
-    def xyn(self) -> Float[np.ndarray, "n 2"]:
+    def xyn(self) -> Float[np.ndarray, "_ 2"]:
         """Return the normalized X and Y coordinates of the points.
 
         This method returns the normalized X and Y coordinates of the points
