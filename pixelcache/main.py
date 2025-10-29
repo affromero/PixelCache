@@ -378,6 +378,8 @@ class HashableImage:
                 of the image.
 
         """
+        is_binary = self.is_binary()
+        image = self.to_rgb()._image
         height = int(size.height)
         width = int(size.width)
         if size != self.size():
@@ -390,7 +392,7 @@ class HashableImage:
                 if mode == "bilinear":
                     _kwargs["align_corners"] = False
                 _image = torch.nn.functional.interpolate(
-                    self._image,
+                    image,
                     size=(height, width),
                     **_kwargs,
                 )
@@ -404,7 +406,7 @@ class HashableImage:
                 else:
                     msg = f"Invalid mode: {mode}"
                     raise ValueError(msg)
-                _image = self._image.resize((width, height), _mode)
+                _image = image.resize((width, height), _mode)
             else:
                 if mode == "nearest":
                     _mode = cv2.INTER_NEAREST
@@ -416,11 +418,14 @@ class HashableImage:
                     msg = f"Invalid mode: {mode}"
                     raise ValueError(msg)
                 _image = cv2.resize(
-                    cast(np.ndarray, self._image),
+                    cast(np.ndarray, image),
                     (width, height),
                     interpolation=_mode,
                 )
-            return HashableImage(_image)
+            output = HashableImage(_image)
+            if is_binary:
+                output = output.to_binary()
+            return output
         return self
 
     @jaxtyped(typechecker=beartype)
@@ -1800,7 +1805,12 @@ class HashableImage:
         """
         if self._mode == "torch":
             return self._image.dtype == torch.bool
-        return self._image.dtype == bool
+        if self._mode == "numpy":
+            return self._image.dtype == bool
+        if self._mode == "pil":
+            return self._image.mode == "1"
+        msg = "Invalid image mode"
+        raise ValueError(msg)
 
     @jaxtyped(typechecker=beartype)
     def is_rgb(self) -> bool:
