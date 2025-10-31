@@ -1997,7 +1997,7 @@ class HashableImage:
                 ),
             )
         return HashableImage(
-            cv2.bitwise_and(
+            np.logical_and(
                 self.to_binary().numpy(),
                 other.to_binary().numpy(),
             ),
@@ -2083,7 +2083,7 @@ class HashableImage:
                 ),
             )
         return HashableImage(
-            cv2.bitwise_or(
+            np.logical_or(
                 self.to_binary().numpy(),
                 other.to_binary().numpy(),
             ),
