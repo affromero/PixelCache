@@ -200,7 +200,10 @@ class HashableImage:
                 name of the image for further processing.
 
         """
-        if HashableImage(self._image_str) != self:
+        if (
+            not Path(self._image_str).exists()
+            or HashableImage(self._image_str) != self
+        ):
             # update the filename
             self._create_tmp_file()
         return self._image_str
