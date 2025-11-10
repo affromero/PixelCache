@@ -2602,7 +2602,7 @@ class HashableImage:
             mask (HashableImage): The HashableImage object representing the
                 mask used for blending.
             alpha (float): The transparency level of the blending operation
-                (0.0 - 1.0).
+                (0.0 - 1.0). (0.0 is fully transparent, 1.0 is fully visible)
             with_bbox (bool): Whether to include bounding box information in
                 the blending operation.
             merge_bbox (bool, optional): Whether to merge bounding boxes
