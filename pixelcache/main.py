@@ -3301,7 +3301,9 @@ class HashableDict(MutableMapping[_KT, _VT]):
         """
         items = {}
         for k, v in self.__data.items():
-            if isinstance(v, np.ndarray | Image.Image):
+            if isinstance(v, torch.Tensor):
+                items[k] = hash(v.detach().cpu().numpy().tobytes())
+            elif isinstance(v, np.ndarray | Image.Image):
                 items[k] = hash(v.tobytes())
             else:
                 items[k] = hash(v)
