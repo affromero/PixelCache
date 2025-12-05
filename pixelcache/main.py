@@ -2165,7 +2165,7 @@ class HashableImage:
 
         """
         if self._mode == "torch":
-            _bytest = hash(self._image)
+            _bytest = hash(self._image.numpy().tobytes())
         else:
             _bytest = hash(self._image.tobytes())
         frozen_set = frozenset(
