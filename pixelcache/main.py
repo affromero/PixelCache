@@ -55,6 +55,7 @@ from pixelcache.tools.mask import (
     mask2points,
     mask2squaremask,
     mask_blend,
+    mask_to_polygon,
     morphologyEx,
     polygon_to_mask,
     remove_small_regions,
@@ -2364,6 +2365,30 @@ class HashableImage:
                 blend_width=blend_width,
             )
         )
+
+    @jaxtyped(typechecker=beartype)
+    def mask2polygon(
+        self, *, min_area: float = 100.0, normalized: bool = False
+    ) -> list[list[tuple[float, float]]] | list[list[tuple[int, int]]]:
+        """Convert a mask image to a polygon."""
+        _polygons = mask_to_polygon(
+            self.to_binary().numpy(), min_area=min_area
+        )
+        if normalized:
+            image_size = self.size()
+            normalized_polygons = []
+            for polygon in _polygons:
+                normalized_polygon = []
+                for x, y in polygon:
+                    normalized_polygon.append(
+                        (
+                            float(x) / image_size.width,
+                            float(y) / image_size.height,
+                        )
+                    )
+                normalized_polygons.append(normalized_polygon)
+            return normalized_polygons
+        return _polygons
 
     @jaxtyped(typechecker=beartype)
     def mask2points(
