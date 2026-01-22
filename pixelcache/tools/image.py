@@ -12,7 +12,7 @@ import torch
 import torchvision.utils as tv
 from beartype import beartype
 from jaxtyping import Bool, Float, UInt8, jaxtyped
-from PIL import Image, ImageCms
+from PIL import Image, ImageCms, ImageOps
 from pillow_heif import register_heif_opener
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -25,6 +25,31 @@ from torchvision.io.image import (
 from torchvision.utils import make_grid
 
 register_heif_opener()
+
+
+def _has_exif_rotation(fname: str | Path) -> bool:
+    """Check if image has EXIF orientation that requires rotation."""
+    try:
+        with Image.open(fname) as img:
+            exif = img._getexif()
+            if exif:
+                orientation = exif.get(274)  # 274 is EXIF orientation tag
+                return orientation is not None and orientation != 1
+    except Exception:
+        pass
+    return False
+
+
+def _read_with_exif_transpose(fname: str | Path) -> Float[torch.Tensor, "1 c h w"]:
+    """Read image with PIL and apply EXIF transpose."""
+    with Image.open(fname) as img:
+        img = ImageOps.exif_transpose(img)
+        if img is None:
+            msg = f"Failed to transpose image: {fname}"
+            raise RuntimeError(msg)
+        img = img.convert("RGB")
+        tensor = torch.from_numpy(np.array(img)).permute(2, 0, 1)
+    return tensor
 
 
 @jaxtyped(typechecker=beartype)
@@ -52,11 +77,15 @@ def read_image(
 
     """
     if Path(fname).exists() and not str(fname).lower().endswith(".heic"):
-        data = read_file(str(fname))
-        try:
-            tensor = decode_jpeg(data, device="cpu")
-        except RuntimeError:
-            tensor = decode_png(data, ImageReadMode.RGB)
+        # Check for EXIF rotation (common in phone photos)
+        if _has_exif_rotation(fname):
+            tensor = _read_with_exif_transpose(fname)
+        else:
+            data = read_file(str(fname))
+            try:
+                tensor = decode_jpeg(data, device="cpu")
+            except RuntimeError:
+                tensor = decode_png(data, ImageReadMode.RGB)
     elif str(fname).lower().endswith(".heic"):
         tensor = torch.from_numpy(np.array(Image.open(str(fname)))).permute(
             2, 0, 1
