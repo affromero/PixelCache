@@ -147,7 +147,11 @@ class HashableImage:
         if isinstance(image, torch.Tensor):
             self._image = image.detach().cpu()
         elif isinstance(image, str | Path):
-            self._image = read_image(image)
+            try:
+                self._image = read_image(image)
+            except Exception as e:
+                msg = f"Error reading image {image}: {e}"
+                raise RuntimeError(msg) from e
         elif isinstance(image, Image.Image):
             self._image = image
         elif isinstance(image, bytes):
