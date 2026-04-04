@@ -177,6 +177,41 @@ class HashableImage:
         """Create a HashableImage from a base64 string."""
         return HashableImage(base64.b64decode(base64_str))
 
+    @staticmethod
+    def decode_bytes(
+        data: bytes,
+        *,
+        unchanged: bool = False,
+    ) -> np.ndarray:
+        """Decode image bytes to numpy without temp file overhead.
+
+        For high-throughput use cases (e.g. sensor frame loops)
+        where raw JPEG/PNG bytes need efficient decoding without
+        creating a HashableImage instance or temp files.
+
+        Arguments:
+            data: Raw image bytes (JPEG, PNG, etc.).
+            unchanged: If True, preserve original channel layout
+                (e.g. single-channel grayscale).  If False,
+                decode as BGR then convert to RGB.
+
+        Returns:
+            Decoded image as uint8 numpy array.
+
+        Raises:
+            ValueError: If decoding fails.
+
+        """
+        buf = np.frombuffer(data, dtype=np.uint8)
+        flag = cv2.IMREAD_UNCHANGED if unchanged else cv2.IMREAD_COLOR
+        img = cv2.imdecode(buf, flag)
+        if img is None:
+            msg = "Failed to decode image bytes"
+            raise ValueError(msg)
+        if not unchanged and img.ndim == 3 and img.shape[2] == 3:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return img
+
     @property
     def _mode(self) -> VALID_IMAGES:
         if isinstance(self._image, torch.Tensor):
@@ -426,7 +461,7 @@ class HashableImage:
                     msg = f"Invalid mode: {mode}"
                     raise ValueError(msg)
                 _image = cv2.resize(
-                    cast(np.ndarray, image),
+                    cast("np.ndarray", image),
                     (width, height),
                     interpolation=_mode,
                 )
@@ -515,7 +550,7 @@ class HashableImage:
         if self._mode == "torch":
             return torch.sum(self._image).item() == 0
         if self._mode == "numpy":
-            return np.sum(cast(np.ndarray, self._image)).item() == 0
+            return np.sum(cast("np.ndarray", self._image)).item() == 0
         return np.sum(np.asarray(self._image)).item() == 0
 
     @lru_cache(maxsize=MAX_IMG_CACHE)
@@ -802,7 +837,9 @@ class HashableImage:
 
         """
         output: tuple[torch.Tensor, torch.Tensor, torch.Tensor] = (
-            self.tensor().unique(return_counts=True, return_inverse=True, sorted=True)
+            self.tensor().unique(
+                return_counts=True, return_inverse=True, sorted=True
+            )
         )
         _unique = output[0].tolist()
         _indices = output[1]
@@ -2220,8 +2257,8 @@ class HashableImage:
     def crop_from_mask(
         self,
         mask: "HashableImage",
-        *args: PCropArgs.args,
-        **kwargs: PCropArgs.kwargs,
+        *args: PCropArgs.args,  # type: ignore[valid-type]
+        **kwargs: PCropArgs.kwargs,  # type: ignore[valid-type]
     ) -> "HashableImage":
         """Crop an image based on a provided mask image.
 
@@ -2261,8 +2298,8 @@ class HashableImage:
     def crop_from_points(
         self,
         points: "Points",
-        *args: PCropArgs.args,
-        **kwargs: PCropArgs.kwargs,
+        *args: PCropArgs.args,  # type: ignore[valid-type]
+        **kwargs: PCropArgs.kwargs,  # type: ignore[valid-type]
     ) -> "HashableImage":
         """Crop an image based on the provided points."""
         # convert points to mask first
@@ -2581,8 +2618,8 @@ class HashableImage:
     @jaxtyped(typechecker=beartype)
     def mask2squaremask(
         self,
-        *args: PSquareMaskArgs.args,
-        **kwargs: PSquareMaskArgs.kwargs,
+        *args: PSquareMaskArgs.args,  # type: ignore[valid-type]
+        **kwargs: PSquareMaskArgs.kwargs,  # type: ignore[valid-type]
     ) -> "HashableImage":
         """Convert the mask of a HashableImage object to a square mask.
 
@@ -3293,13 +3330,13 @@ class HashableDict(MutableMapping[_KT, _VT]):
         new_data: dict[_KT, _VT] = {}
         for k, v in data.items():
             if isinstance(v, dict):
-                new_data[k] = cast(_VT, HashableDict(v))
+                new_data[k] = cast("_VT", HashableDict(v))
             elif isinstance(v, list):
-                new_data[k] = cast(_VT, HashableList(v))
+                new_data[k] = cast("_VT", HashableList(v))
             elif isinstance(v, HashableDict):
-                new_data[k] = cast(_VT, HashableDict(v.to_dict()))
+                new_data[k] = cast("_VT", HashableDict(v.to_dict()))
             elif isinstance(v, HashableList):
-                new_data[k] = cast(_VT, HashableList(v.to_list()))
+                new_data[k] = cast("_VT", HashableList(v.to_list()))
             else:
                 new_data[k] = v
         self.__data = new_data
@@ -3395,9 +3432,9 @@ class HashableDict(MutableMapping[_KT, _VT]):
         to_dict: dict[_KT, _VT] = {}
         for k, v in self.__data.items():
             if isinstance(v, HashableDict):
-                to_dict[k] = cast(_VT, v.to_dict())
+                to_dict[k] = cast("_VT", v.to_dict())
             elif isinstance(v, HashableList):
-                to_dict[k] = cast(_VT, v.to_list())
+                to_dict[k] = cast("_VT", v.to_list())
             else:
                 to_dict[k] = v
         return to_dict
@@ -3423,7 +3460,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
         """
         return HashableDict(self.__data.copy())
 
-    def values(self) -> Iterable[_VT]:  # type: ignore[explicit-override, override]
+    def values(self) -> Iterable[_VT]:  # type: ignore[override]
         """Retrieve all values from a HashableDict.
 
         This method iterates over the HashableDict and returns a list
@@ -3445,7 +3482,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
         """
         return self.__data.values()
 
-    def keys(self) -> Iterable[_KT]:  # type: ignore[explicit-override, override]
+    def keys(self) -> Iterable[_KT]:  # type: ignore[override]
         """Retrieve all keys from a HashableDict.
 
         This method iterates over the HashableDict and returns a list of all
@@ -3465,7 +3502,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
         """
         return self.__data.keys()
 
-    def items(self) -> Iterable[tuple[_KT, _VT]]:  # type: ignore[explicit-override, override]
+    def items(self) -> Iterable[tuple[_KT, _VT]]:  # type: ignore[override]
         """Retrieve all key-value pairs from the HashableDict.
 
         This method returns an iterator over the (key, value) pairs in the
@@ -3667,26 +3704,29 @@ class HashableList(MutableSequence[_T]):
         for idx in range(len(data)):
             if isinstance(data[idx], dict):
                 new_data.append(
-                    cast(_T, HashableDict(cast(dict[_KT, _VT], data[idx]))),  # type: ignore[valid-type]
+                    cast(
+                        "_T",
+                        HashableDict(data[idx]),  # type: ignore[arg-type]
+                    ),
                 )
             elif isinstance(data[idx], list):
                 new_data.append(
-                    cast(_T, HashableList(cast(list[_T], data[idx]))),
+                    cast("_T", HashableList(cast("list[_T]", data[idx]))),
                 )
             elif isinstance(data[idx], HashableDict):
                 new_data.append(
                     cast(
-                        _T,
+                        "_T",
                         HashableDict(
-                            cast(dict[_KT, _VT], data[idx].to_dict())  # type: ignore[attr-defined, valid-type]
+                            cast("dict[_KT, _VT]", data[idx].to_dict())  # type: ignore[attr-defined, valid-type]
                         ),
                     ),
                 )
             elif isinstance(data[idx], HashableList):
                 new_data.append(
                     cast(
-                        _T,
-                        HashableList(cast(list[_T], data[idx].to_list())),  # type: ignore[attr-defined]
+                        "_T",
+                        HashableList(cast("list[_T]", data[idx].to_list())),  # type: ignore[attr-defined]
                     ),
                 )
             else:
@@ -3778,9 +3818,9 @@ class HashableList(MutableSequence[_T]):
             if isinstance(self.__data[idx], HashableDict):
                 to_list.append(
                     cast(
-                        _T,
+                        "_T",
                         cast(
-                            HashableDict[_KT, _VT],  # type: ignore[valid-type]
+                            "HashableDict[_KT, _VT]",  # type: ignore[valid-type]
                             self.__data[idx],
                         ).to_dict(),
                     ),
@@ -3788,8 +3828,8 @@ class HashableList(MutableSequence[_T]):
             elif isinstance(self.__data[idx], HashableList):
                 to_list.append(
                     cast(
-                        _T,
-                        cast(HashableList[_T], self.__data[idx]).to_list(),
+                        "_T",
+                        cast("HashableList[_T]", self.__data[idx]).to_list(),
                     ),
                 )
             else:
