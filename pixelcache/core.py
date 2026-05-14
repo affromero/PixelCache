@@ -1917,14 +1917,13 @@ class HashableImage:
             The method does not support images other than binary or RGB.
 
         """
-        if self.is_binary():
-            return (int(self.size().height), int(self.size().width))
+        h = int(self.size().height)
+        w = int(self.size().width)
         if self.is_rgb():
-            return (int(self.size().height), int(self.size().width), 3)
-        msg = f"Image is not binary or rgb. Shape: {self.size()}, this image is {self.dtype()} and it should not happen. Report bug."
-        raise ValueError(
-            msg,
-        )
+            return (h, w, 3)
+        # Binary ("1") and grayscale ("L") are both single-channel —
+        # dtype() distinguishes them where needed.
+        return (h, w)
 
     @jaxtyped(typechecker=beartype)
     def concat(
