@@ -51,7 +51,7 @@ HashableImage receives as input several types of inputs, such as URLs, paths, or
 Example:
 
 ```python
-from pixelcache.main import HashableImage
+from pixelcache import HashableImage
 import torch
 image = HashableImage(torch.rand(1, 3, 256, 256).float())
 image_pil = image.pil()

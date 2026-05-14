@@ -2,7 +2,7 @@ from importlib.metadata import version
 
 from difflogtest import DEFAULT_VERBOSITY, LoggingRich, get_logger
 
-from pixelcache.main import (
+from pixelcache.core import (
     MAX_IMG_CACHE,
     BoundingBox,
     HashableDict,

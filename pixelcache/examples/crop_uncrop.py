@@ -2,7 +2,7 @@ from pathlib import Path
 
 from difflogtest import get_logger
 
-from pixelcache.main import (
+from pixelcache import (
     HashableDict,
     HashableImage,
     HashableList,
