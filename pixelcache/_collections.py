@@ -63,6 +63,32 @@ def _wrap_value(v: object) -> object:
     return v
 
 
+def _safe_leaf(v: object) -> object:
+    """Return a mutation-safe handle to a mutable leaf value.
+
+    HashableDict/HashableList are immutable, but their leaf values
+    (ndarray, tensor, PIL.Image) are reference types. If `__getitem__`
+    / `to_dict` / `to_list` returned the internal reference, a caller
+    could mutate it and silently invalidate the parent's cached hash.
+
+    - `np.ndarray`: read-only view (`.view()` + `writeable=False`).
+      Mutation attempts raise `ValueError` instead of going through.
+    - `torch.Tensor`: `.clone()` (no read-only-view API exists).
+    - `PIL.Image`: `.copy()` (PIL is mutable; no view).
+    - Nested HashableDict/HashableList: returned as-is (already immutable).
+    - Anything else: returned as-is (assumed immutable).
+    """
+    if isinstance(v, np.ndarray):
+        view = v.view()
+        view.setflags(write=False)
+        return view
+    if isinstance(v, torch.Tensor):
+        return v.clone()
+    if isinstance(v, Image.Image):
+        return v.copy()
+    return v
+
+
 def _compare_values(a: object, b: object) -> bool:
     """Compare two HashableDict/HashableList values for content equality.
 
@@ -174,15 +200,15 @@ class HashableDict(Mapping[_KT, _VT]):
                 respectively.
 
         """
-        to_dict: dict[_KT, _VT] = {}
+        out: dict[_KT, _VT] = {}
         for k, v in self.__data.items():
             if isinstance(v, HashableDict):
-                to_dict[k] = cast("_VT", v.to_dict())
+                out[k] = cast("_VT", v.to_dict())
             elif isinstance(v, HashableList):
-                to_dict[k] = cast("_VT", v.to_list())
+                out[k] = cast("_VT", v.to_list())
             else:
-                to_dict[k] = v
-        return to_dict
+                out[k] = cast("_VT", _safe_leaf(v))
+        return out
 
     def copy(self) -> "HashableDict[_KT, _VT]":
         """Create a copy of the HashableDict object.
@@ -231,23 +257,22 @@ class HashableDict(Mapping[_KT, _VT]):
         return f"HashableDict: {self.__data}"
 
     def __getitem__(self, __name: _KT, /) -> _VT:
-        """Retrieve the value associated with a specific key in a HashableDict.
+        """Return the value for `__name`, with mutable leaves protected.
 
-            object.
+        Raw `np.ndarray` values come back as read-only views; tensor /
+        PIL leaves are cloned/copied so any caller-side mutation can't
+        invalidate the cached structural hash. Nested
+        HashableDict/HashableList values are returned as-is (already
+        immutable).
 
-        Args:
-            __name (_KT): The key for which the associated value needs to be
-                retrieved.
-
-        Returns:
-            _VT: The value associated with the specified key in the
-                HashableDict object.
+        Raises:
+            KeyError: If `__name` is not in the dict.
 
         """
         if __name not in self.__data:
             msg = f"Key {__name} not found in HashableDict"
             raise KeyError(msg)
-        return self.__data[__name]
+        return cast("_VT", _safe_leaf(self.__data[__name]))
 
     def __iter__(self) -> Iterator[_KT]:
         """Make instances of the HashableDict class iterable.
@@ -370,28 +395,17 @@ class HashableList(Sequence[_T]):
                 converted into regular Python lists.
 
         """
-        to_list = []
-        for idx in range(len(self.__data)):
-            if isinstance(self.__data[idx], HashableDict):
-                to_list.append(
-                    cast(
-                        "_T",
-                        cast(
-                            "HashableDict[_KT, _VT]",  # type: ignore[valid-type]
-                            self.__data[idx],
-                        ).to_dict(),
-                    ),
-                )
-            elif isinstance(self.__data[idx], HashableList):
-                to_list.append(
-                    cast(
-                        "_T",
-                        cast("HashableList[_T]", self.__data[idx]).to_list(),
-                    ),
-                )
+        out: list[_T] = []
+        for item in self.__data:
+            if isinstance(item, HashableDict):
+                # Generic type params are erased at runtime; the cast is
+                # purely a static-type hint.
+                out.append(cast("_T", item.to_dict()))
+            elif isinstance(item, HashableList):
+                out.append(cast("_T", item.to_list()))
             else:
-                to_list.append(self.__data[idx])
-        return to_list
+                out.append(cast("_T", _safe_leaf(item)))
+        return out
 
     def __repr__(self) -> str:
         """Return a string representation of the HashableList object.
@@ -473,8 +487,13 @@ class HashableList(Sequence[_T]):
 
         """
         if isinstance(__index, slice):
+            # Slice returns a fresh HashableList; its constructor runs
+            # _wrap_value over each item, so leaves are independent of
+            # the source's internal references.
             return HashableList(self.__data[__index])
-        return self.__data[__index]
+        # Single-index returns a leaf — protect mutable leaves so
+        # callers can't invalidate the cached hash through us.
+        return cast("_T", _safe_leaf(self.__data[__index]))
 
     def __len__(self) -> int:
         """Calculate the length of the HashableList object.

@@ -20,7 +20,7 @@ import torch
 import xxhash
 from beartype import beartype
 from difflogtest import get_logger
-from difflogtest.utils.path import path_basename, path_exists
+from difflogtest.utils.path import path_basename, path_stat
 from jaxtyping import Bool, Float, UInt8
 from matplotlib import colormaps
 from PIL import Image, ImageOps
@@ -85,6 +85,22 @@ def pseudo_hash(idx: int, length: int = 6) -> str:
 # (grayscale uint8), 1 (binary). Anything else (RGBA, P, CMYK, YCbCr,
 # LAB, etc.) is normalized to one of these on construction.
 _PIL_NATIVE_MODES = frozenset({"RGB", "L", "1"})
+
+
+def _path_fingerprint(path: str) -> tuple[int, int] | None:
+    """Return `(mtime_ns, size)` for `path`, or `None` if it doesn't exist.
+
+    Used by `HashableImage.get_filename()` to detect when a path
+    constructed from a local file has been overwritten since
+    construction. If the fingerprint changed, the cached path no
+    longer represents this HashableImage's pixels and we must
+    materialize a fresh temp file from `self._image` instead.
+    """
+    try:
+        st = path_stat(path)
+    except OSError:
+        return None
+    return (st.st_mtime_ns, st.st_size)
 
 
 def _normalize_pil_mode(img: Image.Image) -> Image.Image:
@@ -169,6 +185,17 @@ class HashableImage:
         self._image_str: str | None = (
             str(image) if isinstance(image, str | Path) else None
         )
+        # Source fingerprint at construction time (mtime_ns, size).
+        # Used by `get_filename` to detect "source file changed under us"
+        # and re-materialize a temp from `self._image` instead of
+        # handing back a stale path that no longer matches our pixels.
+        # Only meaningful for local-file construction.
+        self._src_fingerprint: tuple[int, int] | None = (
+            _path_fingerprint(self._image_str)
+            if self._image_str is not None
+            and not self._image_str.startswith(("http://", "https://"))
+            else None
+        )
         # Lazy content-fingerprint cache for __hash__. Safe because _image
         # is set only in __init__ and never mutated.
         self._cached_hash: int | None = None
@@ -233,19 +260,27 @@ class HashableImage:
         raise ValueError(msg)
 
     def get_filename(self) -> str:
-        """Return a local filename for this image, materializing a temp on demand.
+        """Return a local filename whose bytes match this image's pixels.
 
-        Returns the source path if construction was given one and the file
-        still exists. Otherwise (in-memory construction, URL source, or temp
-        deleted by another process) writes a PNG temp file and caches its
-        path. Subsequent calls reuse the cached path.
+        Returns the source path if the HashableImage was constructed
+        from one AND that path still has the same `(mtime_ns, size)`
+        fingerprint we captured at construction. If the source file
+        was overwritten, deleted, or replaced under us — or if
+        construction was from an in-memory source / URL / temp that's
+        since been GC'd — materialize a fresh temp file from
+        `self._image` and cache its path.
 
-        Returns:
-            Absolute path to a readable image file.
-
+        This is the v0.1.0 fidelity contract: the path we return is
+        guaranteed to decode to the same image we hold in memory.
         """
-        if self._image_str is not None and path_exists(self._image_str):
+        if (
+            self._image_str is not None
+            and self._src_fingerprint is not None
+            and _path_fingerprint(self._image_str) == self._src_fingerprint
+        ):
             return self._image_str
+        # Either we were constructed from a non-path source, or the
+        # path has changed under us. Materialize a fresh temp.
         return self._create_tmp_file()
 
     def get_local_filename(self) -> str:

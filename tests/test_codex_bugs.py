@@ -350,6 +350,121 @@ def test_bytes_ctor_eagerly_loads() -> None:
 # ----------------------------- PIL eq mode/size guard ------------------
 
 
+def test_get_filename_detects_overwritten_source() -> None:
+    """If the source path is overwritten under us, `get_filename()`
+    must materialize a fresh temp instead of returning a path whose
+    bytes no longer match the image we hold in memory.
+    """
+    import os
+    import tempfile
+
+    fd, path = tempfile.mkstemp(suffix=".png")
+    os.close(fd)
+    Image.new("RGB", (16, 16), color=(50, 50, 50)).save(path)
+    try:
+        img = HashableImage(path)
+        first = img.get_filename()
+        assert first == path
+        # Overwrite the source with different pixels.
+        Image.new("RGB", (16, 16), color=(99, 99, 99)).save(path)
+        second = img.get_filename()
+        assert second != path
+    finally:
+        for p in (path, second):
+            if os.path.exists(p):
+                os.unlink(p)
+
+
+def test_hashable_dict_getitem_returns_read_only_ndarray() -> None:
+    """`hd[k]` for ndarray values must come back as a read-only view."""
+    arr = np.array([1, 2, 3])
+    hd: HashableDict[str, object] = HashableDict({"k": arr})
+    got = hd["k"]
+    assert isinstance(got, np.ndarray)
+    with pytest.raises(ValueError, match="read-only|writeable"):
+        got[0] = 99
+
+
+def test_hashable_dict_to_dict_returns_read_only_ndarray() -> None:
+    """`hd.to_dict()` must protect ndarray leaves the same way."""
+    arr = np.array([1, 2, 3])
+    hd: HashableDict[str, np.ndarray] = HashableDict({"k": arr})
+    unpacked: dict[str, np.ndarray] = hd.to_dict()
+    with pytest.raises(ValueError, match="read-only|writeable"):
+        unpacked["k"][0] = 99
+
+
+def test_read_image_supports_bmp() -> None:
+    """`read_image` must accept non-JPEG/PNG formats via PIL fallback."""
+    import os
+    import tempfile
+
+    fd, path = tempfile.mkstemp(suffix=".bmp")
+    os.close(fd)
+    try:
+        Image.new("RGB", (16, 16), color=(50, 50, 50)).save(path)
+        img = HashableImage(path)
+        assert img.size().height == 16
+        assert img.size().width == 16
+    finally:
+        if os.path.exists(path):
+            os.unlink(path)
+
+
+def test_bounding_box_eq_compares_fields_not_just_hash() -> None:
+    """BoundingBox equality must compare all coordinates + image_size,
+    not just rely on hash equality (which could collide).
+    """
+    from pixelcache import BoundingBox
+
+    a = BoundingBox(
+        xmin=0,
+        ymin=0,
+        xmax=10,
+        ymax=10,
+        image_size=ImageSize(height=20, width=20),
+    )
+    b = BoundingBox(
+        xmin=0,
+        ymin=0,
+        xmax=10,
+        ymax=10,
+        image_size=ImageSize(height=20, width=20),
+    )
+    c = BoundingBox(
+        xmin=0,
+        ymin=0,
+        xmax=10,
+        ymax=11,
+        image_size=ImageSize(height=20, width=20),
+    )
+    assert a == b
+    assert a != c
+
+
+def test_points_eq_compares_fields_not_just_hash() -> None:
+    """Points equality must compare the points array, is_normalized,
+    and image_size — not just hash.
+    """
+    pts_a = Points(
+        points=np.array([[1.0, 2.0]]),
+        is_normalized=False,
+        image_size=ImageSize(height=10, width=10),
+    )
+    pts_b = Points(
+        points=np.array([[1.0, 2.0]]),
+        is_normalized=False,
+        image_size=ImageSize(height=10, width=10),
+    )
+    pts_c = Points(
+        points=np.array([[1.0, 3.0]]),
+        is_normalized=False,
+        image_size=ImageSize(height=10, width=10),
+    )
+    assert pts_a == pts_b
+    assert pts_a != pts_c
+
+
 def test_pil_eq_compares_mode_size_bytes() -> None:
     """PIL equality must include explicit mode + size guards (not rely
     on hash non-collision for correctness).

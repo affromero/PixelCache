@@ -388,29 +388,22 @@ class BoundingBox:
         return hash(HashableDict(self.__dict__))
 
     def __eq__(self, other: object) -> bool:
-        """Compare two BoundingBox objects for equality based on their hash.
+        """Compare bounding boxes by their fields, not just their hashes.
 
-            values.
-
-        This method evaluates whether the hash values of the self and other
-            BoundingBox objects are equal. If 'other' is not a BoundingBox
-            object, the method returns NotImplemented.
-
-        Args:
-            self ('BoundingBox'): The instance of BoundingBox that calls the
-                method.
-            other ('BoundingBox'): Another instance of BoundingBox that is
-                compared with self.
-
-        Returns:
-            bool: True if the hash values of the two BoundingBox objects are
-                equal, False otherwise. Returns NotImplemented if 'other' is
-                not a BoundingBox object.
-
+        Hash equality is only a necessary condition. Two BoundingBoxes
+        whose hashes collide but whose coordinates or image_size differ
+        must compare unequal — equality must hold even under hash
+        collision.
         """
         if not isinstance(other, BoundingBox):
             return NotImplemented
-        return self.__hash__() == other.__hash__()
+        return (
+            self.xmin == other.xmin
+            and self.ymin == other.ymin
+            and self.xmax == other.xmax
+            and self.ymax == other.ymax
+            and self.image_size == other.image_size
+        )
 
 
 @dataclass(
@@ -662,24 +655,16 @@ class Points:
         return hash(HashableDict(self.__dict__))
 
     def __eq__(self, other: object) -> bool:
-        """Compare two Points objects for equality.
+        """Compare Points by content, not just by hash.
 
-        This method checks if two instances of the class Points are equal by
-            comparing their hash values.
-
-        Args:
-            self (Points): The instance of the class Points calling the
-                method.
-            other (object): Another object to compare with the instance of
-                the class Points.
-
-        Returns:
-            bool: Returns True if the hash values of the two instances are
-                equal, False otherwise.
-                  If the other object is not an instance of Points, it returns
-                NotImplemented.
-
+        `np.array_equal` handles both shape and value comparison
+        correctly; `is_normalized` and `image_size` round out the
+        identity. Hash equality is only a necessary condition.
         """
         if not isinstance(other, Points):
             return NotImplemented
-        return self.__hash__() == other.__hash__()
+        return (
+            np.array_equal(self.points, other.points)
+            and self.is_normalized == other.is_normalized
+            and self.image_size == other.image_size
+        )

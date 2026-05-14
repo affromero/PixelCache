@@ -31,8 +31,13 @@ _EXIF_ORIENTATION_TAG = 274
 
 
 def _pil_to_tensor(img: Image.Image) -> Float[torch.Tensor, "1 c h w"]:
-    """Decode a PIL image to a `1 c h w` float tensor in `[0, 1]`."""
-    arr = np.asarray(img.convert("RGB"))
+    """Decode a PIL image to a `1 c h w` float tensor in `[0, 1]`.
+
+    `np.array(..., copy=True)` instead of `np.asarray(...)` because
+    some PIL backends return non-writable views; `torch.from_numpy`
+    warns on those.
+    """
+    arr = np.array(img.convert("RGB"), copy=True)
     tensor = torch.from_numpy(arr).permute(2, 0, 1)
     return tensor[None] / 255.0
 
@@ -85,13 +90,19 @@ def read_image(
                     msg = f"Failed to transpose image: {fname}"
                     raise RuntimeError(msg)
                 return _pil_to_tensor(rotated)
-        # No EXIF rotation → torchvision fast path on the same file.
-        data = read_file(fname_str)
-        try:
-            tensor = decode_jpeg(data, device="cpu")
-        except RuntimeError:
-            tensor = decode_png(data, ImageReadMode.RGB)
-        return tensor[None] / 255.0
+        # No EXIF rotation needed. Try the torchvision fast path for
+        # JPEG / PNG; fall back to PIL for everything else PIL can
+        # open (WebP, BMP, TIFF, GIF, …) so we don't regress versus
+        # the pre-refactor public contract.
+        if lower.endswith((".jpg", ".jpeg", ".png")):
+            data = read_file(fname_str)
+            try:
+                tensor = decode_jpeg(data, device="cpu")
+            except RuntimeError:
+                tensor = decode_png(data, ImageReadMode.RGB)
+            return tensor[None] / 255.0
+        with Image.open(fname_str) as img:
+            return _pil_to_tensor(img)
 
     msg = f"file not supported: {fname}"
     raise RuntimeError(msg)
