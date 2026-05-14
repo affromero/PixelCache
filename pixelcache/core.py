@@ -31,6 +31,7 @@ from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from torchvision.transforms import functional as TF
 
+from pixelcache.data.palette import color_palette
 from pixelcache.tools.bbox import crop_from_bbox, uncrop_from_bbox
 from pixelcache.tools.cache import jaxtyped
 from pixelcache.tools.image import (
@@ -63,7 +64,6 @@ from pixelcache.tools.mask import (
     remove_small_regions,
 )
 from pixelcache.tools.text import create_text, draw_text
-from pixelcache.tools.utils import color_palette
 
 _T = TypeVar("_T")
 _KT = TypeVar("_KT")
