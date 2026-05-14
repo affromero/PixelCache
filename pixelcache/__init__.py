@@ -2,11 +2,10 @@ from importlib.metadata import version
 
 from difflogtest import DEFAULT_VERBOSITY, LoggingRich, get_logger
 
+from pixelcache._collections import HashableDict, HashableList
 from pixelcache.core import (
     BoundingBox,
-    HashableDict,
     HashableImage,
-    HashableList,
     ImageCrop,
     Points,
 )
