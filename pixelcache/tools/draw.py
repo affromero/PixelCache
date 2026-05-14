@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import numpy as np
 import torch
 from beartype import beartype
@@ -7,6 +5,7 @@ from jaxtyping import Float, UInt8, jaxtyped
 from PIL import Image, ImageDraw, ImageFont
 
 from pixelcache.tools.image import pil2tensor, tensor2pil
+from pixelcache.tools.text import get_font_path
 
 
 @jaxtyped(typechecker=beartype)
@@ -88,10 +87,9 @@ def draw_bbox(
         draw.rectangle(box, outline=color, width=width)
         if text is not None and text[idx]:
             size_text = max(max(image.size) * 0.04, 9.0)
-            get_font_path = (
-                Path(__file__).parent / "fonts" / "JetBrainsMono-ExtraBold.ttf"
+            font = ImageFont.truetype(
+                get_font_path("JetBrainsMono-ExtraBold"), round(size_text)
             )
-            font = ImageFont.truetype(str(get_font_path), round(size_text))
             draw.text(
                 (round(box[0]), round(box[1])),
                 text[idx],

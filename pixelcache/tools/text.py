@@ -139,7 +139,8 @@ def create_text(
             msg,
         )
     if image.ndim != 3:
-        logger.error("expected HxWx3 arrays, got {image.shape}")
+        msg = f"expected HxWx3 arrays, got shape {image.shape}"
+        raise ValueError(msg)
 
     if orientation not in ["horizontal", "vertical"]:
         msg = f"Text orientation {orientation} not supported"
