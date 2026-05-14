@@ -353,18 +353,21 @@ def mask2bbox(
             int(np.round(ymax)),
         )
         bboxes.append(bbox)
-    # check if bboxes overlap whenever margin is enabled
+    # Check if bboxes overlap when margin is enabled. The original
+    # called `torch.LongTensor(bboxes[i])` twice per pair — O(n²)
+    # allocations. Hoist the full batch once, then slice 1-element
+    # views for each IoU call (`bbox_iou` only supports 1x1 pairs).
     if len(bboxes) > 1:
-        for i in range(len(bboxes) - 1):
-            for j in range(i + 1, len(bboxes)):
+        boxes_t = torch.tensor(bboxes, dtype=torch.long)
+        n = len(bboxes)
+        for i in range(n - 1):
+            for j in range(i + 1, n):
                 if (
-                    bbox_iou(
-                        torch.LongTensor(bboxes[i])[None],
-                        torch.LongTensor(bboxes[j])[None],
-                    )[0][0].item()
+                    bbox_iou(boxes_t[i : i + 1], boxes_t[j : j + 1])[0][
+                        0
+                    ].item()
                     > 0
                 ):
-                    # merge bboxes
                     merge_box = (
                         min(bboxes[i][0], bboxes[j][0]),
                         min(bboxes[i][1], bboxes[j][1]),
