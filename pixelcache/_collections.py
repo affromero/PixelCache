@@ -1,16 +1,25 @@
-"""HashableDict and HashableList — content-addressable dict/list analogues.
+"""HashableDict and HashableList — immutable, content-addressable analogues
+of `dict` and `list` for use as cache keys and hashable parameters.
 
-Both classes wrap nested `dict`/`list` values in their hashable equivalents
-at construction time and cache a content hash that is invalidated on
-mutation (`__setitem__`, `__delitem__`, `insert`). They allow tensors,
-ndarrays, and PIL images as values and hash them via byte buffers.
+Both classes are **immutable after construction**. There is no
+`__setitem__`, `__delitem__`, `insert`, or `append` — the constructor
+recursively wraps nested `dict` / `list` values into hashable
+equivalents, and deep-copies mutable leaf values (tensors, ndarrays,
+PIL images) so external mutation of the source can't invalidate the
+cached structural hash.
+
+Equality is content-equality (with array-aware comparison for tensor /
+ndarray / PIL values); both `__eq__` and `__hash__` are short-circuit /
+cached for hot-path cache-key usage.
 """
 
 from collections.abc import (
-    Iterable,
+    ItemsView,
     Iterator,
-    MutableMapping,
-    MutableSequence,
+    KeysView,
+    Mapping,
+    Sequence,
+    ValuesView,
 )
 from typing import SupportsIndex, TypeVar, cast, overload
 
@@ -24,14 +33,18 @@ _VT = TypeVar("_VT")
 
 
 def _wrap_value(v: object) -> object:
-    """Wrap nested `dict` / `list` (and unwrap-then-rewrap nested
-    HashableDict / HashableList) into hashable equivalents.
+    """Wrap nested containers and deep-copy mutable leaf values.
 
-    Returns everything else unchanged. Used both at construction time
-    and from every mutation path (`__setitem__`, `insert`, slice
-    assignment) so the public mapping/sequence interface stays
-    consistent — a raw dict assigned post-construction must wrap the
-    same way it would have during `__init__`.
+    Maps:
+    - `dict` → `HashableDict` (recursive wrap of values).
+    - `list` → `HashableList` (recursive wrap of items).
+    - `HashableDict` / `HashableList` → fresh instance built from
+      `to_dict()` / `to_list()` so the new wrapper doesn't share state.
+    - `np.ndarray` → independent `.copy()` (prevents constructor
+      aliasing from invalidating the cached hash later).
+    - `torch.Tensor` → `.detach().cpu().clone()` (same reason).
+    - `PIL.Image` → `.copy()`.
+    - Everything else: returned as-is (assumed already immutable).
     """
     if isinstance(v, dict):
         return HashableDict(v)
@@ -41,11 +54,46 @@ def _wrap_value(v: object) -> object:
         return HashableDict(v.to_dict())
     if isinstance(v, HashableList):
         return HashableList(v.to_list())
+    if isinstance(v, np.ndarray):
+        return v.copy()
+    if isinstance(v, torch.Tensor):
+        return v.detach().cpu().clone()
+    if isinstance(v, Image.Image):
+        return v.copy()
     return v
 
 
-class HashableDict(MutableMapping[_KT, _VT]):
-    """Hashable dictionary class."""
+def _compare_values(a: object, b: object) -> bool:
+    """Compare two HashableDict/HashableList values for content equality.
+
+    Tensor → `torch.equal`. ndarray → `np.array_equal`. PIL → mode +
+    size + bytes (PIL's own `__eq__` is object-identity, not content).
+    Anything else falls back to `==`. Returns `False` on type mismatch
+    so dict eq cannot raise on heterogeneous values.
+    """
+    if isinstance(a, torch.Tensor) and isinstance(b, torch.Tensor):
+        return bool(torch.equal(a, b))
+    if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+        return bool(np.array_equal(a, b))
+    if isinstance(a, Image.Image) and isinstance(b, Image.Image):
+        return (
+            a.mode == b.mode
+            and a.size == b.size
+            and a.tobytes() == b.tobytes()
+        )
+    if type(a) is not type(b):
+        return False
+    return bool(a == b)
+
+
+class HashableDict(Mapping[_KT, _VT]):
+    """Immutable, content-addressable dictionary.
+
+    Inherits from `collections.abc.Mapping` (read-only protocol).
+    Construction deep-copies/wraps every value so mutation of the
+    source can't invalidate the cached hash. To "modify", construct
+    a new instance with the desired overrides.
+    """
 
     def __init__(self, data: dict[_KT, _VT]) -> None:
         """Initialize a HashableDict, wrapping nested containers.
@@ -90,12 +138,13 @@ class HashableDict(MutableMapping[_KT, _VT]):
         return self._cached_hash
 
     def __eq__(self, other: object) -> bool:
-        """Compare two HashableDict instances key-by-key.
+        """Compare key-by-key with content-aware value comparison.
 
-        Short-circuits on identity, type, and hash mismatch, then does a
-        key-set + per-value comparison. Tensor / ndarray / PIL values are
-        compared by content (not by `==`, which raises on arrays);
-        everything else falls back to Python `==`.
+        Short-circuits on identity, type, hash mismatch, and key-set
+        mismatch. Per-value comparison uses `_compare_values` so
+        tensors / ndarrays / PIL images are compared by content (and
+        PIL specifically by mode + size + bytes — PIL's own `__eq__`
+        is object-identity).
         """
         if self is other:
             return True
@@ -105,17 +154,9 @@ class HashableDict(MutableMapping[_KT, _VT]):
             return False
         if self.__data.keys() != other.__data.keys():
             return False
-        for k, a in self.__data.items():
-            b = other.__data[k]
-            if isinstance(a, torch.Tensor) and isinstance(b, torch.Tensor):
-                if not torch.equal(a, b):
-                    return False
-            elif isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
-                if not np.array_equal(a, b):
-                    return False
-            elif type(a) is not type(b) or a != b:
-                return False
-        return True
+        return all(
+            _compare_values(a, other.__data[k]) for k, a in self.__data.items()
+        )
 
     def to_dict(
         self,
@@ -160,41 +201,16 @@ class HashableDict(MutableMapping[_KT, _VT]):
         """
         return HashableDict(self.__data.copy())
 
-    def values(self) -> Iterable[_VT]:  # type: ignore[override]
-        """Retrieve all values from a HashableDict.
-
-        This method iterates over the HashableDict and returns a list
-            containing all the values.
-
-        Returns:
-            List[Any]: A list containing all the values in the HashableDict.
-
-        """
+    def values(self) -> ValuesView[_VT]:
+        """Return a view over the underlying dict's values."""
         return self.__data.values()
 
-    def keys(self) -> Iterable[_KT]:  # type: ignore[override]
-        """Retrieve all keys from a HashableDict.
-
-        This method iterates over the HashableDict and returns a list of all
-            keys present in the dictionary.
-
-        Returns:
-            List[Hashable]: A list containing all keys in the HashableDict.
-
-        """
+    def keys(self) -> KeysView[_KT]:
+        """Return a view over the underlying dict's keys."""
         return self.__data.keys()
 
-    def items(self) -> Iterable[tuple[_KT, _VT]]:  # type: ignore[override]
-        """Retrieve all key-value pairs from the HashableDict.
-
-        This method returns an iterator over the (key, value) pairs in the
-            HashableDict.
-
-        Returns:
-            Iterator[Tuple[Hashable, Any]]: An iterator over the (key,
-                value) pairs in the HashableDict.
-
-        """
+    def items(self) -> ItemsView[_KT, _VT]:
+        """Return a view over the underlying dict's (key, value) pairs."""
         return self.__data.items()
 
     def __repr__(self) -> str:
@@ -233,23 +249,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
             raise KeyError(msg)
         return self.__data[__name]
 
-    def __setitem__(self, __name: _KT, __value: _VT, /) -> None:
-        """Assign a value to a key; wraps raw dict/list values.
-
-        Without the wrap, `hd["x"] = {"a": 1}` would store a raw dict
-        and the next `hash(hd)` would raise on the unhashable child.
-        Mirrors the wrapping done in `__init__`.
-
-        Invalidates the cached hash.
-        """
-        self.__data[__name] = cast("_VT", _wrap_value(__value))
-        self._cached_hash = None
-
-    def __delitem__(self, __name: _KT, /) -> None:
-        """Remove a key from the dict; invalidates the hash cache."""
-        del self.__data[__name]
-        self._cached_hash = None
-
     def __iter__(self) -> Iterator[_KT]:
         """Make instances of the HashableDict class iterable.
 
@@ -282,8 +281,14 @@ class HashableDict(MutableMapping[_KT, _VT]):
         return len(self.__data)
 
 
-class HashableList(MutableSequence[_T]):
-    """Hashable list class."""
+class HashableList(Sequence[_T]):
+    """Immutable, content-addressable ordered list.
+
+    Inherits from `collections.abc.Sequence` (read-only protocol).
+    Construction deep-copies/wraps every item so mutation of the
+    source can't invalidate the cached hash. To "modify", construct
+    a new instance from the desired iterable.
+    """
 
     def __init__(self, data: list[_T]) -> None:
         """Initializes an instance of the HashableList class.
@@ -333,11 +338,12 @@ class HashableList(MutableSequence[_T]):
         return self._cached_hash
 
     def __eq__(self, other: object) -> bool:
-        """Compare two HashableLists element-wise in order.
+        """Compare element-wise in order, with content-aware comparison.
 
-        Short-circuits on identity, type, and hash mismatch, then does
-        a length+element comparison. Tensors, ndarrays, and PIL images
-        are compared by bytes; everything else by `==`.
+        Short-circuits on identity, type, hash, and length mismatch.
+        Each element is compared via `_compare_values` (tensors,
+        ndarrays, and PIL images by content; PIL specifically by mode
+        + size + bytes).
         """
         if self is other:
             return True
@@ -347,16 +353,10 @@ class HashableList(MutableSequence[_T]):
             return False
         if len(self.__data) != len(other.__data):
             return False
-        for a, b in zip(self.__data, other.__data, strict=True):
-            if isinstance(a, torch.Tensor) and isinstance(b, torch.Tensor):
-                if not torch.equal(a, b):
-                    return False
-            elif isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
-                if not np.array_equal(a, b):
-                    return False
-            elif type(a) is not type(b) or a != b:
-                return False
-        return True
+        return all(
+            _compare_values(a, b)
+            for a, b in zip(self.__data, other.__data, strict=True)
+        )
 
     def to_list(self) -> list[_T]:
         """Convert the HashableList object into a regular Python list.
@@ -476,36 +476,6 @@ class HashableList(MutableSequence[_T]):
             return HashableList(self.__data[__index])
         return self.__data[__index]
 
-    @overload
-    def __setitem__(self, key: SupportsIndex, value: _T, /) -> None: ...
-
-    @overload
-    def __setitem__(
-        self,
-        key: SupportsIndex,
-        value: Iterable[_T],
-        /,
-    ) -> None: ...
-
-    @overload
-    def __setitem__(self, key: slice, value: Iterable[_T], /) -> None: ...
-
-    def __setitem__(
-        self,
-        key: SupportsIndex | slice,
-        value: _T | Iterable[_T],
-    ) -> None:
-        """Assign an item or slice in place; invalidates the hash cache."""
-        data_list = self.to_list()
-        if isinstance(value, HashableList):
-            value = cast("_T | Iterable[_T]", value.to_list())
-        if isinstance(key, slice):
-            data_list[key] = cast("Iterable[_T]", value)
-        else:
-            data_list[key] = cast("_T", value)
-        self.__data = HashableList(data_list).__data
-        self._cached_hash = None
-
     def __len__(self) -> int:
         """Calculate the length of the HashableList object.
 
@@ -522,30 +492,6 @@ class HashableList(MutableSequence[_T]):
 
         """
         return len(self.__data)
-
-    @overload
-    def __delitem__(self, __index: int, /) -> None: ...
-
-    @overload
-    def __delitem__(self, __index: slice, /) -> None: ...
-
-    def __delitem__(self, __index: int | slice, /) -> None:
-        """Delete an item or slice; invalidates the hash cache."""
-        del self.__data[__index]
-        self._cached_hash = None
-
-    def insert(self, __index: int, __value: _T, /) -> None:
-        """Insert a value at the given index, wrapping raw containers.
-
-        Same wrapping contract as `__init__` / `__setitem__`: raw
-        `dict` / `list` values become `HashableDict` / `HashableList`
-        on insert so the next `hash()` doesn't trip on an unhashable
-        nested value.
-
-        Invalidates the cached hash.
-        """
-        self.__data.insert(__index, cast("_T", _wrap_value(__value)))
-        self._cached_hash = None
 
     def __mul__(self, other: int) -> "HashableList[_T]":
         """Multiply all elements in the HashableList by a specified integer.

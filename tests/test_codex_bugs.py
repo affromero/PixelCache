@@ -39,25 +39,42 @@ def test_hashable_list_multiplicity_matters() -> None:
     assert a != b
 
 
-def test_hashable_list_insert_wraps_raw_dict() -> None:
-    """`HashableList.insert(0, {})` must wrap so the next hash() works."""
-    hl: HashableList[object] = HashableList([])
-    hl.insert(0, {"a": 1})
-    # Without wrapping, hash() would raise on the unhashable raw dict.
-    hash(hl)
-    item = hl[0]
-    assert isinstance(item, HashableDict)
+def test_hashable_list_constructor_wraps_raw_dict() -> None:
+    """`HashableList([{...}])` wraps nested raw dict at construction."""
+    hl = HashableList([{"a": 1}])
+    hash(hl)  # would raise pre-fix on an unhashable raw dict
+    assert isinstance(hl[0], HashableDict)
+
+
+def test_hashable_list_is_immutable() -> None:
+    """`HashableList` has no mutation API — `insert`, `append`, etc.
+    are not part of the `Sequence` protocol it implements.
+    """
+    hl = HashableList([1, 2, 3])
+    assert not hasattr(hl, "insert")
+    assert not hasattr(hl, "append")
+    # `__setitem__` only exists at the class level if `MutableSequence`
+    # is the base — `Sequence` doesn't define it.
+    assert not hasattr(hl, "__setitem__")
 
 
 # ----------------------------- HashableDict -----------------------------
 
 
-def test_hashable_dict_setitem_wraps_raw_dict() -> None:
-    """`hd['x'] = {'a': 1}` must wrap so the next hash() works."""
-    hd: HashableDict[str, object] = HashableDict({})
-    hd["x"] = {"a": 1}
+def test_hashable_dict_constructor_wraps_raw_dict() -> None:
+    """`HashableDict({"x": {"a": 1}})` wraps the nested raw dict."""
+    hd = HashableDict({"x": {"a": 1}})
     hash(hd)
     assert isinstance(hd["x"], HashableDict)
+
+
+def test_hashable_dict_is_immutable() -> None:
+    """`HashableDict` has no mutation API — it implements the
+    read-only `Mapping` protocol, not `MutableMapping`.
+    """
+    hd = HashableDict({"x": 1})
+    assert not hasattr(hd, "__setitem__")
+    assert not hasattr(hd, "__delitem__")
 
 
 def test_hashable_dict_eq_handles_ndarray_values() -> None:
@@ -68,6 +85,35 @@ def test_hashable_dict_eq_handles_ndarray_values() -> None:
     a: HashableDict[str, object] = HashableDict({"k": arr})
     b: HashableDict[str, object] = HashableDict({"k": arr.copy()})
     assert a == b
+
+
+def test_hashable_dict_eq_pil_compares_by_content() -> None:
+    """PIL.Image's own __eq__ is identity. HashableDict equality must
+    compare PIL values by mode + size + bytes content.
+    """
+    a: HashableDict[str, object] = HashableDict(
+        {"img": Image.new("RGB", (8, 8), color=(10, 20, 30))}
+    )
+    b: HashableDict[str, object] = HashableDict(
+        {"img": Image.new("RGB", (8, 8), color=(10, 20, 30))}
+    )
+    c: HashableDict[str, object] = HashableDict(
+        {"img": Image.new("RGB", (8, 8), color=(99, 0, 0))}
+    )
+    assert a == b
+    assert a != c
+
+
+def test_hashable_dict_construction_isolates_from_source() -> None:
+    """Mutating the source ndarray/tensor/PIL after construction must
+    NOT change the HashableDict's cached hash.
+    """
+    arr = np.array([1, 2, 3])
+    hd: HashableDict[str, object] = HashableDict({"k": arr})
+    h1 = hash(hd)
+    arr[0] = 99
+    assert hash(hd) == h1
+    assert hd["k"][0] != 99 if isinstance(hd["k"], np.ndarray) else True
 
 
 # ----------------------------- ImageCrop --------------------------------

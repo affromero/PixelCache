@@ -76,13 +76,16 @@ def test_hashable_dict_hash_cache(mid_rgb_np: np.ndarray) -> None:
     assert hash(hd) == h1
 
 
-def test_hashable_dict_mutation_invalidates(mid_rgb_np: np.ndarray) -> None:
+def test_hashable_dict_constructed_with_extra_key_differs(
+    mid_rgb_np: np.ndarray,
+) -> None:
+    """HashableDict is immutable, so 'add a key' = build a new dict.
+    The new dict must hash to a different value.
+    """
     img = HashableImage(mid_rgb_np.copy())
     hd = HashableDict({"a": img, "b": 42})
-    h1 = hash(hd)
-    hd["c"] = "new"
-    h2 = hash(hd)
-    assert h1 != h2
+    merged = HashableDict({**hd.to_dict(), "c": "new"})
+    assert hash(hd) != hash(merged)
 
 
 def test_hashable_list_hash_cache(mid_rgb_np: np.ndarray) -> None:
@@ -93,10 +96,13 @@ def test_hashable_list_hash_cache(mid_rgb_np: np.ndarray) -> None:
     assert hash(hl) == h1
 
 
-def test_hashable_list_mutation_invalidates(mid_rgb_np: np.ndarray) -> None:
+def test_hashable_list_constructed_with_extra_item_differs(
+    mid_rgb_np: np.ndarray,
+) -> None:
+    """HashableList is immutable, so 'append' = build a new list.
+    The new list must hash to a different value.
+    """
     img = HashableImage(mid_rgb_np.copy())
     hl = HashableList([img])
-    h1 = hash(hl)
-    hl.append(img.to_gray())
-    h2 = hash(hl)
-    assert h1 != h2
+    extended = HashableList([*hl.to_list(), img.to_gray()])
+    assert hash(hl) != hash(extended)
