@@ -23,7 +23,7 @@ import torch
 import xxhash
 from beartype import beartype
 from difflogtest import get_logger
-from difflogtest.utils.path import path_exists
+from difflogtest.utils.path import path_basename, path_exists
 from jaxtyping import Bool, Float, UInt8
 from matplotlib import colormaps
 from PIL import Image, ImageOps
@@ -1600,38 +1600,38 @@ class HashableImage:
             raise ValueError(msg)
         return None
 
-    @jaxtyped(typechecker=beartype)
     def __repr__(self) -> str:
-        """Generate a string representation of the HashableImage object.
+        """Return a cheap repr — mode, dtype, size, source basename.
 
-        This method constructs a string that includes the mode, dtype, size,
-            mean, std, min, max, and filename of the HashableImage object,
-            providing a comprehensive summary of the object's properties.
-
-        Arguments:
-            self (HashableImage): The instance of the HashableImage object.
-
-        Returns:
-            str: A string representation of the HashableImage object,
-                including its mode, dtype, size, mean, std, min, max, and
-                filename.
-
-        Example:
-            >>> image = HashableImage("example.jpg")
-            >>> print(image)
-            'mode: RGB, dtype: uint8, size: (1920, 1080), mean: 127.5, std:
-                20.8, min: 0, max: 255, filename: example.jpg'
-        Note:
-            The returned string can be used for debugging or logging
-                purposes.
-
+        Does NOT call `mean/std/min/max` or `get_filename()` (which
+        previously made `repr()` an O(image) operation that hit disk
+        for in-memory images). For the verbose form including
+        statistics, call `summary()` explicitly.
         """
-        _filename = (
-            f" {self.get_filename()}"
-            if "/tmp" not in self.get_filename()  # noqa: S108
-            else ""
+        src = (
+            path_basename(self._image_str)
+            if self._image_str is not None
+            else "mem"
         )
-        return f"HashableImage: {self._mode} {self.dtype()} {self.size()} - mean: {self.mean()} std: {self.std()} min {self.min()} max {self.max()}{_filename}"
+        return (
+            f"HashableImage(mode={self._mode}, dtype={self.dtype()}, "
+            f"size={self.size()}, src={src})"
+        )
+
+    def summary(self) -> str:
+        """Return a verbose summary including content statistics.
+
+        Materializes mean, std, min, max and the local filename — O(image)
+        for the stats, plus a temp-file write for in-memory inputs whose
+        `get_filename()` hasn't been called yet. Prefer `__repr__` for
+        cheap debugging output.
+        """
+        return (
+            f"HashableImage(mode={self._mode}, dtype={self.dtype()}, "
+            f"size={self.size()}, mean={self.mean()}, std={self.std()}, "
+            f"min={self.min()}, max={self.max()}, "
+            f"filename={self.get_filename()})"
+        )
 
     @jaxtyped(typechecker=beartype)
     def pil(self) -> Image.Image:
