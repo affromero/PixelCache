@@ -25,7 +25,7 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
         running in
     unit test mode, the decorator is a no-op and does not provide caching.
 
-    Arguments:
+    Args:
         func (Callable): The function to be decorated.
 
     Returns:
@@ -46,7 +46,7 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
             if the code is not running in unittest mode. If it is in
             unittest mode, the function is returned as is.
 
-        Arguments:
+        Args:
             func (Callable[..., Any]): The function to be decorated.
 
         Returns:
@@ -72,7 +72,7 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
                 positional and keyword arguments, which are passed
                 directly to the wrapped function.
 
-            Arguments:
+            Args:
                 *args (Any): Represents any number of positional
                     arguments that can be passed to the wrapped
                     function.
@@ -121,7 +121,7 @@ def get_cache_dir() -> Path:
         specified platform and app. It does not ensure
     that the cache directory exists.
 
-    Arguments:
+    Args:
         platform (str): The platform for which the cache directory is to be
             located.
         app (str): The application for which the cache directory is to be
@@ -162,7 +162,7 @@ def sha256sum(filename: str) -> str:
     This function takes a filename as an argument, calculates the SHA-256
         hash of the file, and returns the first 8 characters of the hash.
 
-    Arguments:
+    Args:
         filename (str): A string representing the name of the file for which
             the SHA-256 hash needs to be calculated.
 
@@ -180,7 +180,7 @@ def sha256sum(filename: str) -> str:
 def pseudo_hash(idx: int, length: int = 6) -> str:
     """Generate a pseudo-random hash based on the given index and length.
 
-    Arguments:
+    Args:
         idx (int): The index used to seed the random number generator.
         length (int, optional): The length of the hash to be generated.
             Defaults to 6.

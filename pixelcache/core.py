@@ -67,7 +67,7 @@ logger = get_logger()
 def pseudo_hash(idx: int, length: int = 6) -> str:
     """Generate a pseudo-random hash based on the given index and length.
 
-    Arguments:
+    Args:
         idx (int): The index used to seed the random number generator.
         length (int, optional): The length of the hash to be generated.
             Defaults to 6.
@@ -161,7 +161,7 @@ class HashableImage:
         where raw JPEG/PNG bytes need efficient decoding without
         creating a HashableImage instance or temp files.
 
-        Arguments:
+        Args:
             data: Raw image bytes (JPEG, PNG, etc.).
             unchanged: If True, preserve original channel layout
                 (e.g. single-channel grayscale).  If False,
@@ -235,7 +235,7 @@ class HashableImage:
         This method in the 'HashableImage' class assigns a filename to the
             image object.
 
-        Arguments:
+        Args:
             filename (str): A string representing the filename of the image.
 
         Returns:
@@ -258,7 +258,7 @@ class HashableImage:
             and writes it to a file at the given path. The image format is
             determined by the file extension in the path.
 
-        Arguments:
+        Args:
             path (str): The file path where the image will be saved. This
                 should include the filename and the extension.
 
@@ -290,7 +290,7 @@ class HashableImage:
         This method displays the image data stored in the HashableImage
             object.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object to be displayed.
 
         Returns:
@@ -303,7 +303,7 @@ class HashableImage:
     def downsample(self, factor: int) -> "HashableImage":
         """Downsample the given image by a specified factor.
 
-        Arguments:
+        Args:
             factor (int): The factor by which the image should be
                 downsampled. This must be an integer greater than 0.
 
@@ -328,7 +328,7 @@ class HashableImage:
 
             methods based on the image mode.
 
-        Arguments:
+        Args:
             size (ImageSize): An object containing the desired image height
                 and width.
             mode (Literal["bilinear", "lanczos", "nearest"], optional): The
@@ -399,7 +399,7 @@ class HashableImage:
         This method resizes the image to the specified minimum size while
             maintaining the aspect ratio.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object to be resized.
             min_size (int): The minimum size to which the image should be
                 resized.
@@ -474,7 +474,7 @@ class HashableImage:
 
         This method applies a color palette to the HashableImage object.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object to which the
                 color palette will be applied.
             _palette (np.ndarray, optional): The color palette to be applied
@@ -516,7 +516,7 @@ class HashableImage:
         This method transforms the current mode of a HashableImage object to
             an RGB format.
 
-        Arguments:
+        Args:
             self ('HashableImage'): The HashableImage object to be converted
                 to RGB.
 
@@ -552,7 +552,7 @@ class HashableImage:
     ) -> "HashableImage":
         """Convert an image to binary format.
 
-        Arguments:
+        Args:
             threshold (float): The threshold for converting the image to binary.
             area_min (float): The minimum area for removing disconnected
                 regions. Area is in percentage of the image area.
@@ -611,7 +611,7 @@ class HashableImage:
             HashableImage object
         with the inverted binary data.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object on which the
                 method is called.
 
@@ -632,7 +632,7 @@ class HashableImage:
         This method checks the mode of the HashableImage object and performs
             the inversion accordingly.
 
-        Arguments:
+        Args:
             self ('HashableImage'): The HashableImage object on which the
                 method is called.
 
@@ -655,7 +655,7 @@ class HashableImage:
         This static method generates a HashableImage object of the specified
             size with all pixel values set to zero.
 
-        Arguments:
+        Args:
             size (ImageSize): An object representing the height and width of
                 the image in pixels.
 
@@ -677,7 +677,7 @@ class HashableImage:
             shape and type as the original image, but with all its elements
             set to zero.
 
-        Arguments:
+        Args:
             self ('HashableImage'): The HashableImage object calling the
                 method.
 
@@ -703,7 +703,7 @@ class HashableImage:
             dimensions of the original image,
         but replacing all pixel values with ones.
 
-        Arguments:
+        Args:
             self ('HashableImage'): The HashableImage object on which the
                 ones_like method is called.
 
@@ -733,7 +733,7 @@ class HashableImage:
         This method takes a HashableImage object that contains an image in
             RGB color space and converts it to BGR color space.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object that contains the
                 image to be converted.
 
@@ -774,7 +774,7 @@ class HashableImage:
         This method adjusts the intensity values of the image to improve
             contrast and enhance details.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object containing the
                 image to be processed.
 
@@ -798,7 +798,7 @@ class HashableImage:
         and returns a new HashableImage object that results from the
             addition of the two input objects.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object to be added.
             other (HashableImage | Number): The other object (either a
                 HashableImage or a Number) to be added to the HashableImage
@@ -831,7 +831,7 @@ class HashableImage:
             values of the first image. If it's a number, it subtracts
         this number from every pixel value of the first image.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object from which the
                 pixel values are subtracted.
             other (Union[HashableImage, Number]): The object to subtract
@@ -865,7 +865,7 @@ class HashableImage:
             wise, and a new HashableImage object is returned with the
             resulting pixel data.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object on which the
                 method is called.
             other (HashableImage | Number): The object to be multiplied with
@@ -915,7 +915,7 @@ class HashableImage:
             operation and returns a new HashableImage object with the
             result.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object on which the
                 division operation is performed.
             other (HashableImage or Number): The object by which the
@@ -948,7 +948,7 @@ class HashableImage:
             dimensions
         of the image stored in the HashableImage object.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object for which the
                 size needs to be determined.
 
@@ -963,7 +963,7 @@ class HashableImage:
     def copy(self) -> "HashableImage":
         """Create a copy of a HashableImage object.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object to be copied.
 
         Returns:
@@ -1004,10 +1004,11 @@ class HashableImage:
 
         This method operates on the image data stored in the HashableImage
             object.
-        Arguments: None
+
         Returns:
             float: The standard deviation of the image data, rounded to two
                 decimal places.
+
         """
         if self._mode == "torch":
             value = self._image.float().std().item()
@@ -1023,7 +1024,7 @@ class HashableImage:
             smallest value found within it. The returned value is rounded to
             two decimal places for precision.
 
-        Arguments:
+        Args:
             None
         Returns:
             float: The minimum value in the HashableImage object, rounded to
@@ -1063,7 +1064,7 @@ class HashableImage:
         This method iterates over all elements in the HashableImage object
             and sums them up.
 
-        Arguments:
+        Args:
             None
         Returns:
             float: The sum of all elements in the HashableImage object. The
@@ -1150,7 +1151,7 @@ class HashableImage:
             stored in the instance into a PIL (Python Imaging Library) Image
             object.
 
-        Arguments:
+        Args:
             self (HashableImage): The instance of the 'HashableImage' class.
 
         Returns:
@@ -1238,7 +1239,7 @@ class HashableImage:
         It checks the mode of the image data (torch, numpy, or pil) and
             converts it accordingly.
 
-        Arguments:
+        Args:
             self (HashableImage): The instance of the HashableImage class.
 
         Returns:
@@ -1296,7 +1297,7 @@ class HashableImage:
             can be one of three values: 'pil', 'numpy', or 'torch', each
             representing a different image format.
 
-        Arguments:
+        Args:
             None
         Returns:
             str: The mode of the HashableImage object. This is a string
@@ -1313,7 +1314,7 @@ class HashableImage:
         This method evaluates whether the image data contained within the
         HashableImage object is binary or not.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object containing image
                 data.
 
@@ -1337,7 +1338,7 @@ class HashableImage:
         This method inspects the image stored in the HashableImage object
             and determines whether it is in RGB format.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object containing the
                 image to be checked.
 
@@ -1359,7 +1360,7 @@ class HashableImage:
             tuple of three integers representing height, width, and
             channels.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object for which the
                 shape needs to be determined.
 
@@ -1389,7 +1390,7 @@ class HashableImage:
     ) -> "HashableImage":
         """Concatenate multiple images either horizontally or vertically.
 
-        Arguments:
+        Args:
             self (HashableImage): The instance of the HashableImage class.
             other (List[HashableImage]): A list of HashableImage objects to
                 be concatenated with the self image.
@@ -1432,7 +1433,7 @@ class HashableImage:
     ):
         """Retrieve the raw image data stored in the HashableImage object.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object for which the raw
                 image data is to be retrieved.
 
@@ -1462,7 +1463,7 @@ class HashableImage:
             on them. The result of this operation is used to create a new
             HashableImage object which is returned.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object on which the
                 logical OR operation is performed.
             other (List[HashableImage]): A list of HashableImage objects to
@@ -1550,7 +1551,7 @@ class HashableImage:
     ) -> "HashableImage":
         """Crop an image based on a provided mask image.
 
-        Arguments:
+        Args:
             mask (HashableImage): The mask image used for cropping. It
                 should be of the same size as the input image.
             **kwargs: Additional keyword arguments that can be passed to the
@@ -1599,7 +1600,7 @@ class HashableImage:
             in the cropped image. The order of the bounding boxes in the
             list does not affect the result.
 
-        Arguments:
+        Args:
             self (HashableImage): The instance of the HashableImage class to
                 be cropped.
             bboxes (HashableList[_BBOX_TYPE]): A list of bounding boxes.
@@ -1641,7 +1642,7 @@ class HashableImage:
             specified by a list of bounding boxes.
         It returns the uncropped image as a HashableImage object.
 
-        Arguments:
+        Args:
             self ('HashableImage'): The HashableImage object on which the
                 method is called.
             base ('HashableImage'): The base HashableImage from which to
@@ -1691,7 +1692,7 @@ class HashableImage:
         The bounding box coordinates are then returned in a HashableList
             format.
 
-        Arguments:
+        Args:
             self (HashableImage): An instance of the HashableImage class
                 representing the mask image.
             margin (float): The margin to be added to the bounding box
@@ -1756,7 +1757,7 @@ class HashableImage:
             module to convert the mask of the HashableImage object to a
             square mask.
 
-        Arguments:
+        Args:
             self (HashableImage): The HashableImage object for which the
                 mask needs to be converted to a square mask.
             **kwargs: Additional keyword arguments that can be passed to the
@@ -1784,7 +1785,7 @@ class HashableImage:
 
             alpha value, and other parameters.
 
-        Arguments:
+        Args:
             mask (HashableImage): The HashableImage object representing the
                 mask used for blending.
             alpha (float): The transparency level of the blending operation
@@ -1822,7 +1823,7 @@ class HashableImage:
         This function applies a specified morphological operation to the
             image using a given kernel.
 
-        Arguments:
+        Args:
             operation (str): A string representing the morphological
                 operation to be performed. It can be one of the following:
                 'erode', 'dilate', 'open', or 'close'.
@@ -1851,7 +1852,7 @@ class HashableImage:
         This method in the HashableImage class is used to center pad an
             image to the given size, using the provided fill value.
 
-        Arguments:
+        Args:
             image_size (Tuple[int, int]): A tuple representing the desired
                 size of the image after center padding.
             fill (int): An integer value representing the fill value to be
@@ -1885,7 +1886,7 @@ class HashableImage:
         Images are padded with black to match the maximum height and width.
             An optional text label can be included on the grid.
 
-        Arguments:
+        Args:
             images (HashableDict[HashableList[HashableImage]]): A dictionary
                 containing lists of HashableImage objects.
             orientation (Literal['horizontal', 'vertical']): Specifies the
@@ -1971,7 +1972,7 @@ class HashableImage:
         This method sets the minimum and maximum values of the image to the
             specified values.
 
-        Arguments:
+        Args:
             min (float): The minimum value to set for the image.
             max (float): The maximum value to set for the image.
 
@@ -1993,7 +1994,7 @@ class HashableImage:
         This method sets the pixel values of the image to a specified value
             based on a mask.
 
-        Arguments:
+        Args:
             mask (HashableImage): The mask image used to set the pixel values
                 of the image.
             value (float): The value to set the pixel values to.

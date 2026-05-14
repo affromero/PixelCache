@@ -26,7 +26,7 @@ def crop_from_bbox(
         supports both normalized and non-normalized bounding box
         coordinates.
 
-    Arguments:
+    Args:
         image (np.ndarray): The input image to be cropped.
         bboxes (List[Tuple[float, float, float, float]]): A list of bounding
             boxes. Each bounding box is represented as a tuple of (x_min,
@@ -71,7 +71,7 @@ def uncrop_from_bbox(
 
         image.
 
-    Arguments:
+    Args:
         base_image (Image): The base image from which to uncrop the image.
         image (Image): The image to be uncropped.
         bboxes (List[Tuple[float, float, float, float]]): A list of bounding
@@ -146,7 +146,7 @@ def increase_bbox(
 
         exceeding image boundaries.
 
-    Arguments:
+    Args:
         bboxes (List[Tuple[float, float, float, float]]): A list of bounding
             boxes. Each bounding box is represented as a tuple of (x_min,
             y_min, x_max, y_max) or (x_min_norm, y_min_norm, x_max_norm,
@@ -219,7 +219,7 @@ def bbox_iou(
         y2), where (x1, y1)
     is the top-left corner and (x2, y2) is the bottom-right corner.
 
-    Arguments:
+    Args:
         boxes1 (torch.Tensor): A tensor of shape (n, 4) representing the
             first set of bounding boxes.
         boxes2 (torch.Tensor): A tensor of shape (m, 4) representing the
@@ -282,7 +282,7 @@ def bbox_intersection(
     between the two images and returns the IoU, a measure of the overlap
         between the two bounding boxes.
 
-    Arguments:
+    Args:
         box1 (Tuple[int, int, int, int]): A tuple representing the
             coordinates of the first bounding box (x1, y1, x2, y2).
         box2 (Tuple[int, int, int, int]): A tuple representing the
@@ -319,7 +319,7 @@ def align_bounding_boxes(
 
         based on their intersection over union (IOU) values.
 
-    Arguments:
+    Args:
         base (torch.Tensor): A tensor representing the base bounding boxes.
             It should have a shape of (n, 4), where n is the number of base
             bounding boxes and 4 represents the coordinates of each bounding
@@ -372,7 +372,7 @@ def points2bbox(
         and converts them into bounding boxes
     represented as tuples of integers (xmin, ymin, xmax, ymax).
 
-    Arguments:
+    Args:
         list_points (List[List[Tuple[int, int]]]): A list of lists where
             each inner list contains tuples of integers
         representing points (x, y).

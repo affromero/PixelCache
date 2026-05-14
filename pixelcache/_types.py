@@ -46,7 +46,7 @@ class ImageCrop:
         It checks if the given crop values are valid and sets a flag based
             on whether the values are normalized or not.
 
-        Arguments:
+        Args:
             self (ImageCrop): An instance of the 'ImageCrop' class on which
                 the method is called.
 
@@ -70,7 +70,7 @@ class ImageCrop:
         This method checks if the crop values are normalized, i.e., if they
             are between 0 and 1.
 
-        Arguments:
+        Args:
             self (ImageCrop): The ImageCrop object for which the
                 normalization is being checked.
 
@@ -91,7 +91,7 @@ class ImageCrop:
         and bottom attributes. This representation can be useful for
             debugging or logging purposes.
 
-        Arguments:
+        Args:
             self (ImageCrop): The ImageCrop object for which the string
                 representation is being generated.
 
@@ -108,7 +108,7 @@ class ImageCrop:
         This method calculates the hash value of an ImageCrop object based
             on its attributes.
 
-        Arguments:
+        Args:
             self (ImageCrop): The ImageCrop object for which the hash value
                 is being calculated.
 
@@ -124,7 +124,7 @@ class ImageCrop:
         This method compares two ImageCrop instances to determine if they
             are equal.
 
-        Arguments:
+        Args:
             self (ImageCrop): The ImageCrop object calling the method.
             other (object): The other object to compare with.
 
@@ -216,7 +216,7 @@ class BoundingBox:
         This method checks if the bounding box coordinates are normalized
             (i.e., if they are between 0 and 1).
 
-        Arguments:
+        Args:
             self (BoundingBox): The BoundingBox object for which the
                 normalization is being checked.
 
@@ -245,7 +245,7 @@ class BoundingBox:
             containing the X and Y coordinates
         of the minimum and maximum points of the bounding box.
 
-        Arguments:
+        Args:
             None
         Returns:
             Tuple[int, int, int, int]: A tuple in the format (min_x,
@@ -299,7 +299,7 @@ class BoundingBox:
         This method generates a tuple containing the normalized X and Y
             coordinates of the minimum and maximum points of the bounding box.
 
-        Arguments:
+        Args:
             None
 
         Returns:
@@ -371,7 +371,7 @@ class BoundingBox:
 
             attributes.
 
-        Arguments:
+        Args:
             self (BoundingBox): The BoundingBox object for which the hash
                 value is being calculated.
 
@@ -390,7 +390,7 @@ class BoundingBox:
             BoundingBox objects are equal. If 'other' is not a BoundingBox
             object, the method returns NotImplemented.
 
-        Arguments:
+        Args:
             self ('BoundingBox'): The instance of BoundingBox that calls the
                 method.
             other ('BoundingBox'): Another instance of BoundingBox that is
@@ -443,7 +443,7 @@ class Points:
         Filters out points that are outside the image boundaries or have negative coordinates.
         Only keeps points where 0 <= x < width and 0 <= y < height.
 
-        Arguments:
+        Args:
             image_size (ImageSize): The target image dimensions to clip points to.
 
         Returns:
@@ -465,7 +465,7 @@ class Points:
 
         This method returns the number of points in the Points object.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the number of points
                 is to be calculated.
 
@@ -482,7 +482,7 @@ class Points:
         This method returns the X and Y coordinates of the points in the
             Points object.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the X and Y
                 coordinates are to be calculated.
 
@@ -504,7 +504,7 @@ class Points:
         This method returns the normalized X and Y coordinates of the points
             in the Points object.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the normalized X and
                 Y coordinates are to be calculated.
 
@@ -525,7 +525,7 @@ class Points:
         This method shifts the points in the Points object by a specified
             amount.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the points are to be
                 shifted.
             shift (Tuple[float, float]): A tuple containing the X and Y
@@ -548,7 +548,7 @@ class Points:
         This method returns the points in the Points object as a list of
             tuples of integers.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the points are to be
                 converted to a list of tuples of integers.
 
@@ -567,7 +567,7 @@ class Points:
         This method returns the points in the Points object as a list of
             tuples of floats.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the points are to be
                 converted to a list of tuples of floats.
 
@@ -586,7 +586,7 @@ class Points:
         This method returns the minimum X coordinate of the points in the
             Points object.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the minimum X
                 coordinate is to be calculated.
 
@@ -602,7 +602,7 @@ class Points:
         This method returns the minimum Y coordinate of the points in the
             Points object.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the minimum Y
                 coordinate is to be calculated.
 
@@ -618,7 +618,7 @@ class Points:
         This method returns the maximum X coordinate of the points in the
             Points object.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the maximum X
                 coordinate is to be calculated.
 
@@ -634,7 +634,7 @@ class Points:
         This method returns the maximum Y coordinate of the points in the
             Points object.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the maximum Y
                 coordinate is to be calculated.
 
@@ -649,7 +649,7 @@ class Points:
 
         This method returns the number of points in the Points object.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the number of points
                 is to be calculated.
 
@@ -665,7 +665,7 @@ class Points:
         This method calculates the hash value of a Points object by
             converting its dictionary attributes into a hashable format.
 
-        Arguments:
+        Args:
             self (Points): The Points object for which the hash value is
                 being calculated.
 
@@ -681,7 +681,7 @@ class Points:
         This method checks if two instances of the class Points are equal by
             comparing their hash values.
 
-        Arguments:
+        Args:
             self (Points): The instance of the class Points calling the
                 method.
             other (object): Another object to compare with the instance of

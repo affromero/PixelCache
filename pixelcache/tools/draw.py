@@ -24,7 +24,7 @@ def draw_bbox(
 ) -> Image.Image | UInt8[np.ndarray, "h w 3"] | Float[torch.Tensor, "1 c h w"]:
     """Draw bounding boxes on an image with specified color, width, and text.
 
-    Arguments:
+    Args:
         image (Union[PIL.Image, np.array, torch.Tensor]): The image to draw
             bounding boxes on.
             This can be a PIL Image, numpy array, or torch tensor.

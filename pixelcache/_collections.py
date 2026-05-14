@@ -34,7 +34,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
             respectively, to initialize an instance of the HashableDict
             class.
 
-        Arguments:
+        Args:
             self (HashableDict): The instance of the HashableDict class.
             data (dict): A dictionary containing key-value pairs where the
                 values can be dictionaries or lists.
@@ -94,7 +94,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
         This method checks if the data in the calling HashableDict instance
             is equal to the data in another HashableDict instance.
 
-        Arguments:
+        Args:
             self ('HashableDict'): The instance of HashableDict calling the
                 method.
             other ('HashableDict'): The other instance of HashableDict to
@@ -117,12 +117,13 @@ class HashableDict(MutableMapping[_KT, _VT]):
         This method recursively converts any nested HashableDict or
             HashableList objects into standard Python dictionaries or lists,
             respectively.
-        Arguments: None
+
         Returns:
             dict: A dictionary containing the key-value pairs of the
                 HashableDict object. Any nested HashableDict or HashableList
                 objects are converted into dictionaries or lists,
                 respectively.
+
         """
         to_dict: dict[_KT, _VT] = {}
         for k, v in self.__data.items():
@@ -141,7 +142,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
             object,
         preserving all key-value pairs in the new instance.
 
-        Arguments:
+        Args:
             self (HashableDict): The HashableDict object to be duplicated.
 
         Returns:
@@ -195,7 +196,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
             representation of the HashableDict object. It can be used for
             debugging and logging purposes.
 
-        Arguments:
+        Args:
             self (HashableDict): The instance of HashableDict object to be
                 represented.
 
@@ -210,7 +211,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
 
             object.
 
-        Arguments:
+        Args:
             __name (_KT): The key for which the associated value needs to be
                 retrieved.
 
@@ -240,7 +241,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
         This method makes instances of the HashableDict class iterable by
             returning an iterator over the keys of the dictionary.
 
-        Arguments:
+        Args:
             self (HashableDict): The instance of the HashableDict class.
 
         Returns:
@@ -256,7 +257,7 @@ class HashableDict(MutableMapping[_KT, _VT]):
         This method computes the length of the HashableDict object by
             returning the length of the data stored within it.
 
-        Arguments:
+        Args:
             None
         Returns:
             int: An integer representing the length of the data stored
@@ -277,7 +278,7 @@ class HashableList(MutableSequence[_T]):
         (HashableDict or HashableList) and stores the modified list in the
             instance.
 
-        Arguments:
+        Args:
             self (HashableList): The instance of the HashableList class.
             data (List[_T]): A list of elements of any type (_T). If the
                 elements are dictionaries or lists,
@@ -331,7 +332,7 @@ class HashableList(MutableSequence[_T]):
             calling the method (self)
         with the hash value of another HashableList object (other).
 
-        Arguments:
+        Args:
             self ('HashableList'): The HashableList object calling the
                 method.
             other ('HashableList'): The HashableList object to compare with.
@@ -352,11 +353,12 @@ class HashableList(MutableSequence[_T]):
 
         This method recursively converts any nested HashableDict or
             HashableList objects into their respective list representations.
-        Arguments: None
+
         Returns:
             List: A list containing the elements of the HashableList object,
                 with any nested HashableDict or HashableList objects
                 converted into regular Python lists.
+
         """
         to_list = []
         for idx in range(len(self.__data)):
@@ -388,7 +390,7 @@ class HashableList(MutableSequence[_T]):
             The string contains the class name 'HashableList' followed by
             the data stored in the object.
 
-        Arguments:
+        Args:
             self (HashableList): The HashableList object itself.
 
         Returns:
@@ -405,7 +407,7 @@ class HashableList(MutableSequence[_T]):
         This method generates a new HashableList object by duplicating the
             data stored within the original list.
 
-        Arguments:
+        Args:
             self (HashableList): The HashableList object to be copied.
 
         Returns:
@@ -422,7 +424,7 @@ class HashableList(MutableSequence[_T]):
             allowing
         them to be used in a for loop or any other iteration context.
 
-        Arguments:
+        Args:
             self (HashableList): The instance of the HashableList class.
 
         Returns:
@@ -451,7 +453,7 @@ class HashableList(MutableSequence[_T]):
         This method allows for retrieving an element or a slice of elements
             from the HashableList object.
 
-        Arguments:
+        Args:
             __index (int | slice): The index or slice to be retrieved from
                 the HashableList object.
 
@@ -500,7 +502,7 @@ class HashableList(MutableSequence[_T]):
         This method determines the length of the HashableList object by
             returning the length of the data stored within the object.
 
-        Arguments:
+        Args:
             self (HashableList): The HashableList object for which the
                 length needs to be determined.
 
@@ -534,7 +536,7 @@ class HashableList(MutableSequence[_T]):
             multiplies it by the given integer value,
         and returns a new HashableList with the resulting values.
 
-        Arguments:
+        Args:
             self (HashableList): The current HashableList instance.
             other (int): The integer value to multiply the elements by.
 

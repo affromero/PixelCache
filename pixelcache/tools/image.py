@@ -119,7 +119,7 @@ def save_image(
 ) -> None:
     """Save an image to a specified path, supporting various input types.
 
-    Arguments:
+    Args:
         img (Union[torch.Tensor, np.ndarray, PIL.Image, List[bool]]): Input
             image data.
         path (str): The path where the image will be saved.
@@ -178,7 +178,7 @@ def numpy2tensor(
         single tensor.
     Otherwise, it returns a list of tensors.
 
-    Arguments:
+    Args:
         imgs (ndarray): A Numpy array of input images. Each image should be
             in the form of a multi-dimensional array.
 
@@ -207,7 +207,7 @@ def pil2tensor(
         returned directly.
     Otherwise, a list of tensors is returned.
 
-    Arguments:
+    Args:
         img ('PIL Image'): The PIL Image to be converted to a tensor.
 
     Returns:
@@ -237,7 +237,7 @@ def tensor2numpy(
     normalizes them to the range [0, 1], and then converts them to numpy
         arrays. The channel order is preserved as RGB.
 
-    Arguments:
+    Args:
         tensor (Union[Tensor, List[Tensor]]): The input Tensor or list of
             Tensors. The function accepts three possible shapes:
             1) 4D mini-batch Tensor of shape (B x 3/1 x H x W);
@@ -303,7 +303,7 @@ def tensor2pil(
     The tensor values are first clamped to the range [min, max] and then
         normalized to the range [0, 1].
 
-    Arguments:
+    Args:
         tensor (Union[Tensor, List[Tensor]]): The input tensor(s) to be
             converted. Accepts the following shapes:
             1) 4D mini-batch Tensor of shape (B x 3/1 x H x W);
@@ -376,7 +376,7 @@ class ImageSize:
         within a certain range, and are either integers or floats. Raises a
             ValueError if these conditions are not met.
 
-        Arguments:
+        Args:
             self (ImageSize): The instance of the ImageSize class.
 
         Returns:
@@ -414,7 +414,7 @@ class ImageSize:
 
             size.
 
-        Arguments:
+        Args:
             image_size (Tuple[int, int]): A tuple containing the height and
                 width of the image.
 
@@ -432,7 +432,7 @@ class ImageSize:
             between the height
         and width attributes of an image.
 
-        Arguments:
+        Args:
             self (ImageSize instance): The instance of the 'ImageSize' class
                 for which the
                                        maximum value needs to be calculated.
@@ -452,7 +452,7 @@ class ImageSize:
         This method calculates the product of the height and width of an
             image, effectively determining its area.
 
-        Arguments:
+        Args:
             self (ImageSize): The instance of the ImageSize class.
 
         Returns:
@@ -473,7 +473,7 @@ class ImageSize:
             attributes of the
         ImageSize object calling the method and another ImageSize object.
 
-        Arguments:
+        Args:
             self ('ImageSize'): The ImageSize object invoking the method.
             other ('ImageSize'): Another ImageSize object to compare with.
 
@@ -499,7 +499,7 @@ class ImageSize:
         of the ImageSize object by the given value and returns a new
             ImageSize object with the updated dimensions.
 
-        Arguments:
+        Args:
             self (ImageSize): The ImageSize object whose dimensions are to
                 be multiplied.
             other (int | float): The numeric value by which the height and
@@ -519,7 +519,7 @@ class ImageSize:
 
             object.
 
-        Arguments:
+        Args:
             self (ImageSize): The current ImageSize object.
             other (ImageSize): The object to compare with.
 
@@ -535,7 +535,7 @@ class ImageSize:
 
             values.
 
-        Arguments:
+        Args:
             self ('ImageSize'): The ImageSize object calling the method.
             other ('ImageSize'): The other ImageSize object to compare with.
 
@@ -562,7 +562,7 @@ class ImageSize:
             than or equal to those of the other object. Otherwise, it
             returns False.
 
-        Arguments:
+        Args:
             self ('ImageSize'): The current ImageSize object.
             other ('ImageSize'): Another ImageSize object to compare with
                 the current object.
@@ -589,7 +589,7 @@ class ImageSize:
         It returns True if the calling object has greater dimensions than
             the other object in both height and width.
 
-        Arguments:
+        Args:
             self ('ImageSize'): The calling ImageSize object.
             other ('ImageSize'): Another ImageSize object to compare with
                 the calling object.
@@ -615,7 +615,7 @@ class ImageSize:
             are greater than or equal to the height and width of the other
             object, otherwise returns False.
 
-        Arguments:
+        Args:
             self ('ImageSize'): The calling ImageSize object.
             other ('ImageSize'): Another ImageSize object to compare with
                 the calling object.
@@ -639,7 +639,7 @@ class ImageSize:
         This method generates a unique hash value for an ImageSize object
             based on its 'height' and 'width' attributes.
 
-        Arguments:
+        Args:
             self (ImageSize): The ImageSize object for which the hash value
                 is being calculated.
 
@@ -656,10 +656,11 @@ class ImageSize:
         This method generates a string that represents the ImageSize object,
             including its height and width attributes. The string is in the
             format 'ImageSize(height=height_value, width=width_value)'.
-        Arguments: None
+
         Returns:
             str: A string representation of the ImageSize object in the
                 format 'ImageSize(height=height_value, width=width_value)'.
+
         """
         return f"ImageSize(height={self.height}, width={self.width})"
 
@@ -682,7 +683,7 @@ class ImageSize:
             different types of image inputs such as file paths, PIL Image
             objects, NumPy arrays, and PyTorch tensors.
 
-        Arguments:
+        Args:
             image (Union[str, Image.Image, np.ndarray, torch.Tensor]): The
                 input image to create an ImageSize instance from. It can be
                 a file path (str), a PIL Image object, a NumPy array with
@@ -726,7 +727,7 @@ def crop_border(
     The cropping is applied to each end of the height and width of the
         image.
 
-    Arguments:
+    Args:
         imgs (Union[List[np.ndarray], np.ndarray]): Input images to be
             cropped. The images should be in the form of numpy arrays with
             shape (height, width, channels).
@@ -756,7 +757,7 @@ def center_pad(
 ) -> UInt8[np.ndarray, "h1 w1 c"]:
     """Pads an image to the center with a specified size and fill value.
 
-    Arguments:
+    Args:
         image (Union[np.ndarray, PIL.Image.Image]): The input image, which
             can be either a NumPy array or a PIL Image.
         size (ImageSize): An object that contains the desired height and
@@ -798,7 +799,7 @@ def to_binary(
     This function takes an image in RGB format, an array of UInt8 values, or
         a torch tensor and converts it to binary format.
 
-    Arguments:
+    Args:
         rgb (Union[Image.Image, np.array, torch.Tensor]): An image in RGB
             format, an array of UInt8 values with shape 'h w 3' or 'h w', or
             a torch tensor with shape '1 c h w'.
@@ -858,7 +859,7 @@ def to_rgb(
 ):
     """Convert the input image to RGB format.
 
-    Arguments:
+    Args:
         rgb (Union[np.array, PIL.Image, torch.Tensor]): The input image in
             various formats such as numpy array, PIL Image, or torch tensor.
 
@@ -893,7 +894,7 @@ def threshold_image(
         specified value. The thresholding modes
     can be '<', '<=', '>', or '>='.
 
-    Arguments:
+    Args:
         image (Union[np.array, PIL.Image.Image]): Input image in the form of
             a NumPy array or PIL Image.
         mode (str): Thresholding mode. It can be '<', '<=', '>', or '>='.
@@ -954,7 +955,7 @@ def resize_image(
         dimension and it
     can utilize different modes of interpolation.
 
-    Arguments:
+    Args:
         input_image (ImageType): The input image to be resized.
         resolution (Union[int, None, ImageSize]): The target resolution to
             resize the image to.
@@ -1010,7 +1011,7 @@ def rgb2gray(rgb: UInt8[np.ndarray, "h w 3"]) -> UInt8[np.ndarray, "h w"]:
         luminance method forms a weighted sum of the R, G, and B components
         of each pixel to produce a grayscale intensity.
 
-    Arguments:
+    Args:
         rgb (np.array): A 3D NumPy array representing an RGB image. The
             dimensions represent height, width, and the three color channels
             (Red, Green, Blue).
@@ -1037,7 +1038,7 @@ def get_canny_edge(
     It can optionally convert the image to grayscale before applying the
         edge detection.
 
-    Arguments:
+    Args:
         image (np.ndarray): The input image on which the Canny edge
             detection algorithm will be applied.
         threshold (tuple[int, int]): A tuple specifying the lower and upper
@@ -1071,7 +1072,7 @@ def cv2_inpaint(
     the inpainting algorithm of OpenCV to reconstruct the masked parts of
         the image.
 
-    Arguments:
+    Args:
         image (np.ndarray): The input image, represented as a 2D or 3D numpy
             array.
         mask (np.ndarray): The mask of the image, represented as a 2D numpy
@@ -1123,7 +1124,7 @@ def add_sensor_noise_and_jpeg_compression(
         0 (lowest quality, highest compression) to 100 (highest quality,
         lowest compression).
 
-    Arguments:
+    Args:
         images (List[str]): List of file paths to input images. Each path
             should be a string representing the absolute or relative path to
             an image file.
@@ -1182,7 +1183,7 @@ def add_sensor_noise_and_jpeg_compression(
 def tile(image: Image.Image, mode: str = "1x1") -> dict[str, Image.Image]:
     """Tile an input image into smaller images based on a specified mode.
 
-    Arguments:
+    Args:
         image (Image.Image): The input image to be tiled.
         mode (str): The tiling mode specifying the number of tiles in the
             format 'NxM' where N is the number of rows and M is the number

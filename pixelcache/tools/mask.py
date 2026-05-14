@@ -31,7 +31,7 @@ def group_regions_from_binary(
 ) -> list[Bool[np.ndarray, "h w"]]:
     """Group regions in a binary or PIL image based on specific parameters.
 
-    Arguments:
+    Args:
         bbox_img (Union[np.ndarray, PIL.Image.Image]): A NumPy array or PIL
             image representing the binary image.
         closing (Tuple[int, int]): A tuple of two integers specifying the
@@ -85,7 +85,7 @@ def remove_disconnected_regions(
 
         area threshold.
 
-    Arguments:
+    Args:
         masks (Union[np.array, List[np.array]]): A boolean numpy array or a
             list of boolean numpy arrays representing masks.
         area_thresh (Union[float, List[float]]): A float or a list of floats
@@ -154,7 +154,7 @@ def morphologyEx(  # noqa: N802
         on a binary image mask using a given structuring element (kernel).
         The type of structuring element can be optionally specified.
 
-    Arguments:
+    Args:
         mask (Union[PIL.Image.Image, np.ndarray]): A binary image mask,
             either as a PIL Image or a NumPy array.
         mode (int): An integer specifying the morphological operation mode.
@@ -188,7 +188,7 @@ def mask2points(
     This function takes a numpy image mask and converts it into a list of
         points. The number of points to be generated can be specified.
 
-    Arguments:
+    Args:
         binary_mask (bool[np.ndarray, "h w"]): A image mask to convert into
             points.
         npoints (int): The number of points to generate. Defaults to 100.
@@ -241,7 +241,7 @@ def mask2bbox(
         boxes. It also allows for various image processing operations such
         as opening, closing, and merging masks.
 
-    Arguments:
+    Args:
         binary_mask: A binary image mask to convert into bounding boxes.
         margin (float): A value to adjust the bounding box size.
         normalized (bool): Whether to return normalized bounding box
@@ -377,7 +377,7 @@ def bbox2mask(
         If the bounding box coordinates are normalized, it converts them to
         pixel values.
 
-    Arguments:
+    Args:
         bbox (List[Tuple[Union[float, int]]]): A list of tuples containing
             the bounding box coordinates (x1, y1, x2, y2) either as floats
             or integers.
@@ -425,7 +425,7 @@ def mask2squaremask(
         image by adding a margin around the bounding box of the original
         mask.
 
-    Arguments:
+    Args:
         mask (np.ndarray): The original mask image.
         margin (float): The margin to be added around the bounding box of
             the mask.
@@ -463,7 +463,7 @@ def resize_squaremask(
     It first resizes the image using the 'nearest-exact' mode and then
         converts it into a square mask with a specified background value.
 
-    Arguments:
+    Args:
         mask (np.ndarray): The input image mask to be resized.
         size (ImageSize): The desired size of the square mask.
         **kwargs (Any): Additional keyword arguments for the mask2squaremask
@@ -497,7 +497,7 @@ def reduce_masks(
         like opening, closing, area thresholding,
     and merging of objects.
 
-    Arguments:
+    Args:
         mask (Union[Image.Image, np.ndarray]): Input mask as an Image.Image
             object or a boolean numpy array.
         number_of_objects (int, optional): Number of objects to keep in the
@@ -574,7 +574,7 @@ def keep_n_largest_components(
     returns a new binary mask image containing only the n largest connected
     components from the input mask.
 
-    Arguments:
+    Args:
         binary_mask (np.array): A boolean NumPy array representing the
             binary mask image.
         n (int): An integer specifying the number of largest connected
@@ -619,7 +619,7 @@ def remove_small_regions(
     specified area threshold. The mode determines whether to remove small background
     regions (holes) or small foreground regions (islands).
 
-    Arguments:
+    Args:
         mask (np.array): A binary mask with 1s indicating the foreground and 0s
             indicating the background.
         area_thresh (float): The minimum area (in percentage of the image area) for regions to be retained.
@@ -681,7 +681,7 @@ def crop_from_mask(
         margin value, and returns a cropped version
     of the image based on the bounding box defined by the mask.
 
-    Arguments:
+    Args:
         image (np.ndarray): The original image to be cropped.
         mask (np.ndarray): The mask used to define the bounding box for
             cropping.
@@ -734,7 +734,7 @@ def mask_blend(
 ) -> UInt8[np.ndarray, "h w 3"]:
     """Blend an image with a mask based on a given alpha value.
 
-    Arguments:
+    Args:
         image (np.ndarray): The input image to be blended with the mask.
         mask (np.ndarray): The mask to be applied to the image.
         alpha (float): The blending factor, determining the degree of
@@ -825,7 +825,7 @@ def polygon_to_mask(
     This function takes a list of polygon vertices and an image shape, and
         returns a binary mask with the polygon area filled.
 
-    Arguments:
+    Args:
         polygon (List[List[Tuple[int, int]]]): List of list of (x, y) coordinates
             representing the vertices of the polygon. The coordinates are
             expected to be integers.
@@ -863,7 +863,7 @@ def refine_masks(
     and then converts these polygons back to a binary mask. This process can help
     to smooth the mask and remove small holes or inconsistencies.
 
-    Arguments:
+    Args:
         mask (np.ndarray): A binary mask to be refined. This should be a 2D
             numpy array where 1s represent the mask and 0s represent the
             background.
@@ -898,7 +898,7 @@ def differential_mask(
         to it based on the specified parameters such as dilation, force
         steps, invert, and scale nonmask.
 
-    Arguments:
+    Args:
         mask (bool numpy): The input image mask to which the differential
             mask will be applied.
         dilation (int): The dilation factor for the mask.
@@ -967,7 +967,7 @@ def align_masks(
 
         with the base mask.
 
-    Arguments:
+    Args:
         base (torch.Tensor): A Boolean tensor representing the base mask.
                              It has a shape of 'n h w', where 'n' is the
             number of base masks,
@@ -1032,7 +1032,7 @@ def mask_iou(
         mask arrays. The masks represent objects in an image. Optionally, it
         can return only the intersection value instead of the IoU.
 
-    Arguments:
+    Args:
         mask1 (np.ndarray): Binary array representing the first object mask
             in the image.
         mask2 (np.ndarray): Binary array representing the second object mask
@@ -1081,7 +1081,7 @@ def mask_intersection(
 ) -> float | None:
     """Calculate the Intersection over Union (IoU) of two boolean masks.
 
-    Arguments:
+    Args:
         mask1 (np.array): A boolean numpy array representing the first mask.
         mask2 (np.array): A boolean numpy array representing the second
             mask.
@@ -1119,7 +1119,7 @@ def contour_from_mask(
     This function takes in an image mask or a boolean NumPy array and
         returns a list of contours found in the mask.
 
-    Arguments:
+    Args:
         mask (Union[Image.Image, np.array]): Either an Image.Image object or
             a boolean NumPy array representing the mask.
 

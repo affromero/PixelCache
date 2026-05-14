@@ -55,7 +55,7 @@ def get_font_path(font: str = "JetBrainsMono-Regular", /) -> str:
         of the corresponding font file. If the font file does not exist, a
         TypeError is raised.
 
-    Arguments:
+    Args:
         font (str): The name of the font for which the file path is to be
             retrieved.
 
@@ -83,7 +83,7 @@ def create_text(
 
         parameters.
 
-    Arguments:
+    Args:
         img_path (str | np.array): Path to the image file or a numpy array
             representing the image.
         texts (List[str]): List of strings containing the texts to be
@@ -299,7 +299,7 @@ def remove_white_text(image: np.ndarray) -> np.ndarray:
     removes any white text present at the top and bottom of the image, and
         returns the modified image.
 
-    Arguments:
+    Args:
         image (np.ndarray): A NumPy array representing an image. The
             function checks if this is a string or a PIL Image.
 
@@ -330,7 +330,7 @@ def draw_text(
 
         font and color.
 
-    Arguments:
+    Args:
         image (Union[np.ndarray, PIL.Image.Image]): The input image, which
             can either be a NumPy array or a PIL Image object.
         text (str): The text to be drawn on the image.
