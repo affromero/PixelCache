@@ -20,6 +20,7 @@ from typing import (
 import cv2
 import numpy as np
 import torch
+import xxhash
 from beartype import beartype
 from difflogtest import get_logger
 from difflogtest.utils.path import path_exists
@@ -155,6 +156,9 @@ class HashableImage:
         self._image_str: str | None = (
             str(image) if isinstance(image, str | Path) else None
         )
+        # Lazy content-fingerprint cache for __hash__. Safe because _image
+        # is set only in __init__ and never mutated.
+        self._cached_hash: int | None = None
 
     def _create_tmp_file(self) -> str:
         """Create a temporary file."""
@@ -2164,41 +2168,34 @@ class HashableImage:
             ),
         )
 
-    @jaxtyped(typechecker=beartype)
     def __hash__(self) -> int:
-        """Calculate the hash value of a HashableImage object.
+        """Return a cached content-and-shape hash for this image.
 
-        This method generates the hash value of a HashableImage object based
-            on its image data.
+        The first call materializes the image bytes and hashes them with
+        `xxhash.xxh3_64`; subsequent calls return the cached int. The
+        cache is safe because instances are immutable (see `__init__`).
 
-        Arguments:
-            self (HashableImage): The HashableImage object for which the
-                hash value is being calculated.
+        Buffer extraction by mode:
+        - `torch`: `.contiguous().cpu().numpy().tobytes()`.
+        - `numpy`: `np.ascontiguousarray(...).tobytes()`.
+        - `pil`: `np.asarray(...).tobytes()` (PIL is not
+          buffer-protocol-compatible; one copy is unavoidable).
 
-        Returns:
-            int: The hash value of the HashableImage object.
-
-        Example:
-            >>> hashable_image = HashableImage(image_data)
-            >>> hashable_image.calculate_hash()
-
-        Note:
-            The hash value is calculated based on the image data of the
-                HashableImage object.
-
+        Final hash combines `(mode, dtype, shape, content)` so two
+        images with different shapes never collide on content alone.
         """
-        if self._mode == "torch":
-            _bytest = hash(self._image.numpy().tobytes())
+        if self._cached_hash is not None:
+            return self._cached_hash
+        mode = self._mode
+        if mode == "torch":
+            buf = self._image.contiguous().cpu().numpy().tobytes()
+        elif mode == "numpy":
+            buf = np.ascontiguousarray(self._image).tobytes()
         else:
-            _bytest = hash(self._image.tobytes())
-        frozen_set = frozenset(
-            {
-                self._mode,
-                self.dtype(),
-                _bytest,
-            }
-        )
-        return hash(frozen_set)
+            buf = np.asarray(self._image).tobytes()
+        content = xxhash.xxh3_64_intdigest(buf)
+        self._cached_hash = hash((mode, self.dtype(), self.shape, content))
+        return self._cached_hash
 
     @jaxtyped(typechecker=beartype)
     def __eq__(self, other: object) -> bool:
