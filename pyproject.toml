@@ -69,6 +69,11 @@ ignore = ["ANN401", "C901", "COM812", "D100", "D101", "D104", "D203", "D205", "D
 # Also put select and ignore in .pre-commit-config.yaml - here for linting vscode, yaml for pre-commit github (see explanation in .pre-commit-config.yaml)
 select = ["ALL"]
 
+[tool.ruff.lint.per-file-ignores]
+# Tests use `assert` (S101), short undocumented helpers (D103), and
+# stdlib pathlib / os.path freely (PTH*).
+"tests/**" = ["D103", "PTH100", "PTH103", "PTH107", "PTH108", "PTH110", "PTH113", "PTH118", "PTH119", "PTH120", "PTH123", "S101"]
+
 [tool.tomlsort]
 all = true
 
