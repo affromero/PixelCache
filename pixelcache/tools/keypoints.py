@@ -33,13 +33,6 @@ def kpts2bbox(
             keypoints. The coordinates can be either integers or floats
             based on the normalization.
 
-    Example:
-        >>> get_bounding_boxes(kpts, normalized, image_size=image_size)
-
-    Note:
-        The keypoints tensor is expected to be in one of the specified
-            formats.
-
     """
     # kpts: b x n x 3 (x, y, v) in image coordinate
     # bbox: b x 4 (x1, y1, x2, y2)

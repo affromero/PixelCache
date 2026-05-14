@@ -47,14 +47,6 @@ def group_regions_from_binary(
         List[Union[np.ndarray, PIL.Image.Image]]: A list of NumPy arrays or
             PIL images representing the grouped regions in the input image.
 
-    Example:
-        >>> group_regions(bbox_img, (3, 3), 0.5, 100)
-
-    Note:
-        The function performs a morphological closing operation on the
-            binary image before grouping regions. This operation helps to
-            close small holes in the regions.
-
     """
     bbox_img = morphologyEx(bbox_img, cv2.MORPH_CLOSE, np.ones(closing))
     image_size = ImageSize.from_image(bbox_img)
@@ -105,15 +97,6 @@ def remove_disconnected_regions(
             boolean numpy arrays with disconnected regions removed. If the
             area of a disconnected region in the mask is less than the area
             threshold, that region is removed from the mask.
-
-    Example:
-        >>> remove_disconnected_regions(mask, 50)
-        or
-        >>> remove_disconnected_regions([mask1, mask2], [50, 100])
-
-    Note:
-        If a list of masks and a single area threshold are provided, the
-            same area threshold is applied to all masks.
 
     """
     if isinstance(masks, Bool[np.ndarray, "h w"]):
@@ -184,13 +167,6 @@ def morphologyEx(  # noqa: N802
         Union[PIL.Image.Image, np.ndarray]: The morphologically transformed
             mask, either as a PIL Image or a NumPy array.
 
-    Example:
-        >>> morphological_operation(mask, 1, kernel, struct="disk")
-
-    Note:
-        The mode argument corresponds to different morphological operations
-            such as erosion, dilation, etc.
-
     """
     mask255 = (mask * 255).astype(np.uint8)
     if struct == "ellipse":
@@ -223,13 +199,6 @@ def mask2points(
     Returns:
         List[Tuple[int, int]]: A list of tuples containing integer or float
             values representing the points.
-
-    Example:
-        >>> mask2points(hash_mask, 100, normalize=True, verbose=True)
-
-    Note:
-        This function is particularly useful for image processing tasks where
-            points are required.
 
     """
     coords_yx = np.argwhere(binary_mask)
@@ -290,14 +259,6 @@ def mask2bbox(
     Returns:
         list: A list of tuples containing integer or float values
             representing the bounding boxes. x1, y1, x2, y2.
-
-    Example:
-        >>> convert_mask_to_bboxes(hash_mask, 0.5, True, False, True, (1,1),
-            (2,2), 0.1)
-
-    Note:
-        This function is particularly useful for image processing tasks
-            where bounding boxes are required.
 
     """
     if area_threshold > 0:
@@ -427,14 +388,6 @@ def bbox2mask(
         torch.Tensor: A binary mask represented as a torch tensor with True
             values inside the bounding boxes and False values outside.
 
-    Example:
-        >>> bbox2mask([(0.1, 0.2, 0.3, 0.4)], (512, 512))
-
-    Note:
-        The bounding box coordinates can be either normalized or in pixel
-            values. If normalized, the function will convert them to pixel
-            values based on the provided image size.
-
     """
     height, width = image_size.height, image_size.width
     zeros = np.zeros((height, width), dtype=bool)
@@ -482,13 +435,6 @@ def mask2squaremask(
         np.ndarray: A square mask image with the specified margin added
             around the bounding box of the original mask.
 
-    Example:
-        >>> square_mask(original_mask, 0.5)
-
-    Note:
-        The margin is added around the bounding box of the original mask to
-            create the square mask.
-
     """
     bbox = mask2bbox(
         mask,
@@ -525,13 +471,6 @@ def resize_squaremask(
 
     Returns:
         np.ndarray: The resized square mask.
-
-    Example:
-        >>> resize_square_mask(mask, size, background_value=0)
-
-    Note:
-        The 'nearest-exact' mode is used for resizing to maintain the
-            original mask values as much as possible.
 
     """
     mask_pt = numpy2tensor(mask)
@@ -577,14 +516,6 @@ def reduce_masks(
     Returns:
         List[np.ndarray]: A list of boolean numpy arrays representing the
             reduced masks after applying the specified operations.
-
-    Example:
-        >>> simplify_mask(mask, number_of_objects=2, closing=(5,5),
-            opening=(3,3), area_threshold=500, merge=True, verbose=True)
-
-    Note:
-        The function does not modify the original mask but returns a new
-            one.
 
     """
     # count the number of separated bynary objects
@@ -654,12 +585,6 @@ def keep_n_largest_components(
             containing
         only the n largest connected components.
 
-    Example:
-        >>> select_largest_components(binary_mask, 3)
-
-    Note:
-        The binary mask should only contain boolean values (True or False).
-
     """
     # Find connected components
     _, labels, stats, _ = cv2.connectedComponentsWithStats(
@@ -709,16 +634,6 @@ def remove_small_regions(
         Tuple[np.array, bool]: A tuple containing:
             - The modified mask with small regions removed.
             - A boolean indicating whether the mask was modified (True if changes were made).
-
-    Example:
-        >>> # Remove small holes (background regions)
-        >>> cleaned_mask, modified = remove_small_regions(mask, 0.01, mode="holes")
-        >>> # Remove small islands (foreground regions)
-        >>> cleaned_mask, modified = remove_small_regions(mask, 0.01, mode="islands")
-
-    Note:
-        - If all regions are smaller than the threshold, the largest region is retained.
-        - The function preserves the overall structure of the mask while removing noise.
 
     """
     image_area = mask.shape[0] * mask.shape[1]
@@ -790,13 +705,6 @@ def crop_from_mask(
         np.ndarray: The cropped version of the original image based on
             the bounding box defined by the mask.
 
-    Example:
-        >>> crop_image(image, mask, margin=0.1)
-
-    Note:
-        The margin is expressed as a fraction of the image's size. For
-            example, a margin of 0.1 adds a 10% border around the mask.
-
     """
     return crop_from_bbox(
         image,
@@ -839,14 +747,6 @@ def mask_blend(
     Returns:
         np.ndarray: The blended image resulting from the application of
             the mask on the input image.
-
-    Example:
-        >>> mask_blend(image, mask, 0.5, with_bbox=True, merge_bbox=True)
-
-    Note:
-        The alpha value ranges from 0.0 (full visibility of the image, mask
-            fully transparent) to 1.0 (full visibility of the mask, image
-            fully transparent).
 
     """
     is_mask_binary = mask.ndim == 2
@@ -971,13 +871,6 @@ def refine_masks(
     Returns:
         np.ndarray: The refined mask, in the same format as the input mask.
 
-    Example:
-        >>> refined_mask = refine_masks(original_mask)
-
-    Note:
-        This function can be slow for large masks, as the conversion to
-        polygons and back to masks is computationally intensive.
-
     """
     refined_mask = torch.zeros_like(masks_pt)
     for idx, mask in enumerate(masks_pt):
@@ -1017,14 +910,6 @@ def differential_mask(
 
     Returns:
         bool numpy: The output image with the applied differential mask.
-
-    Example:
-        >>> apply_differential_mask(mask, 2, force_steps=3, invert=True,
-            scale_nonmask=1.5)
-
-    Note:
-        The function modifies the original mask, so if preservation of the
-            original mask is needed, a copy should be passed.
 
     """
     mask_np = (mask * 255).astype(np.uint8)
@@ -1106,15 +991,6 @@ def align_masks(
                                       for each anchor mask. It has a shape
             of 'o m'.
 
-    Example:
-        >>> base = torch.rand((10, 32, 32))
-        >>> anchors = torch.rand((5, 20, 32, 32))
-        >>> aligned_indexes, indexes = align_masks(base, anchors)
-
-    Note:
-        The alignment is done based on the intersection over union (IOU)
-            between the base and anchor masks.
-
     """
     # all masks correspond to the same image.
     aligned_indexes = anchors.clone()
@@ -1170,13 +1046,6 @@ def mask_iou(
             False. If 'just_intersection' is True, returns the intersection
             value.
 
-    Example:
-        >>> mask_iou(mask1, mask2, just_intersection=False)
-
-    Note:
-        The masks should be binary arrays of the same shape, where '1'
-            represents the object and '0' represents the background.
-
     """
     # Calculate IoU between two masks
     if mask1.shape != mask2.shape:
@@ -1224,14 +1093,6 @@ def mask_intersection(
             empty. If the target mask is provided, it calculates the IoU
             based on the target mask.
 
-    Example:
-        >>> calculate_iou(mask1, mask2, target=target)
-
-    Note:
-        The Intersection over Union (IoU) is a measure of the overlap
-            between two sets. In this context, it is used to evaluate the
-            overlap between two masks.
-
     """
     # Calculate intersection between two masks
     if mask1.shape != mask2.shape:
@@ -1265,13 +1126,6 @@ def contour_from_mask(
     Returns:
         List[np.array]: A list of NumPy arrays containing the contours found
             in the mask.
-
-    Example:
-        >>> find_contours(mask)
-
-    Note:
-        The input mask can be either a PIL Image object or a boolean NumPy
-            array.
 
     """
     if isinstance(mask, Image.Image):

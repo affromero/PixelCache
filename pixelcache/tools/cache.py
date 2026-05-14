@@ -35,15 +35,6 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
             lru_cache, providing
         caching of its results.
 
-    Example:
-        >>> @unit_test_lru_cache_decorator
-        >>> def example_function(arg1, arg2):
-        >>>     return arg1 + arg2
-    Note:
-        This decorator is useful for preventing caching during unit tests,
-            where
-        repeated function calls with the same arguments are often needed.
-
     """
 
     def decorator(func: Callable[[_T], _T]) -> Callable[[_T], _T]:
@@ -62,15 +53,6 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
             Callable[..., Any]: The decorated function with an applied LRU
                 cache if not in unittest mode, or the original function if
                 in unittest mode.
-
-        Example:
-            >>> @apply_cache
-            >>> def test_func(x, y):
-            >>>     return x + y
-        Note:
-            This decorator is useful for optimizing functions that are
-                called repeatedly with the same arguments, but should not be
-                used in unittest mode to avoid cached results.
 
         """
         # Use cache when not in unit test mode
@@ -101,15 +83,6 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
             Returns:
                 Any: Returns the result of calling the wrapped function
                     with the provided arguments and keyword arguments.
-
-            Example:
-                >>> wrapped_function =
-                    wrapper_function(original_function, arg1, arg2,
-                    keyword_arg1=value1)
-
-            Note:
-                The wrapped function and its arguments are not specified
-                    until the wrapper function is called.
 
             """
             return func(*args, **kwargs)
@@ -159,13 +132,6 @@ def get_cache_dir() -> Path:
     Returns:
         str: The path of the located cache directory.
 
-    Example:
-        >>> locate_cache_dir("Windows", "flit", flit=True)
-
-    Note:
-        The function does not create the cache directory, it only locates
-            the appropriate directory for the given platform and app.
-
     """
     # Linux, Unix, AIX, etc.
     if os.name == "posix" and sys.platform != "darwin":
@@ -204,13 +170,6 @@ def sha256sum(filename: str) -> str:
         str: A string containing the first 8 characters of the SHA-256 hash
             of the file.
 
-    Example:
-        >>> calculate_file_hash("example.txt")
-
-    Note:
-        The file must exist in the current working directory or a full path
-            must be provided.
-
     """
     from sha256sum import sha256sum as _sha256sum
 
@@ -229,13 +188,6 @@ def pseudo_hash(idx: int, length: int = 6) -> str:
     Returns:
         str: A string representing the pseudo-random hash generated based on
             the given index and length.
-
-    Example:
-        >>> generate_hash(10, 6)
-
-    Note:
-        The hash generated is pseudo-random, meaning it will generate the
-            same result if the same index and length are provided.
 
     """
     random.seed(idx)

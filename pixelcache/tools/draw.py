@@ -45,14 +45,6 @@ def draw_bbox(
         Union[PIL.Image, np.array, torch.Tensor]: An image with bounding
             boxes drawn, in the same format as the input image.
 
-    Example:
-        >>> draw_bounding_boxes(image, [(10, 10, 50, 50)], 'blue', 2,
-            ['object1'])
-
-    Note:
-        The function will not modify the original image, but return a new
-            one with bounding boxes drawn.
-
     """
     if isinstance(image, np.ndarray):
         mode = "numpy"

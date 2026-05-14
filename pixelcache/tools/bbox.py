@@ -39,13 +39,6 @@ def crop_from_bbox(
         np.ndarray: A new np.ndarray object representing the cropped
             image based on the provided bounding box coordinates.
 
-    Example:
-        >>> crop_image(image, [(10, 10, 50, 50)])
-
-    Note:
-        If the bounding box coordinates are given as floats, they are
-            assumed to be normalized to the range [0, 1].
-
     """
     # get min, max from bboxes
     xmin = min([_bbox[0] for _bbox in bboxes])
@@ -93,14 +86,6 @@ def uncrop_from_bbox(
 
     Returns:
         np.ndarray: The uncropped image with blended edges.
-
-    Example:
-        >>> uncrop_image(base_image, image, bboxes, resize=True, blend_width=15)
-
-    Note:
-        The bounding boxes can be in normalized or absolute coordinates. If
-            the resize flag is True, the image will be resized to fit the
-            bounding boxes.
 
     """
     # get min, max from bboxes
@@ -177,13 +162,6 @@ def increase_bbox(
         List[Tuple[float, float, float, float]]: A list of bounding boxes
             with increased size.
 
-    Example:
-        >>> increase_bbox([(10, 10, 20, 20)], ImageSize(100, 100), 5)
-
-    Note:
-        The function ensures that the expanded bounding boxes do not exceed
-            the image boundaries.
-
     """
     # increase margin depending on how big the bounding box is,
     # eg., margin of 0.2 should increase more for a very small bounding box than for a very large bounding box
@@ -256,14 +234,6 @@ def bbox_iou(
                       otherwise a tensor of shape (n, m) containing the
             intersection areas.
 
-    Example:
-        >>> calculate_iou(boxes1, boxes2, just_intersection=False)
-
-    Note:
-        The bounding boxes are assumed to be in the format (x1, y1, x2, y2),
-            where (x1, y1) is the
-        top-left corner and (x2, y2) is the bottom-right corner.
-
     """
     # Calculate intersection coordinates
     inter_ymin = torch.max(
@@ -322,9 +292,6 @@ def bbox_intersection(
         float: The Intersection over Union (IoU) of the two bounding boxes,
             represented as a float.
 
-    Example:
-        >>> bbox_intersection((1, 1, 2, 2), (1, 1, 3, 3))
-
     """
     # Calculate intersection between two bounding boxes
     # convevrt to binary images using max dim
@@ -372,13 +339,6 @@ def align_bounding_boxes(
             a shape of (o, m), where o is the number of objects and m is the
             number of anchor bounding boxes per object.
 
-    Example:
-        >>> align_bounding_boxes(base, anchors)
-
-    Note:
-        The alignment is based on the Intersection over Union (IOU) values
-            between the base bounding boxes and the anchor bounding boxes.
-
     """
     # all bounding boxes are in the same image
     # for instance, there are 4 people in the image, and each person has 3 bounding boxes
@@ -421,14 +381,6 @@ def points2bbox(
         List[Tuple[int, int, int, int]]: A list of tuples where each tuple
             represents a bounding box in the format
         (xmin, ymin, xmax, ymax).
-
-    Example:
-        >>> convert_to_bounding_boxes([[(1, 2), (3, 4)], [(5, 6), (7, 8)]])
-        [(1, 2, 3, 4), (5, 6, 7, 8)]
-
-    Note:
-        The bounding box is calculated by finding the minimum and maximum x
-            and y values among the points.
 
     """
     bboxes = []

@@ -41,15 +41,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
 
         Returns:
             None
-        Example:
-            >>> hash_dict = HashableDict({'key1': {'nested_key': 'value'},
-                'key2': ['item1', 'item2']})
-
-        Note:
-            The HashableDict class is designed to be used in cases where a
-                dictionary needs to be used as a key in another dictionary
-                or added to a set, scenarios which require the dictionary to
-                be hashable.
 
         """
         new_data: dict[_KT, _VT] = {}
@@ -113,14 +104,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
             bool: Returns True if the two HashableDict instances have the
                 same data, otherwise returns False.
 
-        Example:
-            >>> hash_dict1 = HashableDict({'key1': 'value1', 'key2':
-                'value2'})
-            >>> hash_dict2 = HashableDict({'key1': 'value1', 'key2':
-                'value2'})
-            >>> hash_dict1.equals(hash_dict2)
-            True
-
         """
         if not isinstance(other, HashableDict):
             return NotImplemented
@@ -140,16 +123,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
                 HashableDict object. Any nested HashableDict or HashableList
                 objects are converted into dictionaries or lists,
                 respectively.
-
-        Example:
-            >>> hashable_dict = HashableDict({"key": "value"})
-            >>> hashable_dict.to_dict()
-            {'key': 'value'}
-
-        Note:
-            This method is useful when a standard Python dictionary
-                representation of the HashableDict object is required.
-
         """
         to_dict: dict[_KT, _VT] = {}
         for k, v in self.__data.items():
@@ -175,10 +148,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
             HashableDict: A new HashableDict object that mirrors the
                 original.
 
-        Example:
-            >>> original_dict = HashableDict({"key": "value"})
-            >>> cloned_dict = original_dict.clone()
-
         """
         return HashableDict(self.__data.copy())
 
@@ -190,16 +159,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
 
         Returns:
             List[Any]: A list containing all the values in the HashableDict.
-
-        Example:
-            >>> hashable_dict = HashableDict({'key1': 'value1', 'key2':
-                'value2'})
-            >>> hashable_dict.values()
-            ['value1', 'value2']
-
-        Note:
-            The order of the values in the returned list is not guaranteed
-                to match the order of the keys in the HashableDict.
 
         """
         return self.__data.values()
@@ -213,14 +172,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
         Returns:
             List[Hashable]: A list containing all keys in the HashableDict.
 
-        Example:
-            >>> hash_dict = HashableDict({"a": 1, "b": 2})
-            >>> hash_dict.keys()
-            ['a', 'b']
-
-        Note:
-            The order of keys in the returned list is not guaranteed.
-
         """
         return self.__data.keys()
 
@@ -233,11 +184,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
         Returns:
             Iterator[Tuple[Hashable, Any]]: An iterator over the (key,
                 value) pairs in the HashableDict.
-
-        Example:
-            >>> hdict = HashableDict({"a": 1, "b": 2})
-            >>> list(hdict.items())
-            [('a', 1), ('b', 2)]
 
         """
         return self.__data.items()
@@ -256,14 +202,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
         Returns:
             str: A string representation of the HashableDict object.
 
-        Example:
-            >>> hash_dict = HashableDict({"key": "value"})
-            >>> print(hash_dict)
-            "{'key': 'value'}"
-        Note:
-            The returned string representation may not be a valid input for
-                the HashableDict constructor.
-
         """
         return f"HashableDict: {self.__data}"
 
@@ -279,15 +217,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
         Returns:
             _VT: The value associated with the specified key in the
                 HashableDict object.
-
-        Example:
-            >>> hash_dict = HashableDict({'key1': 'value1', 'key2':
-                'value2'})
-            >>> get_value("key1")
-            'value1'
-        Note:
-            Raises KeyError if the key is not found in the HashableDict
-                object.
 
         """
         if __name not in self.__data:
@@ -318,15 +247,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
             Iterator: An iterator object that can traverse through all the
                 keys of the dictionary stored in the HashableDict instance.
 
-        Example:
-            >>> hash_dict = HashableDict({"a": 1, "b": 2})
-            >>> for key in hash_dict:
-            ...     print(key)
-
-        Note:
-            The iterator returned by this method allows only traversal, not
-                element modification.
-
         """
         return iter(self.__data)
 
@@ -341,12 +261,6 @@ class HashableDict(MutableMapping[_KT, _VT]):
         Returns:
             int: An integer representing the length of the data stored
                 within the HashableDict object.
-
-        Example:
-            >>> hash_dict = HashableDict({'key1': 'value1', 'key2':
-                'value2'})
-            >>> hash_dict.length()
-            2
 
         """
         return len(self.__data)
@@ -372,14 +286,6 @@ class HashableList(MutableSequence[_T]):
 
         Returns:
             None
-        Example:
-            >>> hl = HashableList([{1: "a"}, {2: "b"}, [1, 2, 3]])
-
-        Note:
-            The HashableList class is used when you need a list that can be
-                used as a dictionary key.
-            Regular lists and dictionaries are mutable and cannot be used as
-                dictionary keys.
 
         """
         new_data: list[_T] = []
@@ -436,15 +342,6 @@ class HashableList(MutableSequence[_T]):
                   If the 'other' object is not an instance of HashableList,
                 it returns NotImplemented.
 
-        Example:
-            >>> h1 = HashableList([1, 2, 3])
-            >>> h2 = HashableList([1, 2, 3])
-            >>> h1.compare_hashes(h2)
-            True
-        Note:
-            This method uses the __hash__ method of the HashableList class
-                to generate the hash values.
-
         """
         if not isinstance(other, HashableList):
             return NotImplemented
@@ -460,14 +357,6 @@ class HashableList(MutableSequence[_T]):
             List: A list containing the elements of the HashableList object,
                 with any nested HashableDict or HashableList objects
                 converted into regular Python lists.
-
-        Example:
-            >>> hashable_list.to_list()
-
-        Note:
-            This method is useful when you need to work with regular Python
-                lists instead of HashableList objects.
-
         """
         to_list = []
         for idx in range(len(self.__data)):
@@ -507,11 +396,6 @@ class HashableList(MutableSequence[_T]):
                 string includes the class name 'HashableList' and the data
                 stored in the object.
 
-        Example:
-            >>> hl = HashableList([1, 2, 3])
-            >>> print(hl)
-            HashableList: [1, 2, 3]
-
         """
         return f"HashableList: {self.__data}"
 
@@ -527,10 +411,6 @@ class HashableList(MutableSequence[_T]):
         Returns:
             HashableList: A new HashableList object containing the same data
                 as the original list.
-
-        Example:
-            >>> original_list = HashableList([1, 2, 3])
-            >>> copied_list = original_list.copy()
 
         """
         return HashableList(self.__data.copy())
@@ -549,18 +429,6 @@ class HashableList(MutableSequence[_T]):
             Iterator: An iterator object that enables iteration over the
                 data
             stored in the HashableList instance.
-
-        Example:
-            >>> hash_list = HashableList([1, 2, 3])
-            >>> for i in hash_list:
-            ...     print(i)
-
-        Note:
-            This is a special method, part of the Python data model. It is
-                not
-            meant to be called directly, but implicitly, by Python's
-                iteration
-            tools like 'for' loops.
 
         """
         return iter(self.__data)
@@ -590,16 +458,6 @@ class HashableList(MutableSequence[_T]):
         Returns:
             Any: The element or slice of elements from the HashableList
                 object.
-
-        Example:
-            >>> hashable_list = HashableList([1, 2, 3, 4, 5])
-            >>> retrieve_element_or_slice(2)
-            3
-            >>> retrieve_element_or_slice(slice(1, 4))
-            [2, 3, 4]
-
-        Note:
-            The HashableList object is a list that supports hash operations.
 
         """
         if isinstance(__index, slice):
@@ -650,11 +508,6 @@ class HashableList(MutableSequence[_T]):
             int: An integer representing the length of the HashableList
                 object.
 
-        Example:
-            >>> hl = HashableList([1, 2, 3])
-            >>> hl.len()
-            3
-
         """
         return len(self.__data)
 
@@ -689,15 +542,6 @@ class HashableList(MutableSequence[_T]):
             HashableList: A new HashableList object containing the elements
                 of the original HashableList
             multiplied by the specified integer value.
-
-        Example:
-            >>> hl = HashableList([1, 2, 3])
-            >>> hl.multiply_elements(2)
-            HashableList([2, 4, 6])
-
-        Note:
-            The original HashableList is not modified by this method. A new
-                HashableList is returned.
 
         """
         return HashableList(self.__data * other)

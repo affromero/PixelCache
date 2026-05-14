@@ -138,14 +138,6 @@ def save_image(
         None: This function doesn't return anything, it saves the image to
             the specified path.
 
-    Example:
-        >>> save_image(img, '/path/to/save/image', nrow=10, padding=3,
-            normalize=False, scale_each=True, pad_value=1.0)
-
-    Note:
-        The image data can be in the form of a torch.Tensor, numpy.ndarray,
-            PIL Image, or bool arrays.
-
     """
     if isinstance(img, np.ndarray):
         if img.dtype == bool:
@@ -195,13 +187,6 @@ def numpy2tensor(
             of tensors is returned.
         If a single image is provided, a single tensor is returned.
 
-    Example:
-        >>> numpy_to_tensor(numpy_array_of_images)
-
-    Note:
-        The function assumes that the input images are already normalized
-            and preprocessed.
-
     """
     if imgs.ndim == 2:
         imgs = np.expand_dims(imgs, 2)
@@ -228,12 +213,6 @@ def pil2tensor(
     Returns:
         Union[List[Tensor], Tensor]: The resulting tensor or list of
             tensors.
-
-    Example:
-        >>> pil_to_tensor(img)
-
-    Note:
-        The input image must be a PIL Image object.
 
     """
     return numpy2tensor(np.asarray(img))
@@ -276,12 +255,6 @@ def tensor2numpy(
         Union[Tensor, List[Tensor]]: The converted numpy array(s). The
             arrays will have a shape of either (H x W x C) for 3D arrays
             or (H x W) for 2D arrays. The channel order is RGB.
-
-    Example:
-        >>> convert_tensor_to_image(tensor, np.float32, (0, 255))
-
-    Note:
-        The input Tensor channel should be in RGB order.
 
     """
     if not (
@@ -344,13 +317,6 @@ def tensor2pil(
         Union[Tensor, List[Tensor]]: The converted image(s) in the form of
             3D ndarray of shape (H x W x C)
         or 2D ndarray of shape (H x W). The channel order is RGB.
-
-    Example:
-        >>> tensor_to_image(tensor, (0, 255))
-
-    Note:
-        The input tensor values are first clamped to the specified range
-            before being normalized.
 
     """
     img_np = tensor2numpy(
@@ -420,14 +386,6 @@ class ImageSize:
             ValueError: If the image size does not meet the specified
                 criteria.
 
-        Example:
-            >>> img_size = ImageSize(100, 200)
-            >>> img_size.__post_init__()
-
-        Note:
-            This method is automatically called after the instance has been
-                initialized.
-
         """
         if self.height <= 0 or self.width <= 0:
             msg = f"image size must be positive. {self}"
@@ -464,13 +422,6 @@ class ImageSize:
             Union[int, float]: The minimum value between the height and
                 width of the image size.
 
-        Example:
-            >>> min_image_dimension((800, 600))
-
-        Note:
-            If the height and width are equal, the function will return that
-                common value.
-
         """
         return min(self.height, self.width)
 
@@ -492,11 +443,6 @@ class ImageSize:
                               the image, which can be either an integer or a
                 float.
 
-        Example:
-            >>> image_size = ImageSize(height=500, width=800)
-            >>> image_size.get_max_dimension()
-            800
-
         """
         return max(self.height, self.width)
 
@@ -514,14 +460,6 @@ class ImageSize:
                 image, representing its area. The return type will be an
                 integer if both height and width are integers, otherwise it
                 will be a float.
-
-        Example:
-            >>> image = ImageSize(height=10, width=20)
-            >>> image.calculate_area()
-            200
-        Note:
-            The height and width attributes must be set for the ImageSize
-                instance before calling this method.
 
         """
         return self.height * self.width
@@ -543,12 +481,6 @@ class ImageSize:
             bool: Returns True if the height and width of both ImageSize
                 objects are equal,
                   otherwise returns False.
-
-        Example:
-            >>> img1 = ImageSize(100, 200)
-            >>> img2 = ImageSize(100, 200)
-            >>> img1.equals(img2)
-            True
 
         """
         # compare height and width
@@ -577,16 +509,6 @@ class ImageSize:
             ImageSize: A new ImageSize object with the height and width
                 multiplied by the given value.
 
-        Example:
-            >>> img_size = ImageSize(10, 20)
-            >>> new_img_size = img_size.multiply(2)
-            >>> print(new_img_size)
-            ImageSize(height=20, width=40)
-
-        Note:
-            The multiplication is performed independently on the height and
-                the width of the ImageSize object.
-
         """
         return ImageSize(
             height=round(self.height * other), width=round(self.width * other)
@@ -605,15 +527,6 @@ class ImageSize:
             bool: True if the current ImageSize object is not equal to the
                 other object, False otherwise.
 
-        Example:
-            >>> img_size1 = ImageSize(800, 600)
-            >>> img_size2 = ImageSize(1024, 768)
-            >>> img_size1.__ne__(img_size2)
-            True
-        Note:
-            The equality comparison is based on the width and height
-                attributes of the ImageSize objects.
-
         """
         return not self.__eq__(other)
 
@@ -630,14 +543,6 @@ class ImageSize:
             bool: True if the calling object's height and width are both
                 less than the other object's height and width, False
                 otherwise.
-
-        Example:
-            >>> img1 = ImageSize(200, 300)
-            >>> img2 = ImageSize(400, 500)
-            >>> img1.compare(img2)
-            True
-        Note:
-            This method is used to compare the size of two images.
 
         """
         if not isinstance(other, ImageSize):
@@ -667,17 +572,6 @@ class ImageSize:
                 object are less than or equal to those of the other object.
                 Otherwise, returns False.
 
-        Example:
-            >>> img1 = ImageSize(200, 300)
-            >>> img2 = ImageSize(250, 350)
-            >>> img1.compare_size(img2)
-            True
-        Note:
-            The comparison is done separately for height and width. Both
-                dimensions of the current object need to be less than or
-                equal to those of the other object for the method to return
-                True.
-
         """
         if not isinstance(other, ImageSize):
             msg = "This comparison can only be with an ImageSize object"
@@ -703,16 +597,6 @@ class ImageSize:
         Returns:
             bool: True if the calling object's dimensions (both height and
                 width) are greater than the other object's. False otherwise.
-
-        Example:
-            >>> img1 = ImageSize(200, 300)
-            >>> img2 = ImageSize(100, 150)
-            >>> img1.compare_size(img2)
-            True
-        Note:
-            The comparison is based on both dimensions, so if one dimension
-                is greater but the other is not, the method will return
-                False.
 
         """
         if not isinstance(other, ImageSize):
@@ -741,12 +625,6 @@ class ImageSize:
                 are greater than or equal to the height and width of the
                 other object, otherwise returns False.
 
-        Example:
-            >>> img1 = ImageSize(800, 600)
-            >>> img2 = ImageSize(600, 400)
-            >>> img1.compare_size(img2)
-            True
-
         """
         if not isinstance(other, ImageSize):
             msg = "This comparison can only be with an ImageSize object"
@@ -769,14 +647,6 @@ class ImageSize:
             int: A unique integer representing the hash value of the
                 ImageSize object.
 
-        Example:
-            >>> image_size = ImageSize(800, 600)
-            >>> print(image_size.calculate_hash())
-
-        Note:
-            The hash value is unique for each unique combination of height
-                and width.
-
         """
         return hash((self.height, self.width))
 
@@ -790,15 +660,6 @@ class ImageSize:
         Returns:
             str: A string representation of the ImageSize object in the
                 format 'ImageSize(height=height_value, width=width_value)'.
-
-        Example:
-            >>> image_size = ImageSize(800, 600)
-            >>> print(image_size)
-            ImageSize(height=800, width=600)
-
-        Note:
-            This method is typically used for debugging and logging.
-
         """
         return f"ImageSize(height={self.height}, width={self.width})"
 
@@ -831,14 +692,6 @@ class ImageSize:
         Returns:
             ImageSize: An instance of the ImageSize class representing the
                 height and width of the input image.
-
-        Example:
-            >>> create_from_image(image)
-
-        Note:
-            The 'h w c' and 'b c h w' denote the dimensions of the image
-                (height, width, channels) and tensor (batch size, channels,
-                height, width) respectively.
 
         """
         if isinstance(image, str):
@@ -884,14 +737,6 @@ def crop_border(
         List[np.ndarray]: A list of cropped images in the form of numpy
             arrays.
 
-    Example:
-        >>> crop_images(imgs, 10)
-
-    Note:
-        The 'crop_border' argument should be less than half of the smallest
-            dimension of the input images for the function to work
-            correctly.
-
     """
     if crop_border == 0:
         return imgs
@@ -923,14 +768,6 @@ def center_pad(
         Union[np.ndarray, PIL.Image.Image]: The padded image, returned in
             the same format as the input image (either a NumPy array or a
             PIL Image).
-
-    Example:
-        >>> pad_image(image, ImageSize(200, 200), fill=(255, 255, 255))
-
-    Note:
-        The function maintains the original image type in the output. If a
-            NumPy array is provided as input, the output will also be a
-            NumPy array, and vice versa for a PIL Image.
 
     """
     h, w = image.shape[:2]
@@ -971,11 +808,6 @@ def to_binary(
             the input. If the input is an image or an array, the function
             returns the binary version of the input. If the input is a torch
             tensor, the function returns the binary version of the tensor.
-
-    Example:
-        >>> convert_to_binary(rgb_image)
-        >>> convert_to_binary(array)
-        >>> convert_to_binary(tensor)
 
     """
     if threshold < 0 or threshold > 1:
@@ -1034,13 +866,6 @@ def to_rgb(
         Union[np.array, PIL.Image, torch.Tensor]: The input image converted
             to RGB format.
 
-    Example:
-        >>> to_rgb(input_image)
-
-    Note:
-        The function supports multiple input formats and ensures the output
-            is in RGB format.
-
     """
     if isinstance(rgb, np.ndarray):
         return np.asarray(rgb)[..., None].repeat(3, axis=-1)
@@ -1079,13 +904,6 @@ def threshold_image(
     Returns:
         Union[np.array, PIL.Image.Image]: Thresholded image in the form of a
             NumPy array or PIL Image.
-
-    Example:
-        >>> apply_threshold(image, ">", 0.5, 1)
-
-    Note:
-        The input image is converted to grayscale before applying the
-            thresholding operation.
 
     """
     is_np = False
@@ -1150,12 +968,6 @@ def resize_image(
     Returns:
         Tensor: The resized image as a tensor object.
 
-    Example:
-        >>> resize_image(input_image, 500, "bilinear", "min", 2)
-
-    Note:
-        Ensure the input image is in a format compatible with the function.
-
     """
     height, width = tensor.shape[-2:]
     height = float(height)
@@ -1207,15 +1019,6 @@ def rgb2gray(rgb: UInt8[np.ndarray, "h w 3"]) -> UInt8[np.ndarray, "h w"]:
         np.array: A 2D NumPy array representing the grayscale version of the
             input RGB image. The dimensions represent height and width.
 
-    Example:
-        >>> rgb_image = np.array([[[255, 0, 0], [0, 255, 0], [0, 0, 255]]])
-        >>> grayscale_image = rgb_to_grayscale(rgb_image)
-
-    Note:
-        The input RGB image should have values in the range of 0-255. The
-            output grayscale image will also have values in the range of
-            0-255.
-
     """
     return np.dot(rgb[:, :, :3], [0.299, 0.587, 0.114])
 
@@ -1246,9 +1049,6 @@ def get_canny_edge(
     Returns:
         (np.ndarray): The output image after applying the Canny edge
             detection algorithm.
-
-    Example:
-        >>> apply_canny_edge_detection(image, (100, 200), to_gray=True)
 
     """
     if to_gray:
@@ -1285,15 +1085,6 @@ def cv2_inpaint(
         np.ndarray: The inpainted image, represented as a numpy array of the
             same shape
                     as the input image.
-
-    Example:
-        >>> inpainted_image = inpaint_image(image, mask)
-
-    Note:
-        The OpenCV inpainting algorithm used in this function assumes that
-            the mask
-        is a binary image where non-zero pixels correspond to the parts of
-            the image to be inpainted.
 
     """
     is_pil = isinstance(image, Image.Image)
@@ -1349,13 +1140,6 @@ def add_sensor_noise_and_jpeg_compression(
             a string representing the absolute or relative path to a
             processed image file.
 
-    Example:
-        >>> add_noise_and_compress(["image1.jpg", "image2.jpg"], 50, 75)
-
-    Note:
-        The function will overwrite the original images with the processed
-            images. Make sure to backup your original images if necessary.
-
     """
     is_path = isinstance(images[0], Path)
     processed_images: list[str | Path] = []
@@ -1408,13 +1192,6 @@ def tile(image: Image.Image, mode: str = "1x1") -> dict[str, Image.Image]:
         Dict[str, Image.Image]: A dictionary containing the tiled images
             with keys representing the position of each tile in the format
             'NxM'.
-
-    Example:
-        >>> tile_image(my_image, "2x2")
-
-    Note:
-        The image size must be evenly divisible by the number of rows and
-            columns specified in the mode.
 
     """
     w, h = image.size

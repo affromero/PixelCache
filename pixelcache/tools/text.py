@@ -63,13 +63,6 @@ def get_font_path(font: str = "JetBrainsMono-Regular", /) -> str:
         str: The file path of the font file corresponding to the input font
             name.
 
-    Example:
-        >>> get_font_path("Arial")
-
-    Note:
-        Make sure the font name is correct and the corresponding font file
-            exists.
-
     """
     font_path = Path(__file__).parent.parent / "fonts" / f"{font}.ttf"
     if not font_path.exists():
@@ -105,15 +98,6 @@ def create_text(
     Returns:
         np.array: A numpy array representing the image with the specified
             texts displayed on it.
-
-    Example:
-        >>> create_text_image('path/to/image.jpg', ['Hello', 'World'],
-            background='black', orientation='vertical',
-            font_path='path/to/font.ttf')
-
-    Note:
-        The returned numpy array can be directly used for image processing
-            tasks.
 
     """
     foreground_tuple = (0, 0, 0) if background == "white" else (255, 255, 255)
@@ -323,13 +307,6 @@ def remove_white_text(image: np.ndarray) -> np.ndarray:
         np.ndarray: The modified image as a NumPy array, with white text
             removed from the top and bottom.
 
-    Example:
-        >>> remove_white_text(image_array)
-
-    Note:
-        The function does not modify the original image array, but returns a
-            new one.
-
     """
     for start_row in range(image.shape[0]):
         if not (image[start_row] == 255).all().item():
@@ -371,14 +348,6 @@ def draw_text(
             drawn on it. The return type matches the input type: if a NumPy
             array was input, a NumPy array is returned; if a PIL Image
             object was input, a PIL Image object is returned.
-
-    Example:
-        >>> draw_text_on_image(image, 'Hello World!', (50, 50), 'Arial.ttf',
-            30, (0, 0, 0))
-
-    Note:
-        The position is defined from the top-left corner of the image, with
-            positive x going right and positive y going down.
 
     """
     if isinstance(image, Image.Image):

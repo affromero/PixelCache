@@ -53,14 +53,6 @@ class ImageCrop:
         Returns:
             None: This method does not return anything.
 
-        Example:
-            >>> image_crop = ImageCrop()
-            >>> image_crop.__post_init__()
-
-        Note:
-            This method is typically called internally within the class and
-                not directly by the user.
-
         """
         if self.left >= self.right:
             msg = f"left must be smaller than right. {self}"
@@ -85,11 +77,6 @@ class ImageCrop:
         Returns:
             bool: True if the crop values are normalized, False otherwise.
 
-        Example:
-            >>> image_crop = ImageCrop(0.1, 0.2, 0.3, 0.4)
-            >>> image_crop.is_normalized()
-            True
-
         """
         return all(
             0 <= coord <= 1
@@ -112,10 +99,6 @@ class ImageCrop:
             str: A string representing the ImageCrop object with its left,
                 top, right, and bottom attributes displayed.
 
-        Example:
-            >>> print(ImageCrop(10, 20, 30, 40))
-            'ImageCrop(left=10, top=20, right=30, bottom=40)'
-
         """
         return f"ImageCrop(left={self.left}, top={self.top}, right={self.right}, bottom={self.bottom})"
 
@@ -131,10 +114,6 @@ class ImageCrop:
 
         Returns:
             int: The hash value of the ImageCrop object.
-
-        Example:
-            >>> image_crop = ImageCrop(10, 20, 30, 40)
-            >>> image_crop.__hash__()
 
         """
         return hash((self.left, self.top, self.right, self.bottom))
@@ -152,11 +131,6 @@ class ImageCrop:
         Returns:
             bool: True if the two ImageCrop instances are equal, False
                 otherwise.
-
-        Example:
-            >>> image_crop1 = ImageCrop(10, 20, 30, 40)
-            >>> image_crop2 = ImageCrop(10, 20, 30, 40)
-            >>> image_crop1.__eq__(image_crop2)
 
         """
         if not isinstance(other, ImageCrop):
@@ -250,11 +224,6 @@ class BoundingBox:
             bool: True if the bounding box coordinates are normalized,
                 False otherwise.
 
-        Example:
-            >>> bbox = BoundingBox(0.1, 0.2, 0.3, 0.4)
-            >>> bbox.is_normalized()
-            True
-
         """
         return all(
             0 <= coord <= 1
@@ -283,16 +252,6 @@ class BoundingBox:
                 min_y, max_x, max_y)
             representing the minimum and maximum X and Y coordinates of the
                 bounding box.
-
-        Example:
-            >>> bbox = BoundingBox(...)
-            >>> bbox.xyxy()
-            (min_x, min_y, max_x, max_y)
-
-        Note:
-            This method does not take any arguments. It calculates the
-                coordinates based on the
-            properties of the 'BoundingBox' instance.
 
         """
         if self.is_normalized() and self.image_size is not None:
@@ -329,14 +288,6 @@ class BoundingBox:
             dimensions of the bounding box. The values are ordered as (x, y,
                 width, height).
 
-        Example:
-            >>> get_bounding_box()
-            (10, 20, 30, 40)
-
-        Note:
-            The function assumes that the bounding box is calculated based
-                on some predefined conditions.
-
         """
         x, y, x2, y2 = self.xyxy
         return int(x), int(y), int(x2 - x), int(y2 - y)
@@ -356,15 +307,6 @@ class BoundingBox:
                 min_y, max_x, max_y)
             representing the normalized minimum and maximum X and Y
                 coordinates of the bounding box.
-
-        Example:
-            >>> bbox = BoundingBox(...)
-            >>> bbox.xyxyn()
-
-        Note:
-            This method does not take any arguments. It calculates the
-                coordinates based on the
-            properties of the 'BoundingBox' instance.
 
         """
         if self.is_normalized():
@@ -395,15 +337,6 @@ class BoundingBox:
                 the bounding box. The values are ordered as (x, y, width,
                 height).
 
-        Example:
-            >>> bbox = BoundingBox(...)
-            >>> bbox.xywhn()
-
-        Note:
-            This method does not take any arguments. It calculates the
-                coordinates based on the properties of the 'BoundingBox'
-                instance.
-
         """
         x, y, w, h = self.xywh
         if self.is_normalized():
@@ -430,13 +363,6 @@ class BoundingBox:
             str: A string representation of the BoundingBox object. The
                 string includes the minimum and maximum x and y values.
 
-        Example:
-            >>> bbox = BoundingBox(0, 0, 1, 1)
-            >>> print(bbox)
-            'BoundingBox: Min(x=0, y=0), Max(x=1, y=1)'
-        Note:
-            This method is typically used for debugging purposes.
-
         """
         return f"xmin: {self.xmin}, ymin: {self.ymin}, xmax: {self.xmax}, ymax: {self.ymax}"
 
@@ -451,14 +377,6 @@ class BoundingBox:
 
         Returns:
             int: The hash value of the BoundingBox object.
-
-        Example:
-            >>> box = BoundingBox()
-            >>> calculate_hash(box)
-
-        Note:
-            The hash value is calculated based on the attributes of the
-                BoundingBox object.
 
         """
         return hash(HashableDict(self.__dict__))
@@ -482,13 +400,6 @@ class BoundingBox:
             bool: True if the hash values of the two BoundingBox objects are
                 equal, False otherwise. Returns NotImplemented if 'other' is
                 not a BoundingBox object.
-
-        Example:
-            >>> box1.equals(box2)
-
-        Note:
-            The equality of two BoundingBox objects is determined solely
-                based on their hash values.
 
         """
         if not isinstance(other, BoundingBox):
@@ -561,14 +472,6 @@ class Points:
         Returns:
             int: The number of points in the Points object.
 
-        Example:
-            >>> points = Points(...)
-            >>> points.num_points
-
-        Note:
-            This method does not take any arguments. It calculates the number
-                of points based on the properties of the Points object.
-
         """
         return self.points.shape[0]
 
@@ -586,14 +489,6 @@ class Points:
         Returns:
             np.ndarray: A NumPy array containing the X and Y coordinates of
                 the points.
-
-        Example:
-            >>> points = Points(...)
-            >>> points.xy()
-
-        Note:
-            This method does not take any arguments. It calculates the X and Y
-                coordinates based on the properties of the Points object.
 
         """
         if self.is_normalized:
@@ -617,15 +512,6 @@ class Points:
             np.ndarray: A NumPy array containing the normalized X and Y
                 coordinates of the points.
 
-        Example:
-            >>> points = Points(...)
-            >>> points.xyn()
-
-        Note:
-            This method does not take any arguments. It calculates the
-                normalized X and Y coordinates based on the properties of the
-                Points object.
-
         """
         if not self.is_normalized:
             return self.points / np.array(
@@ -647,14 +533,6 @@ class Points:
 
         Returns:
             Points: A new Points object with the shifted points.
-
-        Example:
-            >>> points = Points(...)
-            >>> points.shift_points((10, 10))
-
-        Note:
-            This method shifts the points by adding the specified amount to
-                the X and Y coordinates of each point.
 
         """
         new_points = self.xy + np.array(shift)
@@ -678,14 +556,6 @@ class Points:
             List[Tuple[int, int]]: A list of tuples containing the X and Y
                 coordinates of the points as integers.
 
-        Example:
-            >>> points = Points(...)
-            >>> points.list_tuple_int()
-
-        Note:
-            This method does not take any arguments. It converts the points
-                based on the properties of the Points object.
-
         """
         return [(int(x), int(y)) for x, y in self.xy]
 
@@ -705,14 +575,6 @@ class Points:
             List[Tuple[float, float]]: A list of tuples containing the X and
                 Y coordinates of the points as floats.
 
-        Example:
-            >>> points = Points(...)
-            >>> points.list_tuple_float()
-
-        Note:
-            This method does not take any arguments. It converts the points
-                based on the properties of the Points object.
-
         """
         if normalized:
             return [(float(x), float(y)) for x, y in self.xyn]
@@ -731,14 +593,6 @@ class Points:
         Returns:
             int: The minimum X coordinate of the points.
 
-        Example:
-            >>> points = Points(...)
-            >>> points.min_x()
-
-        Note:
-            This method does not take any arguments. It calculates the minimum
-                X coordinate based on the properties of the Points object.
-
         """
         return int(np.min(self.xy[:, 0]))
 
@@ -754,14 +608,6 @@ class Points:
 
         Returns:
             int: The minimum Y coordinate of the points.
-
-        Example:
-            >>> points = Points(...)
-            >>> points.min_y()
-
-        Note:
-            This method does not take any arguments. It calculates the minimum
-                Y coordinate based on the properties of the Points object.
 
         """
         return int(np.min(self.xy[:, 1]))
@@ -779,14 +625,6 @@ class Points:
         Returns:
             int: The maximum X coordinate of the points.
 
-        Example:
-            >>> points = Points(...)
-            >>> points.max_x()
-
-        Note:
-            This method does not take any arguments. It calculates the maximum
-                X coordinate based on the properties of the Points object.
-
         """
         return int(np.max(self.xy[:, 0]))
 
@@ -803,14 +641,6 @@ class Points:
         Returns:
             int: The maximum Y coordinate of the points.
 
-        Example:
-            >>> points = Points(...)
-            >>> points.max_y()
-
-        Note:
-            This method does not take any arguments. It calculates the maximum
-                Y coordinate based on the properties of the Points object.
-
         """
         return int(np.max(self.xy[:, 1]))
 
@@ -825,13 +655,6 @@ class Points:
 
         Returns:
             int: The number of points in the Points object.
-
-        Example:
-            >>> points = Points(...)
-            >>> len(points)
-
-        Note:
-            This method is used to calculate the length of the Points object.
 
         """
         return self.num_points
@@ -848,14 +671,6 @@ class Points:
 
         Returns:
             int: An integer representing the hash value of the Points object.
-
-        Example:
-            >>> points = Points(...)
-            >>> points.__hash__()
-
-        Note:
-            Hash values are used to quickly compare dictionary keys during a
-                dictionary lookup. They must be immutable and hashable.
 
         """
         return hash(HashableDict(self.__dict__))
@@ -877,15 +692,6 @@ class Points:
                 equal, False otherwise.
                   If the other object is not an instance of Points, it returns
                 NotImplemented.
-
-        Example:
-            >>> points1 = Points(...)
-            >>> points2 = Points(...)
-            >>> points1 == points2
-
-        Note:
-            The equality of two Points instances doesn't mean they are the
-                same object, only that their hash values are equal.
 
         """
         if not isinstance(other, Points):

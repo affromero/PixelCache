@@ -76,13 +76,6 @@ def pseudo_hash(idx: int, length: int = 6) -> str:
         str: A string representing the pseudo-random hash generated based on
             the given index and length.
 
-    Example:
-        >>> generate_hash(10, 6)
-
-    Note:
-        The hash generated is pseudo-random, meaning it will generate the
-            same result if the same index and length are provided.
-
     """
     random.seed(idx)
     return "".join(random.choice(string.ascii_letters) for _ in range(length))  # noqa: S311
@@ -230,14 +223,6 @@ class HashableImage:
         Returns:
             str: The local filename of the HashableImage object.
 
-        Example:
-            >>> image = HashableImage("http://example.com/image.jpg")
-            >>> image.get_local_filename()
-            '/tmp/tmp123.jpg'
-        Note:
-            This method is part of the HashableImage class and requires no
-                arguments.
-
         """
         _filename = self.get_filename()
         if _filename.startswith("http"):
@@ -255,13 +240,6 @@ class HashableImage:
 
         Returns:
             None
-        Example:
-            >>> image = HashableImage()
-            >>> image.set_filename("image1.jpg")
-
-        Note:
-            The filename is used for saving and retrieving the image from
-                storage.
 
         """
         # in case the image has been modified during inpainting, but the filename is still the same
@@ -287,13 +265,6 @@ class HashableImage:
         Returns:
             None: This method doesn't return any value. It writes the image
                 data to a file.
-
-        Example:
-            >>> image_object.save_image("/path/to/save/image.jpg")
-
-        Note:
-            Make sure the path exists and you have write permissions. If the
-                file already exists, it will be overwritten.
 
         """
         if transparency is not None:
@@ -326,13 +297,6 @@ class HashableImage:
             None: This method doesn't return any value. It displays the image
                 data.
 
-        Example:
-            >>> image_object.display_image()
-
-        Note:
-            The method uses the default image viewer on your system to
-                display the image.
-
         """
         self.pil().show()
 
@@ -346,12 +310,6 @@ class HashableImage:
         Returns:
             HashableImage: A new HashableImage object that is a downscaled
                 version of the original image.
-
-        Example:
-            >>> downsample_image(2)
-
-        Note:
-            The downsampling process may result in loss of image detail.
 
         """
         new_size = ImageSize(
@@ -380,15 +338,6 @@ class HashableImage:
             HashableImage: A new HashableImage object with the resized image
                 if the size is different from the current image size.
                 Otherwise, it returns the original HashableImage object.
-
-        Example:
-            >>> image = HashableImage(...)
-            >>> new_size = ImageSize(200, 200)
-            >>> resized_image = image.resize(new_size)
-
-        Note:
-            The interpolation method used for resizing depends on the mode
-                of the image.
 
         """
         is_binary = self.is_binary()
@@ -461,13 +410,6 @@ class HashableImage:
             HashableImage: A new HashableImage object with the resized image
                 based on the minimum size.
 
-        Example:
-            >>> image = HashableImage(...)
-            >>> new_image = image.resize_min_size(200)
-
-        Note:
-            The aspect ratio of the image is maintained during resizing.
-
         """
         image_size = self.size()
         height = image_size.height
@@ -508,13 +450,6 @@ class HashableImage:
             HashableImage: A new image object that is the grayscale version
                 of the original image.
 
-        Example:
-            >>> image_object.convert_to_grayscale()
-
-        Note:
-            The original image object remains unchanged. A new image object
-                is created and returned.
-
         """
         image = self.to_rgb()
         if self._mode == "torch":
@@ -550,14 +485,6 @@ class HashableImage:
         Returns:
             HashableImage: A new HashableImage object with the color palette
                 applied.
-
-        Example:
-            >>> image = HashableImage(...)
-            >>> new_image = image.apply_palette()
-
-        Note:
-            The color palette is applied to the HashableImage object based
-                on the mode of the image data.
 
         """
         rgb = self.to_rgb().numpy()
@@ -595,14 +522,6 @@ class HashableImage:
 
         Returns:
             HashableImage: The HashableImage object converted to RGB format.
-
-        Example:
-            >>> img = HashableImage("path/to/image")
-            >>> rgb_img = img.convert_to_rgb()
-
-        Note:
-            The original HashableImage object is not modified, a new object
-                is returned.
 
         """
         if self._mode == "torch":
@@ -642,13 +561,6 @@ class HashableImage:
             HashableImage: A HashableImage object representing the converted
                 image in binary format.
 
-        Example:
-            >>> convert_image_to_binary()
-
-        Note:
-            This function relies on the global state and does not take any
-                parameters.
-
         """
         # check if it is bool already
         if (
@@ -680,14 +592,6 @@ class HashableImage:
                 indices of the unique values, and the count of each unique
                 value.
 
-        Example:
-            >>> image = HashableImage(...)
-            >>> unique_values = image.unique_values()
-
-        Note:
-            The unique values in the image are determined based on the mode
-                of the image data.
-
         """
         output: tuple[torch.Tensor, torch.Tensor, torch.Tensor] = (
             self.tensor().unique(return_counts=True, return_inverse=True, sorted=True)
@@ -716,14 +620,6 @@ class HashableImage:
                 binary data based on
             the mode of the original image data.
 
-        Example:
-            >>> image = HashableImage(data)
-            >>> inverted_image = image.invert()
-
-        Note:
-            The inversion of the binary data depends on the mode of the
-                original image data.
-
         """
         if self._mode == "torch":
             return HashableImage(~self.to_binary().tensor())
@@ -745,16 +641,6 @@ class HashableImage:
                 values. If the mode of the image is 'torch', it returns the
                 inverted tensor values. If the mode is not 'torch', it
                 returns the inverted numpy values.
-
-        Example:
-            >>> image = HashableImage(...)
-            >>> inverted_image = image.invert_image()
-
-        Note:
-            The inversion is performed based on the mode of the image. Two
-                modes are supported: 'torch' and others. If the mode is
-                'torch', tensor values are inverted. Otherwise, numpy values
-                are inverted.
 
         """
         if self._mode == "torch":
@@ -778,13 +664,6 @@ class HashableImage:
                 initialized to zero. The size of the image is determined by
                 the input argument.
 
-        Example:
-            >>> create_zero_image(ImageSize(800, 600))
-
-        Note:
-            The ImageSize object should contain positive integer values for
-                both height and width.
-
         """
         return HashableImage(
             torch.zeros((1, 3, int(size.height), int(size.width))),
@@ -806,14 +685,6 @@ class HashableImage:
             'HashableImage': A new HashableImage object with all elements
                 set to zero, maintaining the shape and type of the original
                 image.
-
-        Example:
-            >>> image = HashableImage(...)
-            >>> zeroed_image = image.zero_image()
-
-        Note:
-            The new HashableImage object does not alter the original image,
-                it is a separate instance.
 
         """
         if self._mode == "torch":
@@ -839,14 +710,6 @@ class HashableImage:
         Returns:
             'HashableImage': A new HashableImage object with the same
                 dimensions as the original image but filled with ones.
-
-        Example:
-            >>> image = HashableImage(...)
-            >>> ones_image = image.ones_like()
-
-        Note:
-            The generated HashableImage object has the same dimensions as
-                the original, but all pixel values are set to one.
 
         """
         if self._mode == "torch":
@@ -877,14 +740,6 @@ class HashableImage:
         Returns:
             HashableImage: A new HashableImage object with the image
                 converted to BGR color space.
-
-        Example:
-            >>> img = HashableImage("image_in_rgb.jpg")
-            >>> img_bgr = img.rgb_to_bgr()
-
-        Note:
-            The input image must be in RGB color space. The output image
-                will be in BGR color space.
 
         """
         if self._mode == "numpy":
@@ -927,14 +782,6 @@ class HashableImage:
             HashableImage: A new HashableImage object with the histogram
                 equalized image.
 
-        Example:
-            >>> image = HashableImage("image.jpg")
-            >>> equalized_image = image.equalize_hist()
-
-        Note:
-            Histogram equalization can improve the contrast of an image, but
-                may also amplify noise.
-
         """
         if self._mode == "pil":
             return HashableImage(ImageOps.equalize(self._image))
@@ -960,15 +807,6 @@ class HashableImage:
         Returns:
             HashableImage: A new HashableImage object that is the result of
                 adding the two input objects.
-
-        Example:
-            >>> img1 = HashableImage(...)
-            >>> img2 = HashableImage(...)
-            >>> new_img = img1.add(img2)
-
-        Note:
-            If 'other' is a Number, it is added to every pixel of the
-                HashableImage object.
 
         """
         if not isinstance(other, HashableImage | Number):
@@ -1004,15 +842,6 @@ class HashableImage:
             HashableImage: A new HashableImage object with pixel values
                 subtracted based on the type of 'other' object.
 
-        Example:
-            >>> img1.subtract(img2)
-            or
-            >>> img1.subtract(5)
-
-        Note:
-            The method does not modify the original HashableImage objects,
-                it returns a new HashableImage object.
-
         """
         if not isinstance(other, HashableImage | Number):
             return NotImplemented
@@ -1046,16 +875,6 @@ class HashableImage:
         Returns:
             HashableImage: A new HashableImage object containing the result
                 of the element-wise multiplication of the two input objects.
-
-        Example:
-            >>> img1.multiply(img2)
-            or
-            >>> img1.multiply(2)
-
-        Note:
-            If 'other' is a HashableImage, it should have the same
-                dimensions as 'self'. If it is a number, it will be
-                multiplied with each pixel of 'self'.
 
         """
         if not isinstance(other, HashableImage | Number):
@@ -1106,14 +925,6 @@ class HashableImage:
             HashableImage: A new HashableImage object resulting from the
                 division operation.
 
-        Example:
-            >>> img1 = HashableImage(...)
-            >>> img2 = HashableImage(...)
-            >>> result = img1 / img2
-        Note:
-            If the other object is neither a HashableImage nor a Number, a
-                TypeError will be raised.
-
         """
         if not isinstance(other, HashableImage | Number):
             return NotImplemented
@@ -1145,10 +956,6 @@ class HashableImage:
             ImageSize: An ImageSize object representing the size (width and
                 height) of the HashableImage object.
 
-        Example:
-            >>> hash_img = HashableImage("image.jpg")
-            >>> size = hash_img.get_size()
-
         """
         return ImageSize.from_image(self._image)
 
@@ -1162,14 +969,6 @@ class HashableImage:
         Returns:
             HashableImage: A new HashableImage object that is a copy of the
                 original HashableImage object.
-
-        Example:
-            >>> image = HashableImage()
-            >>> copy = image.clone()
-
-        Note:
-            This method uses the copy module's deepcopy function to ensure a
-                complete copy of the original object.
 
         """
         if self._mode == "torch":
@@ -1191,12 +990,6 @@ class HashableImage:
             float: The mean value of the image data, rounded to two decimal
                 places.
 
-        Example:
-            >>> hashable_image.calculate_mean()
-
-        Note:
-            The HashableImage object should already contain image data.
-
         """
         if self._mode == "torch":
             value = self._image.float().mean().item()
@@ -1215,14 +1008,6 @@ class HashableImage:
         Returns:
             float: The standard deviation of the image data, rounded to two
                 decimal places.
-
-        Example:
-            >>> calculate_standard_deviation()
-
-        Note:
-            The image data must be stored in the HashableImage object before
-                calling this method.
-
         """
         if self._mode == "torch":
             value = self._image.float().std().item()
@@ -1244,13 +1029,6 @@ class HashableImage:
             float: The minimum value in the HashableImage object, rounded to
                 2 decimal places.
 
-        Example:
-            >>> find_min_value()
-
-        Note:
-            The HashableImage object should be initialized before calling
-                this method.
-
         """
         if self._mode == "torch":
             value = self._image.float().min().item()
@@ -1271,13 +1049,6 @@ class HashableImage:
             float: The maximum value in the HashableImage object, rounded to
                 two decimal places.
 
-        Example:
-            >>> get_max_value()
-
-        Note:
-            The HashableImage object must be initialized before calling this
-                method.
-
         """
         if self._mode == "torch":
             value = self._image.float().max().item()
@@ -1297,13 +1068,6 @@ class HashableImage:
         Returns:
             float: The sum of all elements in the HashableImage object. The
                 sum is rounded to two decimal places for precision.
-
-        Example:
-            >>> hashable_image.calculate_sum()
-
-        Note:
-            The HashableImage object is assumed to contain numerical values
-                only.
 
         """
         if self._mode == "torch":
@@ -1392,14 +1156,6 @@ class HashableImage:
         Returns:
             Image.Image: A PIL Image object that represents the image data
                 stored in the instance.
-
-        Example:
-            >>> image = HashableImage()
-            >>> pil_image = image.pil()
-
-        Note:
-            The PIL Image object returned can be used for further image
-                processing or visualization.
 
         """
         if self._mode == "torch":
@@ -1491,14 +1247,6 @@ class HashableImage:
                 is the height, and w is the width. It can also return a
                 boolean value indicating if the conversion was successful.
 
-        Note:
-            - If the mode of the image data is 'torch', the method returns
-                the image data as is.
-            - If the mode is 'numpy', it converts the numpy array to a torch
-                tensor using the numpy2tensor function.
-            - If the mode is 'pil', it converts the PIL image to a torch
-                tensor using the pil2tensor function.
-
         """
         if self._mode == "torch":
             return self._image
@@ -1514,14 +1262,6 @@ class HashableImage:
 
         Returns:
             bytes: The image data as a bytes object.
-
-        Example:
-            >>> image = HashableImage(...)
-            >>> image_bytes = image.bytes()
-
-        Note:
-            The bytes object can be used for further processing or
-                serialization.
 
         """
         pil_image = self.pil()
@@ -1540,14 +1280,6 @@ class HashableImage:
 
         Returns:
             str: The image data as a base64 string.
-
-        Example:
-            >>> image = HashableImage(...)
-            >>> image_b64 = image.b64()
-
-        Note:
-            The base64 string can be used for further processing or
-                serialization.
 
         """
         if open_rb:
@@ -1571,13 +1303,6 @@ class HashableImage:
                 indicating whether the image is in 'pil', 'numpy', or
                 'torch' format.
 
-        Example:
-            >>> image = HashableImage(...)
-            >>> image.get_mode()
-            'numpy'
-        Note:
-            This method does not take any arguments.
-
         """
         return self._mode
 
@@ -1594,14 +1319,6 @@ class HashableImage:
 
         Returns:
             bool: Returns True if the image data is binary, False otherwise.
-
-        Example:
-            >>> image = HashableImage(data)
-            >>> image.is_binary()
-
-        Note:
-            A binary image is a digital image that has only two possible
-                values for each pixel.
 
         """
         if self._mode == "torch":
@@ -1626,14 +1343,6 @@ class HashableImage:
 
         Returns:
             bool: True if the image is in RGB format, False otherwise.
-
-        Example:
-            >>> image = HashableImage("image.jpg")
-            >>> image.is_rgb()
-
-        Note:
-            RGB format is a common, three-channel color model used in
-                digital imaging.
 
         """
         if self._mode == "torch":
@@ -1663,13 +1372,6 @@ class HashableImage:
         Raises:
             ValueError: If the image is neither binary nor RGB.
 
-        Example:
-            >>> image = HashableImage(...)
-            >>> image.get_shape()
-
-        Note:
-            The method does not support images other than binary or RGB.
-
         """
         h = int(self.size().height)
         w = int(self.size().width)
@@ -1697,13 +1399,6 @@ class HashableImage:
         Returns:
             HashableImage: A new HashableImage object that represents the
                 concatenated image based on the specified mode.
-
-        Example:
-            >>> img1.concat([img2, img3], "horizontal")
-
-        Note:
-            The images in the 'other' list are concatenated in the order
-                they appear in the list.
 
         """
         if self._mode == "torch":
@@ -1750,13 +1445,6 @@ class HashableImage:
                 shape '(1, c, h, w)',
             or Bool torch tensor with shape '(1, 1, h, w)'.
 
-        Example:
-            >>> img_data = HashableImage.get_raw_image_data()
-
-        Note:
-            The returned raw image data format depends on the original
-                format of the image stored in the HashableImage object.
-
         """
         return self._image
 
@@ -1784,14 +1472,6 @@ class HashableImage:
             HashableImage: A new HashableImage object representing the
                 result of the logical OR operation on the input
                 HashableImage objects.
-
-        Example:
-            >>> logical_or(self, [img1, img2, img3])
-
-        Note:
-            The HashableImage objects in the 'other' list must be of the
-                same dimensions as the 'self' object for the logical OR
-                operation to be successful.
 
         """
         if self._mode == "torch":
@@ -1883,13 +1563,6 @@ class HashableImage:
                 cropping the original image based on the provided mask. It
                 will have the same dimensions as the mask image.
 
-        Example:
-            >>> crop_image(mask_image, border=5, interpolation="bilinear")
-
-        Note:
-            The mask image should be a binary image where the regions to
-                keep are white and the regions to remove are black.
-
         """
         kwargs.setdefault("verbose", False)
         return HashableImage(
@@ -1941,15 +1614,6 @@ class HashableImage:
                 include all regions defined by the bounding boxes and
                 exclude everything else.
 
-        Example:
-            >>> img = HashableImage("image.jpg")
-            >>> bboxes = [(10, 10, 50, 50), (100, 100, 50, 50)]
-            >>> cropped_img = img.crop_image(bboxes)
-
-        Note:
-            If the bounding boxes overlap, the overlapping region will be
-                included only once in the cropped image.
-
         """
         # set bbox to the size of the image in case it is bigger, for both float and int
         return HashableImage(
@@ -1990,13 +1654,6 @@ class HashableImage:
         Returns:
             HashableImage: A HashableImage object representing the uncropped
                 image.
-
-        Example:
-            >>> uncrop_from_bboxes(self, base, bboxes, resize=False)
-
-        Note:
-            This method uses a Least Recently Used (LRU) cache for
-                performance optimization.
 
         """
         is_normalized = True
@@ -2062,13 +1719,6 @@ class HashableImage:
             HashableList: A list containing the bounding box coordinates
                 generated from the mask image.
 
-        Example:
-            >>> mask_to_bbox(self, **kwargs)
-
-        Note:
-            The mask2bbox function must be compatible with the provided
-                kwargs.
-
         """
         _bbox = mask2bbox(
             self.to_binary().numpy(),
@@ -2116,14 +1766,6 @@ class HashableImage:
             HashableImage: A new HashableImage object with the square mask
                 generated from the original mask.
 
-        Example:
-            >>> image = HashableImage(...)
-            >>> square_mask_image = image.convert_to_square_mask()
-
-        Note:
-            The mask2squaremask function requires certain keyword arguments.
-                Ensure these are passed to this method.
-
         """
         return HashableImage(
             mask2squaremask(self.to_binary().numpy(), *args, **kwargs)
@@ -2155,13 +1797,6 @@ class HashableImage:
         Returns:
             HashableImage: The HashableImage object resulting from the
                 blending operation.
-
-        Example:
-            >>> blend(mask, 0.5, with_bbox=True, merge_bbox=False)
-
-        Note:
-            The blend function modifies the original HashableImage object.
-                To keep the original intact, make a copy before blending.
 
         """
         if mask.sum() == 0:
@@ -2198,14 +1833,6 @@ class HashableImage:
             HashableImage: A new instance of HashableImage with the
                 morphological operation applied to the image.
 
-        Example:
-            >>> morphological_operation(1, np.array([[1, 1, 1], [1, 1, 1],
-                [1, 1, 1]]))
-
-        Note:
-            The operation argument should correspond to a valid
-                morphological operation type.
-
         """
         # https://docs.opencv.org/4.x/d9/d61/tutorial_py_morphological_ops.html
         _operation = getattr(cv2, f"MORPH_{operation.upper()}")
@@ -2233,14 +1860,6 @@ class HashableImage:
         Returns:
             HashableImage: A new HashableImage object with the image center
                 padded according to the specified image_size and fill value.
-
-        Example:
-            >>> image = HashableImage(...)
-            >>> padded_image = image.center_pad((500, 500), fill=255)
-
-        Note:
-            The padding is applied equally on all sides to maintain the
-                image's center.
 
         """
         return HashableImage(
@@ -2278,13 +1897,6 @@ class HashableImage:
         Returns:
             HashableImage: A HashableImage object representing the grid of
                 images with optional text labels.
-
-        Example:
-            >>> make_image_grid(images, "horizontal", with_text=True)
-
-        Note:
-            The images are padded with black to match the maximum height and
-                width in the grid.
 
         """
         image_as_list = deepcopy(images)
@@ -2365,13 +1977,6 @@ class HashableImage:
 
         Returns:
             None
-
-        Example:
-            >>> image.set_minmax(0.0, 1.0)
-
-        Note:
-            The minimum and maximum values are used to normalize the image
-                data.
 
         """
         data = self.tensor()
