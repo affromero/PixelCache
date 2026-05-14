@@ -45,7 +45,9 @@ def test_hash_is_cached(mid_rgb_np: np.ndarray) -> None:
 
 def test_eq_identity_shortcut(mid_rgb_np: np.ndarray) -> None:
     img = HashableImage(mid_rgb_np.copy())
-    assert img == img  # same object  # noqa: PLR0124
+    # `img == img` triggers PLR0124; call __eq__ directly to exercise
+    # the identity short-circuit without disabling the lint.
+    assert img.__eq__(img) is True
 
 
 def test_eq_returns_not_implemented_for_non_hashable_image(

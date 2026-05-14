@@ -11,19 +11,23 @@ if TYPE_CHECKING:
 
 
 def test_imports_all_public_names() -> None:
-    from pixelcache import (  # noqa: F401
-        BoundingBox,
-        HashableDict,
-        HashableImage,
-        HashableList,
-        ImageCrop,
-        ImageSize,
-        Points,
-        display_string,
-        get_logger,
-        pseudo_hash,
-        seed_everything,
+    import pixelcache
+
+    expected = (
+        "BoundingBox",
+        "HashableDict",
+        "HashableImage",
+        "HashableList",
+        "ImageCrop",
+        "ImageSize",
+        "Points",
+        "display_string",
+        "get_logger",
+        "pseudo_hash",
+        "seed_everything",
     )
+    for name in expected:
+        assert hasattr(pixelcache, name), f"missing public symbol: {name}"
 
 
 def test_construct_from_numpy(mid_rgb_np: np.ndarray) -> None:
@@ -60,7 +64,9 @@ def test_construct_from_path(mid_rgb_path: str) -> None:
 
 
 def test_pixelcache_main_module_is_gone() -> None:
+    import importlib
+
     import pytest
 
     with pytest.raises(ModuleNotFoundError):
-        import pixelcache.main  # noqa: F401
+        importlib.import_module("pixelcache.main")
