@@ -4,11 +4,11 @@ from dataclasses import field
 from itertools import product
 from pathlib import Path
 from typing import Literal, cast
+from urllib.request import urlopen
 
 import cv2
 import einops
 import numpy as np
-import requests
 import torch
 import torchvision.utils as tv
 from beartype import beartype
@@ -72,9 +72,7 @@ def read_image(
     is_heic = lower.endswith(".heic")
 
     if is_http:
-        with Image.open(
-            requests.get(fname_str, stream=True, timeout=10).raw,
-        ) as img:
+        with urlopen(fname_str, timeout=10) as resp, Image.open(resp) as img:
             return _pil_to_tensor(img)
     if is_local and is_heic:
         with Image.open(fname_str) as img:
