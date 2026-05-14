@@ -37,7 +37,7 @@ def _transformations_grid(out_path: str) -> None:
         ],
     }
     row2 = {
-        "apply_palette()": [src.to_gray().apply_palette()],
+        "apply_palette('viridis')": [src.to_gray().apply_palette("viridis")],
         "equalize_hist()": [src.equalize_hist().to_rgb()],
         "rotate(45)": [
             src.rotate(45.0).resize(ImageSize(height=192, width=192))
@@ -55,12 +55,15 @@ def _transformations_grid(out_path: str) -> None:
 
     width = max(top.shape[1], bot.shape[1])
 
-    def _pad(a: np.ndarray) -> np.ndarray:
+    def _center_pad(a: np.ndarray) -> np.ndarray:
         if a.shape[1] == width:
             return a
-        return np.pad(a, ((0, 0), (0, width - a.shape[1]), (0, 0)))
+        gap = width - a.shape[1]
+        left = gap // 2
+        right = gap - left
+        return np.pad(a, ((0, 0), (left, right), (0, 0)))
 
-    stacked = np.vstack([_pad(top), _pad(bot)])
+    stacked = np.vstack([_center_pad(top), _center_pad(bot)])
     HashableImage(stacked).save(out_path)
     logger.success(f"Wrote {out_path}")
 

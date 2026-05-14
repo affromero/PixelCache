@@ -2,7 +2,7 @@
 
 # PixelCache
 
-<img src="pixelcache/assets/pixel_cache.png" width="100" height="100"/>
+<img src="https://raw.githubusercontent.com/affromero/PixelCache/main/pixelcache/assets/pixel_cache.png" width="100" height="100"/>
 
 **One hashable wrapper for images stored as PIL, NumPy, or PyTorch — convert between them on demand, hash them safely as cache keys, and stop transferring pixel data through disk.**
 
@@ -12,6 +12,7 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/affromero/PixelCache/tests.yml?label=tests)](https://github.com/affromero/PixelCache/actions/workflows/tests.yml)
 [![Publish](https://img.shields.io/github/actions/workflow/status/affromero/PixelCache/publish.yml?label=publish)](https://github.com/affromero/PixelCache/actions/workflows/publish.yml)
 [![License: MIT](https://img.shields.io/github/license/affromero/PixelCache)](https://github.com/affromero/PixelCache/blob/main/LICENSE.md)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-261230?logo=ruff)](https://github.com/astral-sh/ruff)
 [![mypy](https://img.shields.io/badge/typing-mypy%20strict-blue)](http://mypy-lang.org/)
 [![jaxtyping](https://img.shields.io/badge/shapes-jaxtyping-orange)](https://github.com/patrick-kidger/jaxtyping)
@@ -32,22 +33,6 @@
 
 Every accessor returns an **independent copy** by default. Need the zero-copy view? Use the explicit `.numpy_view()`, `.tensor_view()`, `.pil_view()`, or `.raw_view()` — and never mutate them.
 
-## What's new in 0.1.0
-
-This is a near-complete rewrite of pixelcache. See [`CHANGELOG.md`](CHANGELOG.md) for the full breakdown.
-
-![Hot-path speedups](pixelcache/assets/perf_0_1_0.png)
-
-| Operation                         | 0.0.x                                                  | 0.1.0                                                               |
-| --------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------- |
-| `HashableImage(numpy_array)` ctor | `~10 ms` (always wrote a temp PNG to disk)             | `<1 ms` (lazy — only writes on `get_filename()`)                    |
-| `read_image(path)`                | Double-decode (EXIF check + actual decode)             | Single-decode (one PIL open or torchvision fast-path)               |
-| `hash(img)` (cached)              | `~17 μs` (re-materialized full pixel bytes every call) | `~0.4 μs` (xxhash content fingerprint cached on the instance)       |
-| `img.numpy()`                     | Returned the internal buffer (footgun)                 | Returns an independent copy — `numpy_view()` for explicit zero-copy |
-| `HashableDict` / `HashableList`   | Mutable, with stale-hash hazards                       | Immutable; deep-copy mutable leaves; read-side leaf protection      |
-
-Plus 12+ correctness bugs fixed (ImageCrop dims, Points axes, PIL-mode handling, `mask2bbox`, `bgr2rgb` torch path, `get_filename` fidelity, …) across 8 rounds of adversarial review.
-
 ## What can you build with it?
 
 PixelCache is the glue layer between PIL / NumPy / PyTorch image code that doesn't want to know which one it's holding. Some workflows it makes much simpler:
@@ -65,9 +50,11 @@ PixelCache is the glue layer between PIL / NumPy / PyTorch image code that doesn
 
 The same `HashableImage` instance can drive a whole pipeline — color, threshold, palette, geometric ops — without ever touching disk:
 
-![Transformations grid](pixelcache/assets/transformations.png)
+![Transformations grid](https://raw.githubusercontent.com/affromero/PixelCache/main/pixelcache/assets/transformations.png)
 
 ```python
+from pixelcache import HashableImage, ImageSize
+
 img = HashableImage("photo.jpg").resize(ImageSize(height=256, width=256))
 
 HashableImage.make_image_grid(
@@ -75,7 +62,7 @@ HashableImage.make_image_grid(
         "original":      [img],
         "to_gray()":     [img.to_gray().to_rgb()],
         "to_binary(.5)": [img.to_gray().to_binary(0.5).to_rgb()],
-        "apply_palette": [img.to_gray().apply_palette()],
+        "apply_palette": [img.to_gray().apply_palette("viridis")],
         "equalize_hist": [img.equalize_hist().to_rgb()],
         "rotate(45)":    [img.rotate(45.0).resize(ImageSize(height=256, width=256))],
     },
@@ -86,14 +73,21 @@ HashableImage.make_image_grid(
 
 Mask-driven workflows are one chain — derive a mask, blend it for debugging, crop the region of interest:
 
-![Mask workflow](pixelcache/assets/mask_workflow.png)
+![Mask workflow](https://raw.githubusercontent.com/affromero/PixelCache/main/pixelcache/assets/mask_workflow.png)
 
 ```python
-img    = HashableImage("photo.jpg")
-mask   = HashableImage(mask_np).to_binary(0.5)              # any source: numpy / torch / PIL
-debug  = img.blend(mask.to_rgb(), alpha=0.45, with_bbox=False)
-region = img.crop_from_mask(mask)                            # send `region` to your model
+import numpy as np
+from pixelcache import HashableImage
+
+img     = HashableImage("photo.jpg")
+mask_np = np.zeros((img.size().height, img.size().width), dtype=np.uint8)
+mask_np[64:192, 64:192] = 255                              # or any source: torch / PIL / detection model
+mask    = HashableImage(mask_np).to_binary(0.5)
+debug   = img.blend(mask.to_rgb(), alpha=0.45, with_bbox=False)
+region  = img.crop_from_mask(mask)                          # send `region` to your model
 ```
+
+The full reproducible generator for both PNGs lives in [`pixelcache/examples/visuals.py`](pixelcache/examples/visuals.py).
 
 ## Installation
 
@@ -282,3 +276,19 @@ If you found PixelCache useful, check out some other projects from the same auth
 | [**yazi-ssh.yazi**](https://github.com/affromero/yazi-ssh.yazi) | Browse remote filesystems in yazi over SSH                      | Lua · yazi plugin |
 | [**ply2lcc**](https://github.com/affromero/ply2lcc)             | Convert Gaussian Splats in PLY → XGRIDS LCC format              | Python · 3D       |
 | [**riasec-co**](https://github.com/affromero/riasec-co)         | Bayesian vocational orientation engine for Colombia             | npm · PyPI · CRAN |
+
+## What's new in 0.1.0
+
+This is a near-complete rewrite of pixelcache. See [`CHANGELOG.md`](CHANGELOG.md) for the full breakdown.
+
+![Hot-path speedups](https://raw.githubusercontent.com/affromero/PixelCache/main/pixelcache/assets/perf_0_1_0.png)
+
+| Operation                         | 0.0.x                                                  | 0.1.0                                                               |
+| --------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------- |
+| `HashableImage(numpy_array)` ctor | `~10 ms` (always wrote a temp PNG to disk)             | `<1 ms` (lazy — only writes on `get_filename()`)                    |
+| `read_image(path)`                | Double-decode (EXIF check + actual decode)             | Single-decode (one PIL open or torchvision fast-path)               |
+| `hash(img)` (cached)              | `~17 μs` (re-materialized full pixel bytes every call) | `~0.4 μs` (xxhash content fingerprint cached on the instance)       |
+| `img.numpy()`                     | Returned the internal buffer (footgun)                 | Returns an independent copy — `numpy_view()` for explicit zero-copy |
+| `HashableDict` / `HashableList`   | Mutable, with stale-hash hazards                       | Immutable; deep-copy mutable leaves; read-side leaf protection      |
+
+Plus 12+ correctness bugs fixed (ImageCrop dims, Points axes, PIL-mode handling, `mask2bbox`, `bgr2rgb` torch path, `get_filename` fidelity, …) across 8 rounds of adversarial review.
