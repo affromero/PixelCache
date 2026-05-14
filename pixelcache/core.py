@@ -3,7 +3,6 @@ import io
 import random
 import string
 import tempfile
-from copy import deepcopy
 from numbers import Number
 from pathlib import Path
 from typing import (
@@ -26,7 +25,7 @@ from matplotlib import colormaps
 from PIL import Image, ImageOps
 from torchvision.transforms import functional as TF
 
-from pixelcache._collections import HashableList
+from pixelcache._collections import HashableDict, HashableList
 from pixelcache._types import BoundingBox, Points
 from pixelcache.data.palette import color_palette
 from pixelcache.tools.bbox import crop_from_bbox, uncrop_from_bbox
@@ -1999,7 +1998,10 @@ class HashableImage:
     @staticmethod
     @jaxtyped(typechecker=beartype)
     def make_image_grid(
-        images: dict[str, list["HashableImage"]],
+        images: (
+            "dict[str, list[HashableImage]] | "
+            "HashableDict[str, HashableList[HashableImage]]"
+        ),
         *,
         orientation: Literal["horizontal", "vertical"] = "horizontal",
         with_text: bool = False,
@@ -2029,34 +2031,27 @@ class HashableImage:
                 images with optional text labels.
 
         """
-        image_as_list = deepcopy(images)
-        max_images = max([len(imgs) for imgs in image_as_list.values()])
-        for key, imgs in image_as_list.items():
+        image_as_list: dict[str, list[HashableImage]] = {
+            key: list(imgs) for key, imgs in images.items()
+        }
+        max_images = max(len(imgs) for imgs in image_as_list.values())
+        for imgs in image_as_list.values():
             if len(imgs) < max_images:
-                black_images = [imgs[0].zeros_like()] * (
-                    max_images - len(imgs)
-                )
-                image_as_list[key] += black_images
+                imgs.extend([imgs[0].zeros_like()] * (max_images - len(imgs)))
         # all images should have the same size, otherwise pad them with zeros to the max size
         max_height = max(
-            [
-                img.size().height
-                for imgs in image_as_list.values()
-                for img in imgs
-            ],
+            img.size().height
+            for imgs in image_as_list.values()
+            for img in imgs
         )
         max_width = max(
-            [
-                img.size().width
-                for imgs in image_as_list.values()
-                for img in imgs
-            ],
+            img.size().width for imgs in image_as_list.values() for img in imgs
         )
         new_size = ImageSize(height=max_height, width=max_width)
-        for key, imgs in image_as_list.items():
+        for imgs in image_as_list.values():
             for idx, img in enumerate(imgs):
                 if img.size() != new_size:
-                    image_as_list[key][idx] = img.center_pad(new_size)
+                    imgs[idx] = img.center_pad(new_size)
 
         # each index in the list is a different row
         all_images = []

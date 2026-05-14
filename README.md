@@ -8,7 +8,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/pixelcache)](https://pypi.org/project/pixelcache/)
 [![Downloads](https://img.shields.io/pypi/dm/pixelcache)](https://pypi.org/project/pixelcache/)
-[![Python](https://img.shields.io/pypi/pyversions/pixelcache)](https://pypi.org/project/pixelcache/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://pypi.org/project/pixelcache/)
 [![Tests](https://img.shields.io/github/actions/workflow/status/affromero/PixelCache/tests.yml?label=tests)](https://github.com/affromero/PixelCache/actions/workflows/tests.yml)
 [![Publish](https://img.shields.io/github/actions/workflow/status/affromero/PixelCache/publish.yml?label=publish)](https://github.com/affromero/PixelCache/actions/workflows/publish.yml)
 [![License: MIT](https://img.shields.io/github/license/affromero/PixelCache)](https://github.com/affromero/PixelCache/blob/main/LICENSE.md)
@@ -61,14 +61,50 @@ PixelCache is the glue layer between PIL / NumPy / PyTorch image code that doesn
 - **Bounding box arithmetic** — `BoundingBox(xmin, ymin, xmax, ymax, image_size=...)` carries normalized vs. pixel coords explicitly with `.xyxy` / `.xywh` / `.xyxyn` / `.xywhn`; arithmetic and equality compare by field, not just hash.
 - **Hashable params for ML configs** — `HashableDict({"image": img, "prompt": "...", "seed": 42})` makes whole inference configurations content-hashable so you can cache by *what the call looks like*, not by argument identity.
 
+## Visual examples
+
+The same `HashableImage` instance can drive a whole pipeline — color, threshold, palette, geometric ops — without ever touching disk:
+
+![Transformations grid](pixelcache/assets/transformations.png)
+
+```python
+img = HashableImage("photo.jpg").resize(ImageSize(height=256, width=256))
+
+HashableImage.make_image_grid(
+    {
+        "original":      [img],
+        "to_gray()":     [img.to_gray().to_rgb()],
+        "to_binary(.5)": [img.to_gray().to_binary(0.5).to_rgb()],
+        "apply_palette": [img.to_gray().apply_palette()],
+        "equalize_hist": [img.equalize_hist().to_rgb()],
+        "rotate(45)":    [img.rotate(45.0).resize(ImageSize(height=256, width=256))],
+    },
+    orientation="vertical",
+    with_text=True,
+).save("transformations.png")
+```
+
+Mask-driven workflows are one chain — derive a mask, blend it for debugging, crop the region of interest:
+
+![Mask workflow](pixelcache/assets/mask_workflow.png)
+
+```python
+img    = HashableImage("photo.jpg")
+mask   = HashableImage(mask_np).to_binary(0.5)              # any source: numpy / torch / PIL
+debug  = img.blend(mask.to_rgb(), alpha=0.45, with_bbox=False)
+region = img.crop_from_mask(mask)                            # send `region` to your model
+```
+
 ## Installation
 
 ```bash
-pip install pixelcache
+# From PyPI
+uv add pixelcache
 # or
-poetry add pixelcache
-# or from source
-poetry add git+ssh://git@github.com:affromero/pixelcache.git
+pip install pixelcache
+
+# From source
+uv add git+https://github.com/affromero/pixelcache.git
 ```
 
 Requires Python ≥ 3.10. Runtime deps: numpy, torch, torchvision, pillow, opencv-python, pydantic, jaxtyping, beartype, xxhash, matplotlib, difflogtest, einops, pillow-heif, rich, tyro.
