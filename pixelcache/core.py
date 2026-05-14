@@ -201,11 +201,19 @@ class HashableImage:
         self._cached_hash: int | None = None
 
     def _create_tmp_file(self) -> str:
-        """Create a temporary file."""
+        """Materialize this image to a fresh temp PNG and cache the path.
+
+        Updates both `_image_str` and `_src_fingerprint` so subsequent
+        `get_filename()` calls hit the cached path instead of writing
+        a new temp every time. Without the fingerprint refresh, an
+        in-memory HashableImage (whose `_src_fingerprint` starts at
+        `None`) would leak a new file on every call.
+        """
         self._image_str = tempfile.NamedTemporaryFile(
             prefix="pixelcache_", suffix=".png", delete=False
         ).name
         self.save(self._image_str)
+        self._src_fingerprint = _path_fingerprint(self._image_str)
         return self._image_str
 
     @staticmethod
@@ -218,8 +226,8 @@ class HashableImage:
         data: bytes,
         *,
         unchanged: bool = False,
-    ) -> np.ndarray:
-        """Decode image bytes to numpy without temp file overhead.
+    ) -> UInt8[np.ndarray, "h w 3"] | UInt8[np.ndarray, "h w"]:
+        """Decode image bytes to a uint8 numpy array without temp-file I/O.
 
         For high-throughput use cases (e.g. sensor frame loops)
         where raw JPEG/PNG bytes need efficient decoding without
@@ -228,11 +236,12 @@ class HashableImage:
         Args:
             data: Raw image bytes (JPEG, PNG, etc.).
             unchanged: If True, preserve original channel layout
-                (e.g. single-channel grayscale).  If False,
-                decode as BGR then convert to RGB.
+                (single-channel grayscale shape `h w`). If False,
+                decode as BGR then convert to RGB → shape `h w 3`.
 
         Returns:
-            Decoded image as uint8 numpy array.
+            Decoded image as a `uint8` numpy array — `h w 3` for RGB,
+            `h w` for grayscale (`unchanged=True`).
 
         Raises:
             ValueError: If decoding fails.
@@ -1931,7 +1940,7 @@ class HashableImage:
     def morphologyEx(  # noqa: N802
         self,
         operation: Literal["erode", "dilate", "open", "close"],
-        kernel: np.ndarray,
+        kernel: Float[np.ndarray, "k k"],
     ) -> "HashableImage":
         """Perform morphological operations on an image.
 

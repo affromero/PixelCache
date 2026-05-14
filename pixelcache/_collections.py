@@ -14,12 +14,10 @@ cached for hot-path cache-key usage.
 """
 
 from collections.abc import (
-    ItemsView,
     Iterator,
     KeysView,
     Mapping,
     Sequence,
-    ValuesView,
 )
 from typing import SupportsIndex, TypeVar, cast, overload
 
@@ -227,17 +225,17 @@ class HashableDict(Mapping[_KT, _VT]):
         """
         return HashableDict(self.__data.copy())
 
-    def values(self) -> ValuesView[_VT]:
-        """Return a view over the underlying dict's values."""
-        return self.__data.values()
-
     def keys(self) -> KeysView[_KT]:
-        """Return a view over the underlying dict's keys."""
-        return self.__data.keys()
+        """Return a view over the underlying dict's keys.
 
-    def items(self) -> ItemsView[_KT, _VT]:
-        """Return a view over the underlying dict's (key, value) pairs."""
-        return self.__data.items()
+        Keys are immutable types (str/int/hashable) so no protection
+        is needed. `values()` and `items()` deliberately fall through
+        to `Mapping`'s default implementations, which iterate keys
+        and call our protected `__getitem__` — so leaf values come
+        back safe (read-only ndarray view / cloned tensor / copied
+        PIL).
+        """
+        return self.__data.keys()
 
     def __repr__(self) -> str:
         """Return a string representation of the HashableDict object.
@@ -442,22 +440,14 @@ class HashableList(Sequence[_T]):
         return HashableList(self.__data.copy())
 
     def __iter__(self) -> Iterator[_T]:
-        """Enable iteration over instances of the HashableList class.
+        """Yield items with mutable leaves protected by `_safe_leaf`.
 
-        This method makes instances of the HashableList class iterable,
-            allowing
-        them to be used in a for loop or any other iteration context.
-
-        Args:
-            self (HashableList): The instance of the HashableList class.
-
-        Returns:
-            Iterator: An iterator object that enables iteration over the
-                data
-            stored in the HashableList instance.
-
+        Iteration was previously a leak path: `iter(self.__data)`
+        yielded raw internal ndarray/tensor/PIL leaves. Callers in a
+        `for x in hl: x[0] = ...` pattern could invalidate the cached
+        hash without going through the protected `__getitem__`.
         """
-        return iter(self.__data)
+        return (cast("_T", _safe_leaf(item)) for item in self.__data)
 
     @overload
     def __getitem__(self, __index: SupportsIndex, /) -> _T: ...

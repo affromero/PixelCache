@@ -30,7 +30,9 @@ def test_imports_all_public_names() -> None:
         assert hasattr(pixelcache, name), f"missing public symbol: {name}"
 
 
-def test_construct_from_numpy(mid_rgb_np: np.ndarray) -> None:
+def test_construct_from_numpy(
+    mid_rgb_np: UInt8[np.ndarray, "256 256 3"],
+) -> None:
     from pixelcache import HashableImage
 
     img = HashableImage(mid_rgb_np.copy())
@@ -47,7 +49,9 @@ def test_construct_from_pil(mid_rgb_pil: Image.Image) -> None:
     assert img.mode == "pil"
 
 
-def test_construct_from_tensor(mid_rgb_tensor: torch.Tensor) -> None:
+def test_construct_from_tensor(
+    mid_rgb_tensor: Float[torch.Tensor, "1 3 256 256"],
+) -> None:
     from pixelcache import HashableImage
 
     img = HashableImage(mid_rgb_tensor)

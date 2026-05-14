@@ -6,11 +6,14 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import numpy as np
+    from jaxtyping import UInt8
 
 from pixelcache import HashableImage
 
 
-def test_numpy_returns_copy(mid_rgb_np: np.ndarray) -> None:
+def test_numpy_returns_copy(
+    mid_rgb_np: UInt8[np.ndarray, "256 256 3"],
+) -> None:
     img = HashableImage(mid_rgb_np.copy())
     out = img.numpy()
     out[0, 0, 0] = 0
@@ -18,7 +21,9 @@ def test_numpy_returns_copy(mid_rgb_np: np.ndarray) -> None:
     assert img.numpy()[0, 0, 0] != 0 or mid_rgb_np[0, 0, 0] == 0
 
 
-def test_numpy_view_is_read_only(mid_rgb_np: np.ndarray) -> None:
+def test_numpy_view_is_read_only(
+    mid_rgb_np: UInt8[np.ndarray, "256 256 3"],
+) -> None:
     """`numpy_view()` returns an array with `writeable=False` so the
     HashableImage's cached hash can't be invalidated by accidental
     in-place mutation through the zero-copy escape hatch.
@@ -32,7 +37,9 @@ def test_numpy_view_is_read_only(mid_rgb_np: np.ndarray) -> None:
         view[0, 0, 0] = 0
 
 
-def test_tensor_returns_independent_clone(mid_rgb_np: np.ndarray) -> None:
+def test_tensor_returns_independent_clone(
+    mid_rgb_np: UInt8[np.ndarray, "256 256 3"],
+) -> None:
     """`tensor()` clones in torch mode so in-place ops on the result
     don't leak into the HashableImage's internal tensor.
     """
@@ -46,7 +53,9 @@ def test_tensor_returns_independent_clone(mid_rgb_np: np.ndarray) -> None:
     assert img.tensor().abs().sum().item() > 0
 
 
-def test_pil_returns_independent_copy(mid_rgb_np: np.ndarray) -> None:
+def test_pil_returns_independent_copy(
+    mid_rgb_np: UInt8[np.ndarray, "256 256 3"],
+) -> None:
     """`pil()` returns a fresh PIL image in pil mode so mutating it
     doesn't leak into the HashableImage's internal PIL object.
     """

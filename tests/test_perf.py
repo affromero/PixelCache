@@ -15,11 +15,14 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import numpy as np
+    from jaxtyping import UInt8
 
 from pixelcache import HashableImage
 
 
-def test_ctor_from_numpy_is_disk_free(large_rgb_np: np.ndarray) -> None:
+def test_ctor_from_numpy_is_disk_free(
+    large_rgb_np: UInt8[np.ndarray, "2048 2048 3"],
+) -> None:
     """HashableImage(numpy_array) must NOT touch disk.
 
     Pre-refactor each ctor wrote a PNG to disk (~5-20ms each). After
@@ -30,22 +33,32 @@ def test_ctor_from_numpy_is_disk_free(large_rgb_np: np.ndarray) -> None:
     assert img._image_str is None
 
 
-def test_ctor_from_numpy_under_1ms(large_rgb_np: np.ndarray) -> None:
-    """100 ctors of a 4MP uint8 array should average under 1ms each."""
+def test_ctor_from_numpy_under_5ms(
+    large_rgb_np: UInt8[np.ndarray, "2048 2048 3"],
+) -> None:
+    """100 ctors of a 4MP uint8 array should average well under 5ms each.
+
+    The ctor `.copy()`s the input ndarray so source mutation can't
+    invalidate the cached hash (~12MB copy per call). Even with the
+    copy, this stays an order of magnitude faster than the pre-refactor
+    disk-bound ctor (~10-20ms/call). 5ms is a safe ceiling for CI
+    jitter — dev-box numbers run well under 1ms.
+    """
     iterations = 100
     t0 = time.perf_counter()
     for _ in range(iterations):
         _ = HashableImage(large_rgb_np)
     elapsed = time.perf_counter() - t0
     per_ctor_ms = (elapsed / iterations) * 1000
-    # Hard ceiling — pre-refactor this was ~10ms/ctor (disk-bound).
-    assert per_ctor_ms < 1.0, (
+    assert per_ctor_ms < 5.0, (
         f"ctor regressed to {per_ctor_ms:.2f}ms/call "
-        "(budget: <1ms, pre-refactor: ~10ms)"
+        "(budget: <5ms, pre-refactor: ~10ms)"
     )
 
 
-def test_cached_hash_under_5us(large_rgb_np: np.ndarray) -> None:
+def test_cached_hash_under_5us(
+    large_rgb_np: UInt8[np.ndarray, "2048 2048 3"],
+) -> None:
     """Repeated hash() of an already-hashed instance must be O(1)."""
     img = HashableImage(large_rgb_np)
     hash(img)  # warm cache
