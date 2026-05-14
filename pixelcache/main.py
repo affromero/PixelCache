@@ -22,6 +22,7 @@ import numpy as np
 import torch
 from beartype import beartype
 from difflogtest import get_logger
+from difflogtest.utils.path import path_exists
 from jaxtyping import Bool, Float, UInt8
 from matplotlib import colormaps
 from PIL import Image, ImageOps
@@ -121,29 +122,19 @@ class HashableImage:
             | Bool[torch.Tensor, "1 1 h w"]
         ),
     ) -> None:
-        """Initialize an instance of the HashableImage class.
+        """Initialize a HashableImage from a path, URL, bytes, PIL, numpy, or tensor.
 
-        This method sets the image data and mode based on the provided input
-            type. If the input is not a file path, it saves the image data
-            to a temporary file.
+        Instances are immutable: `_image` is set only here and never mutated.
+        Construction does not touch disk; a temp file is materialized lazily
+        on the first `get_filename()` call.
 
-        Arguments:
-            image (Union[str, Path, bytes, Image, np.ndarray, torch.Tensor,
-                np.bool_]): The input image data. This can be a string file
-                path, Path object, bytes, PIL Image object, numpy array, torch
-                tensor, or boolean array.
-
-        Returns:
-            None
-        Example:
-            >>> img = HashableImage(image_data)
-
-        Note:
-            The temporary file created when the input is not a file path
-                will be deleted when the instance is garbage collected.
+        Args:
+            image: Source data. `str` / `Path` is loaded via `read_image`
+                (file path or HTTP URL). `bytes` is decoded as image data.
+                `Image.Image`, `np.ndarray`, and `torch.Tensor` are stored
+                in-memory without writing to disk.
 
         """
-        # pytorch is hashable
         if isinstance(image, torch.Tensor):
             self._image = image.detach().cpu()
         elif isinstance(image, str | Path):
@@ -159,10 +150,11 @@ class HashableImage:
         else:
             self._image = image
 
-        if isinstance(image, str | Path):
-            self._image_str = str(image)
-        else:
-            self._create_tmp_file()
+        # Source string: a real path/URL if we were constructed from one,
+        # otherwise None until get_filename() materializes a temp file.
+        self._image_str: str | None = (
+            str(image) if isinstance(image, str | Path) else None
+        )
 
     def _create_tmp_file(self) -> str:
         """Create a temporary file."""
@@ -224,29 +216,20 @@ class HashableImage:
         raise ValueError(msg)
 
     def get_filename(self) -> str:
-        """Retrieve the filename of the HashableImage object.
+        """Return a local filename for this image, materializing a temp on demand.
 
-        This method does not require any arguments.
+        Returns the source path if construction was given one and the file
+        still exists. Otherwise (in-memory construction, URL source, or temp
+        deleted by another process) writes a PNG temp file and caches its
+        path. Subsequent calls reuse the cached path.
 
         Returns:
-            str: A string representing the filename of the HashableImage
-                object.
-
-        Example:
-            >>> hashable_image.get_filename()
-
-        Note:
-            This method is typically used when you need to access the file
-                name of the image for further processing.
+            Absolute path to a readable image file.
 
         """
-        if (
-            not Path(self._image_str).exists()
-            or HashableImage(self._image_str) != self
-        ):
-            # update the filename
-            self._create_tmp_file()
-        return self._image_str
+        if self._image_str is not None and path_exists(self._image_str):
+            return self._image_str
+        return self._create_tmp_file()
 
     def get_local_filename(self) -> str:
         """Retrieve the local filename of the HashableImage object.
@@ -837,9 +820,7 @@ class HashableImage:
 
         """
         output: tuple[torch.Tensor, torch.Tensor, torch.Tensor] = (
-            self.tensor().unique(
-                return_counts=True, return_inverse=True, sorted=True
-            )
+            self.tensor().unique(return_counts=True, return_inverse=True, sorted=True)
         )
         _unique = output[0].tolist()
         _indices = output[1]
@@ -2257,8 +2238,8 @@ class HashableImage:
     def crop_from_mask(
         self,
         mask: "HashableImage",
-        *args: PCropArgs.args,  # type: ignore[valid-type]
-        **kwargs: PCropArgs.kwargs,  # type: ignore[valid-type]
+        *args: PCropArgs.args,
+        **kwargs: PCropArgs.kwargs,
     ) -> "HashableImage":
         """Crop an image based on a provided mask image.
 
@@ -2298,8 +2279,8 @@ class HashableImage:
     def crop_from_points(
         self,
         points: "Points",
-        *args: PCropArgs.args,  # type: ignore[valid-type]
-        **kwargs: PCropArgs.kwargs,  # type: ignore[valid-type]
+        *args: PCropArgs.args,
+        **kwargs: PCropArgs.kwargs,
     ) -> "HashableImage":
         """Crop an image based on the provided points."""
         # convert points to mask first
@@ -2618,8 +2599,8 @@ class HashableImage:
     @jaxtyped(typechecker=beartype)
     def mask2squaremask(
         self,
-        *args: PSquareMaskArgs.args,  # type: ignore[valid-type]
-        **kwargs: PSquareMaskArgs.kwargs,  # type: ignore[valid-type]
+        *args: PSquareMaskArgs.args,
+        **kwargs: PSquareMaskArgs.kwargs,
     ) -> "HashableImage":
         """Convert the mask of a HashableImage object to a square mask.
 
