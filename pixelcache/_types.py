@@ -160,24 +160,30 @@ class ImageCrop:
         # which imports _types.py for BoundingBox / Points type annotations.
         from pixelcache.core import HashableImage
 
+        # `TF.crop(img, top, left, height, width)` — height/width, NOT
+        # bottom/right. The pre-fix version passed bottom/right and
+        # also passed the HashableImage object (not image_pil) in the
+        # normalized branch.
         image_pil = image.pil()
         if self.is_normalized():
-            image_pil = TF.crop(
-                image,
-                self.top * image_pil.height,
-                self.left * image_pil.width,
-                self.bottom * image_pil.height,
-                self.right * image_pil.width,
+            h = image_pil.height
+            w = image_pil.width
+            cropped = TF.crop(
+                image_pil,
+                round(self.top * h),
+                round(self.left * w),
+                round((self.bottom - self.top) * h),
+                round((self.right - self.left) * w),
             )
         else:
-            image_pil = TF.crop(
+            cropped = TF.crop(
                 image_pil,
-                self.top,
-                self.left,
-                self.bottom,
-                self.right,
+                round(self.top),
+                round(self.left),
+                round(self.bottom - self.top),
+                round(self.right - self.left),
             )
-        return HashableImage(image_pil)
+        return HashableImage(cropped)
 
 
 @dataclass(config=ConfigDict(extra="forbid"), frozen=True)
@@ -477,45 +483,25 @@ class Points:
 
     @property
     def xy(self) -> Float[np.ndarray, "_ 2"]:
-        """Return the X and Y coordinates of the points.
+        """Return pixel-space `(x, y)` coordinates.
 
-        This method returns the X and Y coordinates of the points in the
-            Points object.
-
-        Args:
-            self (Points): The Points object for which the X and Y
-                coordinates are to be calculated.
-
-        Returns:
-            np.ndarray: A NumPy array containing the X and Y coordinates of
-                the points.
-
+        If points are stored in normalized form, scale by
+        `(width, height)` — `x` along width, `y` along height. The
+        pre-fix code multiplied by `(height, width)`, which flipped the
+        axes for non-square images.
         """
         if self.is_normalized:
             return self.points * np.array(
-                [self.image_size.height, self.image_size.width]
+                [self.image_size.width, self.image_size.height]
             )
         return self.points
 
     @property
     def xyn(self) -> Float[np.ndarray, "_ 2"]:
-        """Return the normalized X and Y coordinates of the points.
-
-        This method returns the normalized X and Y coordinates of the points
-            in the Points object.
-
-        Args:
-            self (Points): The Points object for which the normalized X and
-                Y coordinates are to be calculated.
-
-        Returns:
-            np.ndarray: A NumPy array containing the normalized X and Y
-                coordinates of the points.
-
-        """
+        """Return normalized `(x/width, y/height)` coordinates in `[0, 1]`."""
         if not self.is_normalized:
             return self.points / np.array(
-                [self.image_size.height, self.image_size.width]
+                [self.image_size.width, self.image_size.height]
             )
         return self.points
 

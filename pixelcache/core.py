@@ -1351,21 +1351,17 @@ class HashableImage:
 
     @jaxtyped(typechecker=beartype)
     def is_rgb(self) -> bool:
-        """Check if the image in the HashableImage object is in RGB format.
+        """Return True if this image has 3 RGB channels.
 
-        This method inspects the image stored in the HashableImage object
-            and determines whether it is in RGB format.
-
-        Args:
-            self (HashableImage): The HashableImage object containing the
-                image to be checked.
-
-        Returns:
-            bool: True if the image is in RGB format, False otherwise.
-
+        Each backend exposes channel count differently:
+        - torch: `(1, c, h, w)` → `shape[1] == 3`.
+        - numpy: `(h, w, c)` for 3-channel, `(h, w)` for 1-channel.
+        - PIL: no `.shape`; check `Image.mode == "RGB"`.
         """
         if self._mode == "torch":
             return self._image.shape[1] == 3
+        if self._mode == "pil":
+            return self._image.mode == "RGB"
         return len(self._image.shape) == 3 and self._image.shape[2] == 3
 
     @property
