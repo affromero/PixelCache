@@ -2197,34 +2197,24 @@ class HashableImage:
         self._cached_hash = hash((mode, self.dtype(), self.shape, content))
         return self._cached_hash
 
-    @jaxtyped(typechecker=beartype)
     def __eq__(self, other: object) -> bool:
-        """Compare two HashableImage objects for equality.
+        """Compare by identity, then cached hash, then content.
 
-        This method determines if two HashableImage objects are equal based
-            on their mode and image data.
-
-        Arguments:
-            self ('HashableImage'): The HashableImage object calling the
-                method.
-            other ('HashableImage'): The HashableImage object to compare
-                with.
-
-        Returns:
-            bool: Returns True if the two HashableImage objects are equal in
-                terms of mode and image data. Returns False otherwise.
-
-        Example:
-            >>> img1.equals(img2)
-
-        Note:
-            The equality is determined based on the mode and image data of
-                the HashableImage objects.
-
+        Short-circuits in this order:
+        1. `self is other` — same object.
+        2. `not isinstance(other, HashableImage)` — `NotImplemented`.
+        3. `hash(self) != hash(other)` — distinct content/shape/mode
+           (hashes are cached, so this is O(1) after the first call).
+        4. Full byte-level comparison — only runs on a hash collision
+           or on first-time pairs whose caches happen to be cold.
         """
+        if self is other:
+            return True
         if not isinstance(other, HashableImage):
             return NotImplemented
-        if self._mode != other.mode:
+        if hash(self) != hash(other):
+            return False
+        if self._mode != other._mode:
             return False
         if self._mode == "torch":
             return torch.equal(self._image, other._image)
