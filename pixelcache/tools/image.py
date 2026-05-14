@@ -1,3 +1,4 @@
+import os
 import tempfile
 from dataclasses import field
 from itertools import product
@@ -179,36 +180,26 @@ def compress_image(
     temp_dir: str | Path | None = None,
     jpeg_quality: int,
 ) -> str:
-    """Compress an image to a JPEG file with a specified quality level.
+    """Save a PIL image as a JPEG temp file and return its path.
 
-    This function takes in an image in pillow format and compresses it to
-        a JPEG file with a specified quality level.
-    It saves the compressed image in a temporary directory and returns the
-        path to the compressed JPEG file.
-
-    Arguments:
-        image (Image.Image): The input image to be compressed.
-        temp_dir (Union[str, Path, None]): Optional temporary directory to
-            save the compressed image. Defaults to None.
-        jpeg_quality (int): Quality level for JPEG compression.
+    Args:
+        image: Source PIL image.
+        temp_dir: Directory for the temp file. Defaults to
+            `tempfile.gettempdir()`.
+        jpeg_quality: JPEG quality level (1 worst, 95 best).
 
     Returns:
-        str: Path to the compressed JPEG file.
-
-    Example:
-        >>> compress_image(image, temp_dir="/tmp", jpeg_quality=75)
-
-    Note:
-        The quality level for JPEG compression should be in the range of 1
-            (worst) to 95 (best).
+        Absolute path to the compressed JPEG file. The file persists for
+        the caller's lifetime — pixelcache does not auto-delete.
 
     """
-    if temp_dir is None:
-        temp_dir = Path(tempfile.gettempdir())
-    jpg_file = tempfile.NamedTemporaryFile(
-        dir=str(temp_dir),
-        suffix=".jpg",
-    ).name
+    dir_str = str(temp_dir) if temp_dir is not None else tempfile.gettempdir()
+    # Use mkstemp + os.close instead of NamedTemporaryFile.name: the
+    # wrapper-object approach deletes the file when the wrapper is GC'd,
+    # leaving callers with a dangling path. mkstemp owns the path
+    # outright.
+    fd, jpg_file = tempfile.mkstemp(dir=dir_str, suffix=".jpg")
+    os.close(fd)
     image.save(jpg_file, optimize=True, quality=jpeg_quality)
     return jpg_file
 
