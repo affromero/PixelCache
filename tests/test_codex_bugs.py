@@ -263,3 +263,64 @@ def test_numpy_view_is_read_only_raises() -> None:
     view = img.numpy_view()
     with pytest.raises(ValueError, match="read-only|writeable"):
         view[0, 0, 0] = 99
+
+
+# ----------------------------- Constructor isolation -------------------
+
+
+def test_ctor_isolates_numpy_source_mutation() -> None:
+    """Mutating the source ndarray AFTER construction must NOT change
+    the HashableImage's cached hash. Constructor must `.copy()`.
+    """
+    arr = np.zeros((8, 8, 3), dtype=np.uint8)
+    img = HashableImage(arr)
+    h_before = hash(img)
+    arr[0, 0, 0] = 99  # mutate the original
+    assert hash(img) == h_before
+
+
+def test_ctor_isolates_tensor_source_mutation() -> None:
+    """Mutating the source tensor AFTER construction must NOT change
+    the HashableImage's cached hash. Constructor must `.clone()`.
+    """
+    import torch
+
+    src = torch.zeros(1, 3, 16, 16)
+    img = HashableImage(src)
+    h_before = hash(img)
+    src.add_(1.0)  # in-place mutation of the source
+    assert hash(img) == h_before
+
+
+def test_ctor_isolates_pil_source_mutation() -> None:
+    """Mutating the source PIL image AFTER construction must NOT
+    change the HashableImage's cached hash. Constructor must
+    `.copy()`.
+    """
+    src = Image.new("RGB", (16, 16), color=(10, 20, 30))
+    img = HashableImage(src)
+    h_before = hash(img)
+    src.putpixel((0, 0), (99, 99, 99))
+    assert hash(img) == h_before
+
+
+# ----------------------------- raw() safety ----------------------------
+
+
+def test_raw_returns_independent_copy() -> None:
+    """`raw()` must not return the internal buffer for any storage
+    mode. Mutating the result must not affect the HashableImage.
+    """
+    img = HashableImage(np.zeros((16, 16, 3), dtype=np.uint8))
+    r = img.raw()
+    r[0, 0, 0] = 99
+    assert img.raw()[0, 0, 0] != 99
+    assert img.numpy()[0, 0, 0] != 99
+
+
+def test_raw_view_aliases_internal_buffer() -> None:
+    """`raw_view()` returns the internal reference (caller acknowledges
+    the mutation risk).
+    """
+    img = HashableImage(np.zeros((16, 16, 3), dtype=np.uint8))
+    assert img.raw_view() is img._image

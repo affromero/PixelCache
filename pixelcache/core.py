@@ -136,8 +136,12 @@ class HashableImage:
                 in-memory without writing to disk.
 
         """
+        # Deep-copy mutable inputs so external mutation of the source
+        # can't silently invalidate the cached hash. `read_image` and
+        # `Image.open` already return fresh objects, so they don't
+        # need an extra copy.
         if isinstance(image, torch.Tensor):
-            self._image = image.detach().cpu()
+            self._image = image.detach().cpu().clone()
         elif isinstance(image, str | Path):
             try:
                 self._image = read_image(image)
@@ -145,9 +149,11 @@ class HashableImage:
                 msg = f"Error reading image {image}: {e}"
                 raise RuntimeError(msg) from e
         elif isinstance(image, Image.Image):
-            self._image = _normalize_pil_mode(image)
+            self._image = _normalize_pil_mode(image).copy()
         elif isinstance(image, bytes):
             self._image = _normalize_pil_mode(Image.open(io.BytesIO(image)))
+        elif isinstance(image, np.ndarray):
+            self._image = image.copy()
         else:
             self._image = image
 
@@ -1469,21 +1475,38 @@ class HashableImage:
         | Float[torch.Tensor, "1 c h w"]
         | Bool[torch.Tensor, "1 1 h w"]
     ):
-        """Retrieve the raw image data stored in the HashableImage object.
+        """Return the underlying image as its native type (independent copy).
 
-        Args:
-            self (HashableImage): The HashableImage object for which the raw
-                image data is to be retrieved.
+        For callers who don't know or care about the storage mode,
+        this returns whatever native type the image was stored as
+        (PIL.Image, np.ndarray, or torch.Tensor) — but always a
+        fresh, mutation-safe copy. For zero-copy access use
+        `raw_view()`.
+        """
+        if isinstance(self._image, torch.Tensor):
+            return self._image.clone()
+        if isinstance(self._image, np.ndarray):
+            return self._image.copy()
+        return self._image.copy()
 
-        Returns:
-            Union[Image.Image, np.ndarray, torch.Tensor]: The raw image data
-                in various formats such as PIL Image,
-            UInt8 numpy array with shape '(h, w, 3)', UInt8 numpy array with
-                shape '(h, w)',
-            Bool numpy array with shape '(h, w)', Float torch tensor with
-                shape '(1, c, h, w)',
-            or Bool torch tensor with shape '(1, 1, h, w)'.
+    @jaxtyped(typechecker=beartype)
+    def raw_view(
+        self,
+    ) -> (
+        Image.Image
+        | UInt8[np.ndarray, "h w 3"]
+        | UInt8[np.ndarray, "h w"]
+        | Bool[np.ndarray, "h w"]
+        | Float[torch.Tensor, "1 c h w"]
+        | Bool[torch.Tensor, "1 1 h w"]
+    ):
+        """Return the underlying image as its native type, **no copy**.
 
+        Zero-copy alternative to `raw()` for read-only consumers in
+        perf-critical loops. **Mutating the returned object mutates
+        the HashableImage's internal state and silently invalidates
+        the cached hash** — only use when you control the buffer
+        lifetime.
         """
         return self._image
 
