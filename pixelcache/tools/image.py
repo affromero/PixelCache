@@ -2,7 +2,7 @@ import tempfile
 from dataclasses import field
 from itertools import product
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 from urllib.request import urlopen
 
 import cv2
@@ -13,7 +13,7 @@ import torchvision.utils as tv
 from beartype import beartype
 from difflogtest.utils.path import path_exists
 from jaxtyping import Bool, Float, UInt8, jaxtyped
-from PIL import Image, ImageCms, ImageOps
+from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -1047,61 +1047,6 @@ def to_rgb(
     if isinstance(rgb, Image.Image):
         return rgb.convert("RGB")
     return einops.repeat(rgb, "1 1 h w -> 1 c h w", c=3)
-
-
-@jaxtyped(typechecker=beartype)
-def convert_to_space_color(
-    image_np: UInt8[np.ndarray, "h w 3"],
-    space: str,
-    /,
-    *,
-    getchannel: str | None = None,
-) -> UInt8[np.ndarray, "h w 3"]:
-    """Convert an image to a specified color space and optionally extract a.
-
-        specific channel.
-
-    Arguments:
-        image (Union[np.ndarray, Image.Image]): The input image, which can
-            be a numpy array or a PIL Image.
-        space (str): The color space to which the image should be converted.
-        getchannel (Optional[str]): Optional argument to extract a specific
-            channel from the image. Defaults to None.
-
-    Returns:
-        Union[np.ndarray, Image.Image]: The converted image in the specified
-            color space.
-
-    Example:
-        >>> convert_color_space(image, "RGB", getchannel="R")
-
-    Note:
-        The image input should be in the form of a numpy array or PIL Image.
-            The color space can be any valid color space.
-
-    """
-    if getchannel is not None and len(getchannel) > 1:
-        msg = "getchannel must be a single string"
-        raise TypeError(msg)
-
-    image = Image.fromarray(image_np).convert("RGB")
-    if space == "LAB":
-        # Convert to Lab colourspace
-        srgb_p = ImageCms.createProfile("sRGB")
-        lab_p = ImageCms.createProfile("LAB")
-
-        rgb2lab = ImageCms.buildTransformFromOpenProfiles(
-            srgb_p,
-            lab_p,
-            "RGB",
-            "LAB",
-        )
-        image = cast(Image.Image, ImageCms.applyTransform(image, rgb2lab))
-    else:
-        image = image.convert(space)
-    if getchannel is not None:
-        image = image.getchannel(getchannel).convert("RGB")
-    return np.asarray(image)
 
 
 @jaxtyped(typechecker=beartype)

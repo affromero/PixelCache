@@ -31,7 +31,7 @@ def main() -> None:
         images_hash[1]
         .center_pad(increased_size_pad, fill=255)
         .resize(image_size)
-        .to_space_color("HSV", getchannel="S")
+        .to_gray()
         .to_binary(0.3)
     )
     cropped = resized_images[1].crop_from_mask(mask)
