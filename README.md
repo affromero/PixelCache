@@ -2,7 +2,7 @@
 
 # PixelCache
 
-<img src="https://raw.githubusercontent.com/affromero/PixelCache/main/pixelcache/assets/pixel_cache.png" width="100" height="100"/>
+<img src="https://raw.githubusercontent.com/affromero/PixelCache/v0.1.0/pixelcache/assets/pixel_cache.png" width="100" height="100"/>
 
 **One hashable wrapper for images stored as PIL, NumPy, or PyTorch — convert between them on demand, hash them safely as cache keys, and stop transferring pixel data through disk.**
 
@@ -50,7 +50,7 @@ PixelCache is the glue layer between PIL / NumPy / PyTorch image code that doesn
 
 The same `HashableImage` instance can drive a whole pipeline — color, threshold, palette, geometric ops — without ever touching disk:
 
-![Transformations grid](https://raw.githubusercontent.com/affromero/PixelCache/main/pixelcache/assets/transformations.png)
+![Transformations grid](https://raw.githubusercontent.com/affromero/PixelCache/v0.1.0/pixelcache/assets/transformations.png)
 
 ```python
 from pixelcache import HashableImage, ImageSize
@@ -73,15 +73,16 @@ HashableImage.make_image_grid(
 
 Mask-driven workflows are one chain — derive a mask, blend it for debugging, crop the region of interest:
 
-![Mask workflow](https://raw.githubusercontent.com/affromero/PixelCache/main/pixelcache/assets/mask_workflow.png)
+![Mask workflow](https://raw.githubusercontent.com/affromero/PixelCache/v0.1.0/pixelcache/assets/mask_workflow.png)
 
 ```python
 import numpy as np
 from pixelcache import HashableImage
 
 img     = HashableImage("photo.jpg")
-mask_np = np.zeros((img.size().height, img.size().width), dtype=np.uint8)
-mask_np[64:192, 64:192] = 255                              # or any source: torch / PIL / detection model
+h, w    = img.size().height, img.size().width
+mask_np = np.zeros((h, w), dtype=np.uint8)
+mask_np[h // 4 : 3 * h // 4, w // 4 : 3 * w // 4] = 255    # or any source: torch / PIL / detection model
 mask    = HashableImage(mask_np).to_binary(0.5)
 debug   = img.blend(mask.to_rgb(), alpha=0.45, with_bbox=False)
 region  = img.crop_from_mask(mask)                          # send `region` to your model
@@ -281,7 +282,7 @@ If you found PixelCache useful, check out some other projects from the same auth
 
 This is a near-complete rewrite of pixelcache. See [`CHANGELOG.md`](CHANGELOG.md) for the full breakdown.
 
-![Hot-path speedups](https://raw.githubusercontent.com/affromero/PixelCache/main/pixelcache/assets/perf_0_1_0.png)
+![Hot-path speedups](https://raw.githubusercontent.com/affromero/PixelCache/v0.1.0/pixelcache/assets/perf_0_1_0.png)
 
 | Operation                         | 0.0.x                                                  | 0.1.0                                                               |
 | --------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------- |

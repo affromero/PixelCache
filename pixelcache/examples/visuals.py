@@ -70,8 +70,9 @@ def _transformations_grid(out_path: str) -> None:
 
 def _mask_workflow(out_path: str) -> None:
     photo = HashableImage(SOURCE).resize(ImageSize(height=256, width=256))
-    mask_np = np.zeros((256, 256), dtype=np.uint8)
-    mask_np[64:192, 64:192] = 255
+    h, w = photo.size().height, photo.size().width
+    mask_np = np.zeros((h, w), dtype=np.uint8)
+    mask_np[h // 4 : 3 * h // 4, w // 4 : 3 * w // 4] = 255
     mask = HashableImage(mask_np).to_binary(0.5)
 
     blended = photo.blend(mask.to_rgb(), alpha=0.45, with_bbox=False)
