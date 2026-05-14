@@ -11,6 +11,7 @@ import requests
 import torch
 import torchvision.utils as tv
 from beartype import beartype
+from difflogtest.utils.path import path_exists
 from jaxtyping import Bool, Float, UInt8, jaxtyped
 from PIL import Image, ImageCms, ImageOps
 from pillow_heif import register_heif_opener
@@ -27,29 +28,14 @@ from torchvision.utils import make_grid
 register_heif_opener()
 
 
-def _has_exif_rotation(fname: str | Path) -> bool:
-    """Check if image has EXIF orientation that requires rotation."""
-    try:
-        with Image.open(fname) as img:
-            exif = img._getexif()
-            if exif:
-                orientation = exif.get(274)  # 274 is EXIF orientation tag
-                return orientation is not None and orientation != 1
-    except Exception:
-        pass
-    return False
+_EXIF_ORIENTATION_TAG = 274
 
 
-def _read_with_exif_transpose(fname: str | Path) -> Float[torch.Tensor, "1 c h w"]:
-    """Read image with PIL and apply EXIF transpose."""
-    with Image.open(fname) as img:
-        img = ImageOps.exif_transpose(img)
-        if img is None:
-            msg = f"Failed to transpose image: {fname}"
-            raise RuntimeError(msg)
-        img = img.convert("RGB")
-        tensor = torch.from_numpy(np.array(img)).permute(2, 0, 1)
-    return tensor
+def _pil_to_tensor(img: Image.Image) -> Float[torch.Tensor, "1 c h w"]:
+    """Decode a PIL image to a `1 c h w` float tensor in `[0, 1]`."""
+    arr = np.asarray(img.convert("RGB"))
+    tensor = torch.from_numpy(arr).permute(2, 0, 1)
+    return tensor[None] / 255.0
 
 
 @jaxtyped(typechecker=beartype)
@@ -57,54 +43,61 @@ def read_image(
     fname: str | Path,
     /,
 ) -> Float[torch.Tensor, "1 c h w"]:
-    """Read an image from a file on disk.
+    """Read an image into a `1 c h w` float tensor with a single decode pass.
 
-    Arguments:
-        fname (str): The filename of the image file to be read. It should
-            include the complete path if the file is not in the same
-            directory.
+    Decode strategy:
+    - **Local JPEG/PNG without EXIF rotation:** torchvision fast path
+      (`decode_jpeg` / `decode_png`). One file read, one decode.
+    - **Local file with EXIF orientation tag != 1:** PIL with
+      `exif_transpose` on the open handle. One decode.
+    - **HEIC:** PIL (via `pillow_heif`). One decode.
+    - **HTTP / HTTPS URL:** stream via `requests`, decode via PIL. One
+      decode.
+
+    Args:
+        fname: Local path or HTTP URL.
 
     Returns:
-        np.array: A numpy array representation of the image, where each
-            pixel is represented as a list of its RGB values.
+        Float tensor in `[0, 1]` with shape `1 c h w`.
 
-    Example:
-        >>> read_image_from_file("image.jpg")
-
-    Note:
-        This function requires the numpy and PIL libraries. Make sure they
-            are installed and imported before using this function.
+    Raises:
+        RuntimeError: If the source is neither a local file nor an HTTP URL.
 
     """
-    if Path(fname).exists() and not str(fname).lower().endswith(".heic"):
-        # Check for EXIF rotation (common in phone photos)
-        if _has_exif_rotation(fname):
-            tensor = _read_with_exif_transpose(fname)
-        else:
-            data = read_file(str(fname))
-            try:
-                tensor = decode_jpeg(data, device="cpu")
-            except RuntimeError:
-                tensor = decode_png(data, ImageReadMode.RGB)
-    elif str(fname).lower().endswith(".heic"):
-        tensor = torch.from_numpy(np.array(Image.open(str(fname)))).permute(
-            2, 0, 1
-        )
-    elif "http" in str(fname):
-        raw_np = np.asarray(
-            cast(
-                Image.Image,
-                Image.open(
-                    requests.get(str(fname), stream=True, timeout=10).raw
-                ),
-            ),
-        )
-        tensor = torch.from_numpy(raw_np.copy()).permute(2, 0, 1)
-    else:
-        msg = f"file not supported: {fname}"
-        raise RuntimeError(msg)
-    image: Float[torch.Tensor, "1 c h w"] = tensor[None] / 255.0
-    return image
+    fname_str = str(fname)
+    lower = fname_str.lower()
+    is_http = lower.startswith(("http://", "https://"))
+    is_local = path_exists(fname_str)
+    is_heic = lower.endswith(".heic")
+
+    if is_http:
+        with Image.open(
+            requests.get(fname_str, stream=True, timeout=10).raw,
+        ) as img:
+            return _pil_to_tensor(img)
+    if is_local and is_heic:
+        with Image.open(fname_str) as img:
+            return _pil_to_tensor(img)
+    if is_local:
+        # Lazy header open: getexif() reads metadata without decoding pixels.
+        with Image.open(fname_str) as img:
+            orientation = img.getexif().get(_EXIF_ORIENTATION_TAG)
+            if orientation is not None and orientation != 1:
+                rotated = ImageOps.exif_transpose(img)
+                if rotated is None:
+                    msg = f"Failed to transpose image: {fname}"
+                    raise RuntimeError(msg)
+                return _pil_to_tensor(rotated)
+        # No EXIF rotation → torchvision fast path on the same file.
+        data = read_file(fname_str)
+        try:
+            tensor = decode_jpeg(data, device="cpu")
+        except RuntimeError:
+            tensor = decode_png(data, ImageReadMode.RGB)
+        return tensor[None] / 255.0
+
+    msg = f"file not supported: {fname}"
+    raise RuntimeError(msg)
 
 
 @jaxtyped(typechecker=beartype)
