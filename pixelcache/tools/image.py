@@ -1,4 +1,3 @@
-import os
 import tempfile
 from dataclasses import field
 from itertools import product
@@ -52,8 +51,8 @@ def read_image(
     - **Local file with EXIF orientation tag != 1:** PIL with
       `exif_transpose` on the open handle. One decode.
     - **HEIC:** PIL (via `pillow_heif`). One decode.
-    - **HTTP / HTTPS URL:** stream via `requests`, decode via PIL. One
-      decode.
+    - **HTTP / HTTPS URL:** stream via `urllib.request`, decode via
+      PIL. One decode.
 
     Args:
         fname: Local path or HTTP URL.
@@ -169,37 +168,6 @@ def save_image(
             scale_each=scale_each,
             pad_value=pad_value,
         )
-
-
-@jaxtyped(typechecker=beartype)
-def compress_image(
-    image: Image.Image,
-    *,
-    temp_dir: str | Path | None = None,
-    jpeg_quality: int,
-) -> str:
-    """Save a PIL image as a JPEG temp file and return its path.
-
-    Args:
-        image: Source PIL image.
-        temp_dir: Directory for the temp file. Defaults to
-            `tempfile.gettempdir()`.
-        jpeg_quality: JPEG quality level (1 worst, 95 best).
-
-    Returns:
-        Absolute path to the compressed JPEG file. The file persists for
-        the caller's lifetime — pixelcache does not auto-delete.
-
-    """
-    dir_str = str(temp_dir) if temp_dir is not None else tempfile.gettempdir()
-    # Use mkstemp + os.close instead of NamedTemporaryFile.name: the
-    # wrapper-object approach deletes the file when the wrapper is GC'd,
-    # leaving callers with a dangling path. mkstemp owns the path
-    # outright.
-    fd, jpg_file = tempfile.mkstemp(dir=dir_str, suffix=".jpg")
-    os.close(fd)
-    image.save(jpg_file, optimize=True, quality=jpeg_quality)
-    return jpg_file
 
 
 @jaxtyped(typechecker=beartype)
