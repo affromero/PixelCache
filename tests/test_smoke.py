@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import numpy as np
     import torch
+    from jaxtyping import Float, UInt8
     from PIL import Image
 
 
