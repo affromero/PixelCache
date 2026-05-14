@@ -3318,32 +3318,28 @@ class HashableDict(MutableMapping[_KT, _VT]):
             else:
                 new_data[k] = v
         self.__data = new_data
+        # Lazy hash cache; safe because __data is replaced by __setitem__
+        # / __delitem__ etc. which must invalidate it.
+        self._cached_hash: int | None = None
 
     def __hash__(self) -> int:
-        """Calculate the hash value of a HashableDict object.
+        """Return a cached structural hash for this dict.
 
-        This method computes the hash value of a HashableDict object based
-            on its items. The hash value is determined by
-        applying a hash function to the items of the HashableDict.
-
-        Arguments:
-            self (HashableDict): The HashableDict object for which the hash
-                value is being calculated.
+        First call walks the items, hashing raw `torch.Tensor` /
+        `np.ndarray` / `PIL.Image` values via their byte buffers and
+        delegating to `hash()` for everything else (HashableImage,
+        HashableDict, HashableList — which now cache their own hashes —
+        and ordinary hashable types). Subsequent calls return the
+        cached int.
 
         Returns:
-            int: The hash value of the HashableDict object.
-
-        Example:
-            >>> hashable_dict = HashableDict({'key1': 'value1', 'key2':
-                'value2'})
-            >>> hashable_dict.calculate_hash()
-
-        Note:
-            The hash function used may vary based on the Python interpreter
-                and its version.
+            Hash int derived from a `frozenset` of `(key, value-hash)`
+            tuples.
 
         """
-        items = {}
+        if self._cached_hash is not None:
+            return self._cached_hash
+        items: dict[_KT, int] = {}
         for k, v in self.__data.items():
             if isinstance(v, torch.Tensor):
                 items[k] = hash(v.detach().cpu().numpy().tobytes())
@@ -3351,7 +3347,8 @@ class HashableDict(MutableMapping[_KT, _VT]):
                 items[k] = hash(v.tobytes())
             else:
                 items[k] = hash(v)
-        return hash(frozenset(items.items()))
+        self._cached_hash = hash(frozenset(items.items()))
+        return self._cached_hash
 
     def __eq__(self, other: object) -> bool:
         """Compare two HashableDict instances for equality.
@@ -3552,54 +3549,14 @@ class HashableDict(MutableMapping[_KT, _VT]):
         return self.__data[__name]
 
     def __setitem__(self, __name: _KT, __value: _VT, /) -> None:
-        """Set a key-value pair in a HashableDict object.
-
-        This method allows for setting a key-value pair in a HashableDict
-            object. It takes a key and a value and associates the value with
-            the key in the HashableDict object.
-
-        Arguments:
-            __name (str): The key to be set in the HashableDict object.
-            __value (Any): The value to be associated with the key in the
-                HashableDict object.
-
-        Returns:
-            None: This method does not return any value.
-
-        Example:
-            >>> hash_dict = HashableDict()
-            >>> hash_dict.set_key_value("name", "John Doe")
-
-        Note:
-            The key must be of type string and the value can be of any type.
-
-        """
+        """Assign a value to a key; invalidates the hash cache."""
         self.__data[__name] = __value
+        self._cached_hash = None
 
     def __delitem__(self, __name: _KT, /) -> None:
-        """Delete an item from the HashableDict class.
-
-        This method removes an item from the HashableDict class based on the
-            provided key.
-
-        Arguments:
-            __name (_KT): The key of the item to be deleted from the
-                HashableDict.
-
-        Returns:
-            None: This method does not return anything, it simply removes
-                the item from the HashableDict.
-
-        Example:
-            >>> hash_dict = HashableDict({1: "a", 2: "b", 3: "c"})
-            >>> hash_dict.delete_item(2)
-
-        Note:
-            After this method is called, the HashableDict will no longer
-                contain an item with the provided key.
-
-        """
+        """Remove a key from the dict; invalidates the hash cache."""
         del self.__data[__name]
+        self._cached_hash = None
 
     def __iter__(self) -> Iterator[_KT]:
         """Make instances of the HashableDict class iterable.
@@ -3679,66 +3636,40 @@ class HashableList(MutableSequence[_T]):
 
         """
         new_data: list[_T] = []
-        for idx in range(len(data)):
-            if isinstance(data[idx], dict):
-                new_data.append(
-                    cast(
-                        "_T",
-                        HashableDict(data[idx]),  # type: ignore[arg-type]
-                    ),
-                )
-            elif isinstance(data[idx], list):
-                new_data.append(
-                    cast("_T", HashableList(cast("list[_T]", data[idx]))),
-                )
-            elif isinstance(data[idx], HashableDict):
-                new_data.append(
-                    cast(
-                        "_T",
-                        HashableDict(
-                            cast("dict[_KT, _VT]", data[idx].to_dict())  # type: ignore[attr-defined, valid-type]
-                        ),
-                    ),
-                )
-            elif isinstance(data[idx], HashableList):
-                new_data.append(
-                    cast(
-                        "_T",
-                        HashableList(cast("list[_T]", data[idx].to_list())),  # type: ignore[attr-defined]
-                    ),
-                )
+        for item in data:
+            if isinstance(item, dict):
+                new_data.append(cast("_T", HashableDict(item)))
+            elif isinstance(item, list):
+                new_data.append(cast("_T", HashableList(item)))
+            elif isinstance(item, HashableDict):
+                new_data.append(cast("_T", HashableDict(item.to_dict())))
+            elif isinstance(item, HashableList):
+                new_data.append(cast("_T", HashableList(item.to_list())))
             else:
-                new_data.append(data[idx])
+                new_data.append(item)
         self.__data = new_data
+        self._cached_hash: int | None = None
 
     def __hash__(self) -> int:
-        """Calculate the hash value of a HashableList object.
+        """Return a cached structural hash for this list.
 
-        This method computes the hash value of a HashableList object by
-            converting its data into a frozenset and then hashing it.
-
-        Arguments:
-            self (HashableList): The HashableList object for which the hash
-                value needs to be calculated.
-
-        Returns:
-            int: The hash value of the HashableList object.
-
-        Example:
-            >>> hashable_list = HashableList([1, 2, 3])
-            >>> hashable_list.hash()
-
-        Note:
-            The HashableList object must contain hashable elements only.
-
+        First call walks the items, hashing raw `torch.Tensor` /
+        `np.ndarray` / `PIL.Image` values via their byte buffers and
+        delegating to `hash()` for everything else. Subsequent calls
+        return the cached int.
         """
-        items = []
-        for idx in range(len(self.__data)):
-            if isinstance(self.__data[idx], np.ndarray | Image.Image):
-                items.append(hash(self.__data[idx].tobytes()))  # type: ignore[attr-defined]
+        if self._cached_hash is not None:
+            return self._cached_hash
+        items: list[int] = []
+        for item in self.__data:
+            if isinstance(item, torch.Tensor):
+                items.append(hash(item.detach().cpu().numpy().tobytes()))
+            elif isinstance(item, np.ndarray | Image.Image):
+                items.append(hash(item.tobytes()))
             else:
-                items.append(hash(self.__data[idx]))
-        return hash(frozenset(items))
+                items.append(hash(item))
+        self._cached_hash = hash(frozenset(items))
+        return self._cached_hash
 
     def __eq__(self, other: object) -> bool:
         """Compare the hash values of two HashableList objects.
@@ -3947,34 +3878,16 @@ class HashableList(MutableSequence[_T]):
         key: SupportsIndex | slice,
         value: _T | Iterable[_T],
     ) -> None:
-        """Set the value of an item or slice in a HashableList object.
-
-        This method allows for setting the value of an item or slice in a
-            HashableList object.
-
-        Arguments:
-            key (Union[int, slice]): The index or slice to set the value
-                for.
-            value (Any): The value to set at the specified index or slice.
-
-        Returns:
-            None: This method does not return anything. It modifies the
-                HashableList object in-place.
-
-        Example:
-            >>> hash_list = HashableList([1, 2, 3])
-            >>> hash_list.set_item(1, "a")
-
-        Note:
-            The HashableList object must be mutable, otherwise this
-                operation will raise an exception.
-
-        """
+        """Assign an item or slice in place; invalidates the hash cache."""
         data_list = self.to_list()
         if isinstance(value, HashableList):
-            value = value.to_list()
-        data_list[key] = value  # type: ignore[assignment, index]
+            value = cast("_T | Iterable[_T]", value.to_list())
+        if isinstance(key, slice):
+            data_list[key] = cast("Iterable[_T]", value)
+        else:
+            data_list[key] = cast("_T", value)
         self.__data = HashableList(data_list).__data
+        self._cached_hash = None
 
     def __len__(self) -> int:
         """Calculate the length of the HashableList object.
@@ -4005,53 +3918,14 @@ class HashableList(MutableSequence[_T]):
     def __delitem__(self, __index: slice, /) -> None: ...
 
     def __delitem__(self, __index: int | slice, /) -> None:
-        """Delete an item or a slice of items from a HashableList object.
-
-        This method removes a single item if an integer is provided as an
-            index or a range of items if a slice object is provided.
-
-        Arguments:
-            __index (Union[int, slice]): The index of the item to be deleted
-                if it's an integer, or a slice object representing a range
-                of items to be deleted.
-
-        Returns:
-            None: This method does not return anything.
-
-        Example:
-            >>> hashable_list = HashableList([1, 2, 3, 4, 5])
-            >>> delete_item(2)
-            >>> print(hashable_list)
-            [1, 2, 4, 5]
-
-        Note:
-            The HashableList must support item deletion. If it doesn't, an
-                error will be raised.
-
-        """
+        """Delete an item or slice; invalidates the hash cache."""
         del self.__data[__index]
+        self._cached_hash = None
 
     def insert(self, __index: int, __value: _T, /) -> None:
-        """Insert a value at a specified index in a HashableList object.
-
-        Arguments:
-            __index (int): An integer representing the index at which the
-                value will be inserted.
-            __value (_T): The value of any type that will be inserted into
-                the HashableList.
-
-        Returns:
-            None: This method does not return anything.
-
-        Example:
-            >>> hashable_list.insert_value(2, "apple")
-
-        Note:
-            If the index is out of range, the value will be added at the end
-                of the HashableList.
-
-        """
+        """Insert a value at the given index; invalidates the hash cache."""
         self.__data.insert(__index, __value)
+        self._cached_hash = None
 
     def __mul__(self, other: int) -> "HashableList[_T]":
         """Multiply all elements in the HashableList by a specified integer.
