@@ -465,6 +465,40 @@ def test_points_eq_compares_fields_not_just_hash() -> None:
     assert pts_a != pts_c
 
 
+def test_set_filename_refreshes_fingerprint(tmp_png_path: str) -> None:
+    """`set_filename(path)` must update `_src_fingerprint` so the next
+    `get_filename()` returns the same path instead of materializing a
+    new temp.
+    """
+    arr = np.zeros((16, 16, 3), dtype=np.uint8)
+    img = HashableImage(arr)
+    # Save the image to a known path.
+    img.save(tmp_png_path)
+    img.set_filename(tmp_png_path)
+    # First call should return the path we just set.
+    assert img.get_filename() == tmp_png_path
+    # Second call must also return the same path (no temp leak).
+    assert img.get_filename() == tmp_png_path
+
+
+def test_bgr2rgb_torch_actually_swaps_channels() -> None:
+    """`bgr2rgb()` on a torch-mode image must swap channels 0 and 2,
+    not return identity. Pre-fix the torch path indexed `[0, 1, 2]`.
+    """
+    import torch
+
+    # Build a (1, 3, 1, 1) tensor with distinct channel values so we
+    # can see the swap.
+    src = torch.tensor([[[[10.0]], [[20.0]], [[30.0]]]])
+    img = HashableImage(src)
+    swapped = img.bgr2rgb()
+    out = swapped.tensor()
+    # Channel order should now be [30, 20, 10].
+    assert out[0, 0, 0, 0].item() == 30
+    assert out[0, 1, 0, 0].item() == 20
+    assert out[0, 2, 0, 0].item() == 10
+
+
 def test_pil_eq_compares_mode_size_bytes() -> None:
     """PIL equality must include explicit mode + size guards (not rely
     on hash non-collision for correctness).

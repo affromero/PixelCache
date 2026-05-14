@@ -311,20 +311,20 @@ class HashableImage:
         return _filename
 
     def set_filename(self, filename: str) -> None:
-        """Set the filename of the HashableImage object.
+        """Set the canonical local filename for this HashableImage.
 
-        This method in the 'HashableImage' class assigns a filename to the
-            image object.
+        Used when an existing image was just written to a known path
+        (e.g. by an inpainting pass) and we want subsequent
+        `get_filename()` calls to return that path instead of
+        re-materializing a new temp.
 
-        Args:
-            filename (str): A string representing the filename of the image.
-
-        Returns:
-            None
-
+        Refreshes `_src_fingerprint` to match the new path so the next
+        `get_filename()` recognises the file as authoritative and
+        doesn't trigger the "source changed under us" temp-materialize
+        branch.
         """
-        # in case the image has been modified during inpainting, but the filename is still the same
         self._image_str = filename
+        self._src_fingerprint = _path_fingerprint(filename)
 
     def save(
         self,
@@ -835,7 +835,12 @@ class HashableImage:
 
     @jaxtyped(typechecker=beartype)
     def bgr2rgb(self) -> "HashableImage":
-        """Convert the image from BGR to RGB color space in a HashableImage."""
+        """Convert the image from BGR to RGB color space.
+
+        For torch-mode images the channel axis is dim=1
+        (`1 c h w`); swap channels 0 and 2 to flip B↔R. The pre-fix
+        version indexed `[0, 1, 2]` which is a no-op (identity).
+        """
         if self._mode == "numpy":
             return HashableImage(cv2.cvtColor(self._image, cv2.COLOR_BGR2RGB))
         if self._mode == "pil":
@@ -844,7 +849,7 @@ class HashableImage:
                     cv2.cvtColor(np.asarray(self._image), cv2.COLOR_BGR2RGB),
                 ),
             )
-        return HashableImage(self._image[:, [0, 1, 2], :, :])
+        return HashableImage(self._image[:, [2, 1, 0], :, :])
 
     @jaxtyped(typechecker=beartype)
     def equalize_hist(self) -> "HashableImage":

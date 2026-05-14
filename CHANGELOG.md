@@ -106,6 +106,18 @@ breaks explicitly.
 - Removed: `requests` (`urllib.request.urlopen` is enough).
 - Added dev: `pytest >= 8.0`, `pytest-benchmark >= 4.0`.
 
+### Known limitations (intentional, deferred)
+
+- `HashableDict.__hash__` and `HashableList.__hash__` combine
+  per-element hashes via Python's `hash((...))` / `hash(frozenset(...))`,
+  which uses the process-randomized hash seed (`PYTHONHASHSEED`).
+  Hashes are stable **within a process** but not across processes.
+  This matches `HashableImage.__hash__`'s outer combine (the inner
+  xxhash content fingerprint is stable; the outer `hash((mode, dtype, shape, content))` is not). Acceptable for in-process cache keys;
+  not safe for persisted hashes. Switching to a fully-stable digest
+  is a separate consideration with downstream implications and is
+  out of scope for v0.1.0.
+
 ### Tests
 
 - New `tests/` directory with 54 tests covering smoke, hash/eq, copy
