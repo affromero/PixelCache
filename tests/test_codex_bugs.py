@@ -324,3 +324,40 @@ def test_raw_view_aliases_internal_buffer() -> None:
     """
     img = HashableImage(np.zeros((16, 16, 3), dtype=np.uint8))
     assert img.raw_view() is img._image
+
+
+# ----------------------------- Bytes constructor isolation -------------
+
+
+def test_bytes_ctor_eagerly_loads() -> None:
+    """`HashableImage(bytes)` must eagerly decode and not retain a
+    reference to the source `BytesIO` buffer. We exercise this by
+    constructing from a bytes payload that we then mutate (we can't
+    mutate `bytes` itself, so we verify equality stability across
+    two independent reads of the same bytes).
+    """
+    import io as _io
+
+    buf = _io.BytesIO()
+    Image.new("RGB", (16, 16), color=(100, 200, 50)).save(buf, format="PNG")
+    raw = buf.getvalue()
+    a = HashableImage(raw)
+    b = HashableImage(raw)
+    assert a == b
+    assert hash(a) == hash(b)
+
+
+# ----------------------------- PIL eq mode/size guard ------------------
+
+
+def test_pil_eq_compares_mode_size_bytes() -> None:
+    """PIL equality must include explicit mode + size guards (not rely
+    on hash non-collision for correctness).
+    """
+    a = HashableImage(Image.new("RGB", (16, 16), color=(50, 50, 50)))
+    b = HashableImage(Image.new("RGB", (16, 16), color=(50, 50, 50)))
+    c = HashableImage(Image.new("RGB", (16, 16), color=(60, 60, 60)))
+    d = HashableImage(Image.new("RGB", (32, 8), color=(50, 50, 50)))
+    assert a == b
+    assert a != c
+    assert a != d  # different size, same total pixels

@@ -151,7 +151,14 @@ class HashableImage:
         elif isinstance(image, Image.Image):
             self._image = _normalize_pil_mode(image).copy()
         elif isinstance(image, bytes):
-            self._image = _normalize_pil_mode(Image.open(io.BytesIO(image)))
+            # `Image.open` on BytesIO is lazy — the PIL object keeps a
+            # reference to the buffer. `.copy()` materializes the pixel
+            # data eagerly so the buffer can be GC'd and no later
+            # mutation of `image` (if it were aliased somewhere) can
+            # corrupt the cached hash.
+            self._image = _normalize_pil_mode(
+                Image.open(io.BytesIO(image)),
+            ).copy()
         elif isinstance(image, np.ndarray):
             self._image = image.copy()
         else:
@@ -1581,15 +1588,18 @@ class HashableImage:
         return self._cached_hash
 
     def __eq__(self, other: object) -> bool:
-        """Compare by identity, then cached hash, then content.
+        """Compare by identity, then cached hash, then mode-aware content.
 
         Short-circuits in this order:
         1. `self is other` — same object.
         2. `not isinstance(other, HashableImage)` — `NotImplemented`.
-        3. `hash(self) != hash(other)` — distinct content/shape/mode
-           (hashes are cached, so this is O(1) after the first call).
-        4. Full byte-level comparison — only runs on a hash collision
-           or on first-time pairs whose caches happen to be cold.
+        3. `hash(self) != hash(other)` — fast-path rejection. Cached
+           hashes make this O(1) after the first call.
+        4. Mode mismatch → False.
+        5. Mode-aware content comparison. The full check is correct
+           even if hashes collide (PIL adds an explicit mode + size
+           guard; numpy uses `np.array_equal` which handles
+           dtype/shape; torch uses `torch.equal`).
         """
         if self is other:
             return True
@@ -1600,8 +1610,16 @@ class HashableImage:
         if self._mode != other._mode:
             return False
         if self._mode == "torch":
-            return torch.equal(self._image, other._image)
-        return self._image.tobytes() == other._image.tobytes()
+            return bool(torch.equal(self._image, other._image))
+        if self._mode == "numpy":
+            return bool(np.array_equal(self._image, other._image))
+        # PIL: explicit mode + size guard so collisions can't bypass
+        # them via just-bytes comparison.
+        return (
+            self._image.mode == other._image.mode
+            and self._image.size == other._image.size
+            and self._image.tobytes() == other._image.tobytes()
+        )
 
     @jaxtyped(typechecker=beartype)
     def crop_from_mask(
