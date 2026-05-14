@@ -1145,19 +1145,27 @@ class HashableImage:
 
     @jaxtyped(typechecker=beartype)
     def pil(self) -> Image.Image:
-        """Convert the image data to a PIL Image object.
+        """Return image data as a PIL Image (independent copy).
 
-        This method in the 'HashableImage' class transforms the image data
-            stored in the instance into a PIL (Python Imaging Library) Image
-            object.
+        Always returns a fresh image — callers can safely mutate it
+        without affecting the HashableImage's internal state. For
+        zero-copy access when you promise not to mutate, use
+        `pil_view()`.
+        """
+        if self._mode == "torch":
+            return tensor2pil(self._image)
+        if self._mode == "numpy":
+            return Image.fromarray(self._image)
+        return self._image.copy()
 
-        Args:
-            self (HashableImage): The instance of the 'HashableImage' class.
+    @jaxtyped(typechecker=beartype)
+    def pil_view(self) -> Image.Image:
+        """Return image data as a PIL Image, **no copy** in PIL mode.
 
-        Returns:
-            Image.Image: A PIL Image object that represents the image data
-                stored in the instance.
-
+        Zero-copy alternative to `pil()` for read-only consumers in
+        perf-critical loops. **Mutating the returned image mutates the
+        HashableImage's internal state and silently invalidates the
+        cached hash** — only use when you control the buffer lifetime.
         """
         if self._mode == "torch":
             return tensor2pil(self._image)
@@ -1206,48 +1214,58 @@ class HashableImage:
         | Bool[np.ndarray, "h w 3"]
         | Bool[np.ndarray, "h w"]
     ):
-        """Return image data as a NumPy array, **no copy**.
+        """Return image data as a read-only NumPy view (no copy in numpy mode).
 
         Zero-copy alternative to `numpy()` for read-only consumers in
-        perf-critical loops. **Mutating the returned array mutates the
-        HashableImage's internal state and invalidates the cached
-        hash** — only use when you control the buffer lifetime.
+        perf-critical loops. The returned array is marked
+        `writeable=False`: accidental mutation raises `ValueError`
+        instead of silently invalidating the cached hash.
 
-        Returns:
-            View / shared buffer (`np.ndarray`) into the internal data.
-
+        For torch and PIL modes the conversion path inherently
+        allocates a new array, but the same read-only flag is applied
+        for API consistency.
         """
         if self._mode == "torch":
-            return tensor2numpy(
+            arr = tensor2numpy(
                 self._image,
                 output_type=(
                     bool if self._image.dtype == torch.bool else np.uint8
                 ),
             )
-        if self._mode == "numpy":
-            return self._image
-        return np.asarray(self._image)
+        elif self._mode == "numpy":
+            arr = self._image.view()
+        else:
+            arr = np.asarray(self._image)
+        arr.setflags(write=False)
+        return arr
 
     @jaxtyped(typechecker=beartype)
     def tensor(
         self,
     ) -> Float[torch.Tensor, "1 c h w"] | Bool[torch.Tensor, "1 c h w"]:
-        """Convert the image data to a torch tensor format.
+        """Return image data as a `1 c h w` tensor (independent copy).
 
-        This method in the 'HashableImage' class converts the image data
-            stored in the object into a torch tensor format.
-        It checks the mode of the image data (torch, numpy, or pil) and
-            converts it accordingly.
+        Always returns a fresh tensor — callers can safely mutate it
+        (in-place ops, masked assignment, etc.) without affecting the
+        HashableImage's internal state. For zero-copy access when you
+        promise not to mutate, use `tensor_view()`.
+        """
+        if self._mode == "torch":
+            return self._image.clone()
+        if self._mode == "numpy":
+            return numpy2tensor(self._image)
+        return pil2tensor(self._image)
 
-        Args:
-            self (HashableImage): The instance of the HashableImage class.
+    @jaxtyped(typechecker=beartype)
+    def tensor_view(
+        self,
+    ) -> Float[torch.Tensor, "1 c h w"] | Bool[torch.Tensor, "1 c h w"]:
+        """Return image data as a `1 c h w` tensor, **no copy** in torch mode.
 
-        Returns:
-            torch.Tensor | bool: A torch tensor representing the image data
-                in the format '1 c h w' where c is the number of channels, h
-                is the height, and w is the width. It can also return a
-                boolean value indicating if the conversion was successful.
-
+        Zero-copy alternative to `tensor()` for read-only consumers in
+        perf-critical loops. **Mutating the returned tensor mutates the
+        HashableImage's internal state and silently invalidates the
+        cached hash** — only use when you control the buffer lifetime.
         """
         if self._mode == "torch":
             return self._image
@@ -2007,6 +2025,9 @@ class HashableImage:
         if value < 0 or value > 1:
             msg = "Value must be between 0 and 1"
             raise ValueError(msg)
+        # `self.tensor()` is now safe-by-default (returns an independent
+        # clone), so in-place masked assignment cannot leak back into
+        # `self._image`.
         image_pt = self.tensor()
         mask_pt = mask.to_binary().tensor()
         image_pt[mask_pt.expand_as(image_pt)] = value
