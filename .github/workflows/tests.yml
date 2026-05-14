@@ -25,7 +25,12 @@ jobs:
               run: uv python install 3.10
 
             - name: Sync dependencies (runtime + dev)
-              run: uv sync --no-build-isolation
+              # uv reads `[tool.uv] no-build-isolation-package` from
+              # pyproject.toml (currently `torch`, `torchvision`); no
+              # global `--no-build-isolation` is needed and would break
+              # transitive deps like `wget` that require setuptools at
+              # build time.
+              run: uv sync
 
             - name: Run tests
-              run: uv run --no-build-isolation pytest tests/ -v
+              run: uv run pytest tests/ -v
