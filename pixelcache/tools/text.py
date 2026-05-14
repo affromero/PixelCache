@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
@@ -13,39 +14,37 @@ from .image import ImageSize, read_image
 logger = get_logger()
 
 
+@lru_cache(maxsize=64)
+def _cached_truetype(font_path: str, size: int) -> ImageFont.FreeTypeFont:
+    """Memoize `ImageFont.truetype` by `(path, integer-size)`.
+
+    FreeTypeFont objects are immutable and reusable. Constructing them
+    is the dominant cost when rendering many text labels at the same
+    font/size — caching gives a clear win in tight loops without
+    forcing callers to do their own bookkeeping.
+    """
+    return ImageFont.truetype(font_path, size)
+
+
 @jaxtyped(typechecker=beartype)
 def get_font(font_path: str, text_size: float) -> ImageFont.FreeTypeFont:
-    """Generate a FreeTypeFont object using a specified font file and text.
+    """Return a cached `FreeTypeFont` for `(font_path, round(text_size))`.
 
-        size.
-
-    This function accepts a font file path and a text size, verifies if the
-        font file exists,
-    and returns a FreeTypeFont object for the specified font.
-
-    Arguments:
-        font_path (str): The path to the font file. This must be a valid
-            path to a .ttf or .otf file.
-        text_size (float): The size of the text. This must be a positive
-            number representing the desired font size.
+    Args:
+        font_path: Local path to a `.ttf` / `.otf` file.
+        text_size: Pixel size (rounded to int before caching).
 
     Returns:
-        ImageFont.FreeTypeFont: A FreeTypeFont object corresponding to the
-            specified font and text size.
-        This can be used to render text with the specified font and size.
+        Cached `ImageFont.FreeTypeFont` instance.
 
-    Example:
-        >>> generate_font("/path/to/font.ttf", 12)
-
-    Note:
-        Raises a FileNotFoundError if the specified font file does not
-            exist.
+    Raises:
+        RuntimeError: If `font_path` does not exist.
 
     """
     if not Path(font_path).is_file():
         msg = f"Font file not found {font_path}"
         raise RuntimeError(msg)
-    return ImageFont.truetype(font_path, round(text_size))
+    return _cached_truetype(font_path, round(text_size))
 
 
 @jaxtyped(typechecker=beartype)
