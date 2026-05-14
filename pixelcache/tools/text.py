@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
@@ -13,39 +14,37 @@ from .image import ImageSize, read_image
 logger = get_logger()
 
 
+@lru_cache(maxsize=64)
+def _cached_truetype(font_path: str, size: int) -> ImageFont.FreeTypeFont:
+    """Memoize `ImageFont.truetype` by `(path, integer-size)`.
+
+    FreeTypeFont objects are immutable and reusable. Constructing them
+    is the dominant cost when rendering many text labels at the same
+    font/size — caching gives a clear win in tight loops without
+    forcing callers to do their own bookkeeping.
+    """
+    return ImageFont.truetype(font_path, size)
+
+
 @jaxtyped(typechecker=beartype)
 def get_font(font_path: str, text_size: float) -> ImageFont.FreeTypeFont:
-    """Generate a FreeTypeFont object using a specified font file and text.
+    """Return a cached `FreeTypeFont` for `(font_path, round(text_size))`.
 
-        size.
-
-    This function accepts a font file path and a text size, verifies if the
-        font file exists,
-    and returns a FreeTypeFont object for the specified font.
-
-    Arguments:
-        font_path (str): The path to the font file. This must be a valid
-            path to a .ttf or .otf file.
-        text_size (float): The size of the text. This must be a positive
-            number representing the desired font size.
+    Args:
+        font_path: Local path to a `.ttf` / `.otf` file.
+        text_size: Pixel size (rounded to int before caching).
 
     Returns:
-        ImageFont.FreeTypeFont: A FreeTypeFont object corresponding to the
-            specified font and text size.
-        This can be used to render text with the specified font and size.
+        Cached `ImageFont.FreeTypeFont` instance.
 
-    Example:
-        >>> generate_font("/path/to/font.ttf", 12)
-
-    Note:
-        Raises a FileNotFoundError if the specified font file does not
-            exist.
+    Raises:
+        RuntimeError: If `font_path` does not exist.
 
     """
     if not Path(font_path).is_file():
         msg = f"Font file not found {font_path}"
         raise RuntimeError(msg)
-    return ImageFont.truetype(font_path, round(text_size))
+    return _cached_truetype(font_path, round(text_size))
 
 
 @jaxtyped(typechecker=beartype)
@@ -56,20 +55,13 @@ def get_font_path(font: str = "JetBrainsMono-Regular", /) -> str:
         of the corresponding font file. If the font file does not exist, a
         TypeError is raised.
 
-    Arguments:
+    Args:
         font (str): The name of the font for which the file path is to be
             retrieved.
 
     Returns:
         str: The file path of the font file corresponding to the input font
             name.
-
-    Example:
-        >>> get_font_path("Arial")
-
-    Note:
-        Make sure the font name is correct and the corresponding font file
-            exists.
 
     """
     font_path = Path(__file__).parent.parent / "fonts" / f"{font}.ttf"
@@ -91,7 +83,7 @@ def create_text(
 
         parameters.
 
-    Arguments:
+    Args:
         img_path (str | np.array): Path to the image file or a numpy array
             representing the image.
         texts (List[str]): List of strings containing the texts to be
@@ -106,15 +98,6 @@ def create_text(
     Returns:
         np.array: A numpy array representing the image with the specified
             texts displayed on it.
-
-    Example:
-        >>> create_text_image('path/to/image.jpg', ['Hello', 'World'],
-            background='black', orientation='vertical',
-            font_path='path/to/font.ttf')
-
-    Note:
-        The returned numpy array can be directly used for image processing
-            tasks.
 
     """
     foreground_tuple = (0, 0, 0) if background == "white" else (255, 255, 255)
@@ -139,7 +122,8 @@ def create_text(
             msg,
         )
     if image.ndim != 3:
-        logger.error("expected HxWx3 arrays, got {image.shape}")
+        msg = f"expected HxWx3 arrays, got shape {image.shape}"
+        raise ValueError(msg)
 
     if orientation not in ["horizontal", "vertical"]:
         msg = f"Text orientation {orientation} not supported"
@@ -315,20 +299,13 @@ def remove_white_text(image: np.ndarray) -> np.ndarray:
     removes any white text present at the top and bottom of the image, and
         returns the modified image.
 
-    Arguments:
+    Args:
         image (np.ndarray): A NumPy array representing an image. The
             function checks if this is a string or a PIL Image.
 
     Returns:
         np.ndarray: The modified image as a NumPy array, with white text
             removed from the top and bottom.
-
-    Example:
-        >>> remove_white_text(image_array)
-
-    Note:
-        The function does not modify the original image array, but returns a
-            new one.
 
     """
     for start_row in range(image.shape[0]):
@@ -353,7 +330,7 @@ def draw_text(
 
         font and color.
 
-    Arguments:
+    Args:
         image (Union[np.ndarray, PIL.Image.Image]): The input image, which
             can either be a NumPy array or a PIL Image object.
         text (str): The text to be drawn on the image.
@@ -371,14 +348,6 @@ def draw_text(
             drawn on it. The return type matches the input type: if a NumPy
             array was input, a NumPy array is returned; if a PIL Image
             object was input, a PIL Image object is returned.
-
-    Example:
-        >>> draw_text_on_image(image, 'Hello World!', (50, 50), 'Arial.ttf',
-            30, (0, 0, 0))
-
-    Note:
-        The position is defined from the top-left corner of the image, with
-            positive x going right and positive y going down.
 
     """
     if isinstance(image, Image.Image):

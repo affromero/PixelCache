@@ -19,7 +19,7 @@ def kpts2bbox(
 ) -> list[tuple[int, int, int, int]] | list[tuple[float, float, float, float]]:
     """Generate bounding boxes from given keypoints.
 
-    Arguments:
+    Args:
         kpts (torch.Tensor): A tensor containing keypoints in one of the
             following formats: 'n 3', 'n 2', 'b n 3', or 'b n 2'.
         normalized (bool): A flag indicating whether the keypoints are
@@ -32,13 +32,6 @@ def kpts2bbox(
             bounding box coordinates (x1, y1, x2, y2) for each set of
             keypoints. The coordinates can be either integers or floats
             based on the normalization.
-
-    Example:
-        >>> get_bounding_boxes(kpts, normalized, image_size=image_size)
-
-    Note:
-        The keypoints tensor is expected to be in one of the specified
-            formats.
 
     """
     # kpts: b x n x 3 (x, y, v) in image coordinate

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import numpy as np
 import torch
 from beartype import beartype
@@ -7,6 +5,7 @@ from jaxtyping import Float, UInt8, jaxtyped
 from PIL import Image, ImageDraw, ImageFont
 
 from pixelcache.tools.image import pil2tensor, tensor2pil
+from pixelcache.tools.text import get_font_path
 
 
 @jaxtyped(typechecker=beartype)
@@ -25,7 +24,7 @@ def draw_bbox(
 ) -> Image.Image | UInt8[np.ndarray, "h w 3"] | Float[torch.Tensor, "1 c h w"]:
     """Draw bounding boxes on an image with specified color, width, and text.
 
-    Arguments:
+    Args:
         image (Union[PIL.Image, np.array, torch.Tensor]): The image to draw
             bounding boxes on.
             This can be a PIL Image, numpy array, or torch tensor.
@@ -45,14 +44,6 @@ def draw_bbox(
     Returns:
         Union[PIL.Image, np.array, torch.Tensor]: An image with bounding
             boxes drawn, in the same format as the input image.
-
-    Example:
-        >>> draw_bounding_boxes(image, [(10, 10, 50, 50)], 'blue', 2,
-            ['object1'])
-
-    Note:
-        The function will not modify the original image, but return a new
-            one with bounding boxes drawn.
 
     """
     if isinstance(image, np.ndarray):
@@ -88,10 +79,9 @@ def draw_bbox(
         draw.rectangle(box, outline=color, width=width)
         if text is not None and text[idx]:
             size_text = max(max(image.size) * 0.04, 9.0)
-            get_font_path = (
-                Path(__file__).parent / "fonts" / "JetBrainsMono-ExtraBold.ttf"
+            font = ImageFont.truetype(
+                get_font_path("JetBrainsMono-ExtraBold"), round(size_text)
             )
-            font = ImageFont.truetype(str(get_font_path), round(size_text))
             draw.text(
                 (round(box[0]), round(box[1])),
                 text[idx],

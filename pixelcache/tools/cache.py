@@ -25,7 +25,7 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
         running in
     unit test mode, the decorator is a no-op and does not provide caching.
 
-    Arguments:
+    Args:
         func (Callable): The function to be decorated.
 
     Returns:
@@ -34,15 +34,6 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
         without caching. Otherwise, returns the function wrapped with
             lru_cache, providing
         caching of its results.
-
-    Example:
-        >>> @unit_test_lru_cache_decorator
-        >>> def example_function(arg1, arg2):
-        >>>     return arg1 + arg2
-    Note:
-        This decorator is useful for preventing caching during unit tests,
-            where
-        repeated function calls with the same arguments are often needed.
 
     """
 
@@ -55,22 +46,13 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
             if the code is not running in unittest mode. If it is in
             unittest mode, the function is returned as is.
 
-        Arguments:
+        Args:
             func (Callable[..., Any]): The function to be decorated.
 
         Returns:
             Callable[..., Any]: The decorated function with an applied LRU
                 cache if not in unittest mode, or the original function if
                 in unittest mode.
-
-        Example:
-            >>> @apply_cache
-            >>> def test_func(x, y):
-            >>>     return x + y
-        Note:
-            This decorator is useful for optimizing functions that are
-                called repeatedly with the same arguments, but should not be
-                used in unittest mode to avoid cached results.
 
         """
         # Use cache when not in unit test mode
@@ -90,7 +72,7 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
                 positional and keyword arguments, which are passed
                 directly to the wrapped function.
 
-            Arguments:
+            Args:
                 *args (Any): Represents any number of positional
                     arguments that can be passed to the wrapped
                     function.
@@ -101,15 +83,6 @@ def lru_cache(maxsize: int | None = 128) -> Callable[[_T], _T]:
             Returns:
                 Any: Returns the result of calling the wrapped function
                     with the provided arguments and keyword arguments.
-
-            Example:
-                >>> wrapped_function =
-                    wrapper_function(original_function, arg1, arg2,
-                    keyword_arg1=value1)
-
-            Note:
-                The wrapped function and its arguments are not specified
-                    until the wrapper function is called.
 
             """
             return func(*args, **kwargs)
@@ -148,7 +121,7 @@ def get_cache_dir() -> Path:
         specified platform and app. It does not ensure
     that the cache directory exists.
 
-    Arguments:
+    Args:
         platform (str): The platform for which the cache directory is to be
             located.
         app (str): The application for which the cache directory is to be
@@ -158,13 +131,6 @@ def get_cache_dir() -> Path:
 
     Returns:
         str: The path of the located cache directory.
-
-    Example:
-        >>> locate_cache_dir("Windows", "flit", flit=True)
-
-    Note:
-        The function does not create the cache directory, it only locates
-            the appropriate directory for the given platform and app.
 
     """
     # Linux, Unix, AIX, etc.
@@ -196,20 +162,13 @@ def sha256sum(filename: str) -> str:
     This function takes a filename as an argument, calculates the SHA-256
         hash of the file, and returns the first 8 characters of the hash.
 
-    Arguments:
+    Args:
         filename (str): A string representing the name of the file for which
             the SHA-256 hash needs to be calculated.
 
     Returns:
         str: A string containing the first 8 characters of the SHA-256 hash
             of the file.
-
-    Example:
-        >>> calculate_file_hash("example.txt")
-
-    Note:
-        The file must exist in the current working directory or a full path
-            must be provided.
 
     """
     from sha256sum import sha256sum as _sha256sum
@@ -221,7 +180,7 @@ def sha256sum(filename: str) -> str:
 def pseudo_hash(idx: int, length: int = 6) -> str:
     """Generate a pseudo-random hash based on the given index and length.
 
-    Arguments:
+    Args:
         idx (int): The index used to seed the random number generator.
         length (int, optional): The length of the hash to be generated.
             Defaults to 6.
@@ -229,13 +188,6 @@ def pseudo_hash(idx: int, length: int = 6) -> str:
     Returns:
         str: A string representing the pseudo-random hash generated based on
             the given index and length.
-
-    Example:
-        >>> generate_hash(10, 6)
-
-    Note:
-        The hash generated is pseudo-random, meaning it will generate the
-            same result if the same index and length are provided.
 
     """
     random.seed(idx)

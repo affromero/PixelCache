@@ -51,7 +51,7 @@ HashableImage receives as input several types of inputs, such as URLs, paths, or
 Example:
 
 ```python
-from pixelcache.main import HashableImage
+from pixelcache import HashableImage
 import torch
 image = HashableImage(torch.rand(1, 3, 256, 256).float())
 image_pil = image.pil()
@@ -126,7 +126,7 @@ logger.success(f"Output saved to: {output}")
 
 ## Usage Example 2
 
-Extracting bounding boxes for cropping / unpadding from binary masks using PixelCache:
+Extracting bounding boxes for cropping / unpadding from binary masks using PixelCache. The mask is derived from a grayscale threshold of the padded reference image — any chain that produces a `HashableImage` in binary `"1"` mode will work as the input to `crop_from_mask` and `mask2bbox`.
 
 ```python
 from pathlib import Path
@@ -153,7 +153,7 @@ mask = (
     images_hash[1]
     .center_pad(increased_size_pad, fill=255)
     .resize(image_size)
-    .to_space_color("HSV", getchannel="S")
+    .to_gray()
     .to_binary(0.3)
 )
 cropped = resized_images[1].crop_from_mask(mask)
