@@ -1672,20 +1672,47 @@ class HashableImage:
         | Bool[np.ndarray, "h w 3"]
         | Bool[np.ndarray, "h w"]
     ):
-        """Retrieve the image data as a NumPy array.
+        """Return image data as a NumPy array (independent copy).
 
-        This function does not take any arguments.
+        Always returns a fresh array — callers can safely mutate it
+        without affecting the HashableImage's internal state. For
+        zero-copy access when you promise not to mutate, use
+        `numpy_view()`.
 
         Returns:
-            np.array: The image data returned as a NumPy array with the
-                specified data type and shape.
+            Independent `np.ndarray` with shape `h w 3` / `h w` and
+            dtype `uint8` (or `bool` for binary images).
 
-        Example:
-            >>> get_image_data()
+        """
+        if self._mode == "torch":
+            return tensor2numpy(
+                self._image,
+                output_type=(
+                    bool if self._image.dtype == torch.bool else np.uint8
+                ),
+            )
+        if self._mode == "numpy":
+            return self._image.copy()
+        return np.array(self._image)
 
-        Note:
-            The data type and shape of the returned NumPy array depend on
-                the image data.
+    @jaxtyped(typechecker=beartype)
+    def numpy_view(
+        self,
+    ) -> (
+        UInt8[np.ndarray, "h w 3"]
+        | UInt8[np.ndarray, "h w"]
+        | Bool[np.ndarray, "h w 3"]
+        | Bool[np.ndarray, "h w"]
+    ):
+        """Return image data as a NumPy array, **no copy**.
+
+        Zero-copy alternative to `numpy()` for read-only consumers in
+        perf-critical loops. **Mutating the returned array mutates the
+        HashableImage's internal state and invalidates the cached
+        hash** — only use when you control the buffer lifetime.
+
+        Returns:
+            View / shared buffer (`np.ndarray`) into the internal data.
 
         """
         if self._mode == "torch":
