@@ -3,12 +3,8 @@ from importlib.metadata import version
 from difflogtest import DEFAULT_VERBOSITY, LoggingRich, get_logger
 
 from pixelcache._collections import HashableDict, HashableList
-from pixelcache.core import (
-    BoundingBox,
-    HashableImage,
-    ImageCrop,
-    Points,
-)
+from pixelcache._types import BoundingBox, ImageCrop, Points
+from pixelcache.core import HashableImage
 from pixelcache.tools.cache import pseudo_hash
 from pixelcache.tools.image import (
     ImageSize,
