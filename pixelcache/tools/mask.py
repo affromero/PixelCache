@@ -21,46 +21,6 @@ from pixelcache.tools.image import (
 logger = get_logger()
 
 
-def group_regions_from_binary(
-    bbox_img: Bool[np.ndarray, "h w"],
-    /,
-    *,
-    closing: tuple[int, int],
-    margin: float = 0.0,
-    area_threshold: float = 0.0,
-) -> list[Bool[np.ndarray, "h w"]]:
-    """Group regions in a binary or PIL image based on specific parameters.
-
-    Args:
-        bbox_img (Union[np.ndarray, PIL.Image.Image]): A NumPy array or PIL
-            image representing the binary image.
-        closing (Tuple[int, int]): A tuple of two integers specifying the
-            kernel size for the morphological closing operation.
-        margin (float): Margin value for grouping regions. This represents
-            the distance between regions that should be considered as a
-            single group.
-        area_threshold (float): Area threshold for grouping regions. This
-            represents the minimum area that a group of regions should have
-            to be considered as a valid group.
-
-    Returns:
-        List[Union[np.ndarray, PIL.Image.Image]]: A list of NumPy arrays or
-            PIL images representing the grouped regions in the input image.
-
-    """
-    bbox_img = morphologyEx(bbox_img, cv2.MORPH_CLOSE, np.ones(closing))
-    image_size = ImageSize.from_image(bbox_img)
-    # reduce_masks
-    list_bbox = mask2bbox(
-        bbox_img,
-        margin=margin,
-        area_threshold=area_threshold,
-        normalized=True,
-    )
-    square_mask = [bbox2mask([i], image_size) for i in list_bbox]
-    return [np.logical_and(i, bbox_img) for i in square_mask]
-
-
 @overload
 def remove_disconnected_regions(
     mask: Bool[np.ndarray, "h w"],
@@ -172,53 +132,6 @@ def morphologyEx(  # noqa: N802
     if struct == "ellipse":
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     return cv2.morphologyEx(mask255, mode, kernel).astype(bool)
-
-
-def mask2points(
-    binary_mask: Bool[np.ndarray, "h w"],
-    /,
-    npoints: int = 100,
-    *,
-    normalize: bool = False,
-    rng: np.random.Generator | None = None,
-    output: Literal["xy", "yx"] = "xy",
-) -> list[tuple[int, int]] | list[tuple[float, float]]:
-    """Convert a numpy image mask into a list of points.
-
-    This function takes a numpy image mask and converts it into a list of
-        points. The number of points to be generated can be specified.
-
-    Args:
-        binary_mask (bool[np.ndarray, "h w"]): A image mask to convert into
-            points.
-        npoints (int): The number of points to generate. Defaults to 100.
-            if -1, all points are returned.
-        normalize (bool): Whether to return normalized point coordinates.
-            Defaults to False.
-
-    Returns:
-        List[Tuple[int, int]]: A list of tuples containing integer or float
-            values representing the points.
-
-    """
-    coords_yx = np.argwhere(binary_mask)
-    if len(coords_yx) == 0:
-        msg = "No points found in the mask"
-        raise ValueError(msg)
-    if rng is None:
-        rng = np.random.default_rng()
-    if npoints == -1:
-        npoints = len(coords_yx)
-    rand_ind = rng.choice(len(coords_yx), npoints, replace=False)
-    points = coords_yx[rand_ind].tolist()
-    if normalize:
-        h, w = binary_mask.shape
-        _points = [(y / w, x / h) for y, x in points]
-    else:
-        _points = [(round(y), round(x)) for y, x in points]
-    if output == "xy":
-        _points = [(x, y) for y, x in _points]
-    return _points
 
 
 @jaxtyped(typechecker=beartype)
@@ -370,23 +283,16 @@ def bbox2mask(
     bbox: list[tuple[float, float, float, float]],
     image_size: ImageSize,
 ) -> Bool[np.ndarray, "h w"]:
-    """Generate a binary mask from bounding box coordinates and image size.
-
-    This function takes a list of bounding boxes and an image size as input
-        and generates a binary mask based on the bounding box coordinates.
-        If the bounding box coordinates are normalized, it converts them to
-        pixel values.
+    """Generate a binary mask from bounding boxes within `image_size`.
 
     Args:
-        bbox (List[Tuple[Union[float, int]]]): A list of tuples containing
-            the bounding box coordinates (x1, y1, x2, y2) either as floats
-            or integers.
-        image_size (Tuple[int, int]): A tuple representing the size of the
-            image (height, width).
+        bbox: List of `(x1, y1, x2, y2)` boxes. Floats are treated as
+            normalized coordinates in `[0, 1]`.
+        image_size: Target mask dimensions.
 
     Returns:
-        torch.Tensor: A binary mask represented as a torch tensor with True
-            values inside the bounding boxes and False values outside.
+        Bool mask of shape `(image_size.height, image_size.width)`,
+        `True` inside any bounding box.
 
     """
     height, width = image_size.height, image_size.width
@@ -394,14 +300,17 @@ def bbox2mask(
     for box in bbox:
         if isinstance(box[0], float):
             if box[0] > 1 or box[1] > 1 or box[2] > 1 or box[3] > 1:
-                msg = f"box is not normalized. {box}, image size: {image_size} - it should be normalized [0, 1]"
+                msg = (
+                    f"box is not normalized. {box}, image size: "
+                    f"{image_size} - it should be normalized [0, 1]"
+                )
                 raise ValueError(msg)
             box = (
                 round(box[0] * width),
                 round(box[1] * height),
                 round(box[2] * width),
                 round(box[3] * height),
-            )  # x1, y1, x2, y2
+            )
         box = (int(box[0]), int(box[1]), int(box[2]), int(box[3]))
         zeros[box[1] : box[3], box[0] : box[2]] = True
     return zeros
@@ -820,36 +729,20 @@ def polygon_to_mask(
     polygons: list[list[tuple[int, int]]],
     image_shape: tuple[int, int],
 ) -> Bool[np.ndarray, "h w"]:
-    """Convert a polygon into a segmentation mask.
-
-    This function takes a list of polygon vertices and an image shape, and
-        returns a binary mask with the polygon area filled.
+    """Render polygon vertices into a filled binary mask.
 
     Args:
-        polygon (List[List[Tuple[int, int]]]): List of list of (x, y) coordinates
-            representing the vertices of the polygon. The coordinates are
-            expected to be integers.
-        image_shape (Tuple[int, int]): Shape of the image (height, width)
-            for which the mask is to be generated. Both height and width are
-            expected to be integers.
+        polygons: List of polygons, each a list of `(x, y)` integer points.
+        image_shape: `(height, width)` of the output mask.
 
     Returns:
-        np.ndarray: A 2D numpy array of the same shape as the input image,
-            where the area within the polygon is filled with 1s and the rest
-            with 0s.
-
+        Bool mask, `True` inside any polygon.
 
     """
-    # Create an empty mask
     mask = np.zeros(image_shape, dtype=np.uint8)
-
-    # Convert polygon to an array of points
     for polygon in polygons:
         pts = np.array(polygon, dtype=np.int32)
-
-        # Fill the polygon with white color (255)
         cv2.fillPoly(mask, [pts], color=(255,))
-
     return mask.astype(bool)
 
 
@@ -882,79 +775,6 @@ def refine_masks(
         refined_mask[idx] = numpy2tensor(mask)[0]
 
     return refined_mask
-
-
-def differential_mask(
-    mask: Bool[np.ndarray, "h w"],
-    dilation: int,
-    force_steps: int | None = None,
-    scale_nonmask: float | None = None,
-    *,
-    invert: bool = False,
-) -> UInt8[np.ndarray, "h w"]:
-    """Apply a differential mask to the given image mask.
-
-    This function takes an input image mask and applies a differential mask
-        to it based on the specified parameters such as dilation, force
-        steps, invert, and scale nonmask.
-
-    Args:
-        mask (bool numpy): The input image mask to which the differential
-            mask will be applied.
-        dilation (int): The dilation factor for the mask.
-        force_steps (int | None): The number of force steps for the
-            differential mask. Defaults to None.
-        invert (bool): Flag to invert the output mask. Defaults to False.
-        scale_nonmask (float | None): The scaling factor for non-mask
-            regions. Defaults to None.
-
-    Returns:
-        bool numpy: The output image with the applied differential mask.
-
-    """
-    mask_np = (mask * 255).astype(np.uint8)
-    # get contours of mask, fill with diff, dilate, get contours, fill remaining with diff, repeat
-    count = 1
-    last_mask = np.zeros_like(mask_np)
-    out_mask = np.zeros_like(mask_np)
-    if force_steps is not None:
-        linspace_count = np.linspace(0, 255, force_steps).astype(np.uint8)
-    while True:
-        # do not fill the same region twice
-        contours = cv2.findContours(
-            mask_np,
-            cv2.RETR_EXTERNAL,
-            cv2.CHAIN_APPROX_SIMPLE,
-        )
-        fill_value = (
-            count if force_steps is None else linspace_count[count - 1].item()
-        )
-        temp_mask = cv2.drawContours(
-            np.zeros_like(mask_np),
-            contours[0],
-            -1,
-            255 - fill_value,
-            -1,
-        )
-        out_mask = np.maximum(out_mask, temp_mask)
-        if (
-            np.all(mask_np == last_mask)
-            or count == 255
-            or (force_steps is not None and count == force_steps)
-        ):
-            break
-        last_mask = mask_np
-        mask_np = cv2.dilate(mask_np, np.ones((dilation, dilation)))
-        count += 1
-    out: np.ndarray = (
-        (out_mask - out_mask.min()) / (out_mask.max() - out_mask.min()) * 255
-    )
-    out_uint = out[:, :, None].repeat(3, axis=-1)
-    if scale_nonmask is not None:
-        out_uint[out_uint != 255] *= scale_nonmask
-    if invert:
-        out_uint = 255 - out_uint
-    return out_uint[..., 0].astype(np.uint8)
 
 
 @jaxtyped(typechecker=beartype)
