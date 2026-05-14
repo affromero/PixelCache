@@ -81,6 +81,30 @@ def pseudo_hash(idx: int, length: int = 6) -> str:
     return "".join(random.choice(string.ascii_letters) for _ in range(length))  # noqa: S311
 
 
+# PIL modes pixelcache stores natively: RGB (3-channel uint8), L
+# (grayscale uint8), 1 (binary). Anything else (RGBA, P, CMYK, YCbCr,
+# LAB, etc.) is normalized to one of these on construction.
+_PIL_NATIVE_MODES = frozenset({"RGB", "L", "1"})
+
+
+def _normalize_pil_mode(img: Image.Image) -> Image.Image:
+    """Convert PIL images outside the supported mode set to RGB.
+
+    Pixelcache's `dtype()` claims a `Literal["L", "RGB", "1"]` return
+    type — beartype/jaxtyping enforce that at runtime. PIL inputs in
+    other modes (RGBA from transparent PNGs, P from palette images,
+    etc.) violate the contract and crash downstream `hash()` / `eq` /
+    `dtype()` calls. Normalize on the way in so the contract holds.
+
+    RGBA → RGB drops alpha (the most common case — transparent PNGs);
+    callers needing alpha should handle it explicitly before passing
+    in.
+    """
+    if img.mode in _PIL_NATIVE_MODES:
+        return img
+    return img.convert("RGB")
+
+
 class HashableImage:
     """Hashable image class."""
 
@@ -121,9 +145,9 @@ class HashableImage:
                 msg = f"Error reading image {image}: {e}"
                 raise RuntimeError(msg) from e
         elif isinstance(image, Image.Image):
-            self._image = image
+            self._image = _normalize_pil_mode(image)
         elif isinstance(image, bytes):
-            self._image = Image.open(io.BytesIO(image))
+            self._image = _normalize_pil_mode(Image.open(io.BytesIO(image)))
         else:
             self._image = image
 
@@ -1746,18 +1770,19 @@ class HashableImage:
             area_threshold=area_threshold,
             number_of_objects=number_of_objects,
         )
-        all_boxes: HashableList[BoundingBox] = HashableList([])
-        for box in _bbox:
-            all_boxes.append(
+        size = self.size()
+        return HashableList(
+            [
                 BoundingBox(
                     xmin=box[0],
                     ymin=box[1],
                     xmax=box[2],
                     ymax=box[3],
-                    image_size=self.size(),
+                    image_size=size,
                 )
-            )
-        return all_boxes
+                for box in _bbox
+            ],
+        )
 
     @jaxtyped(typechecker=beartype)
     def mask2squaremask(

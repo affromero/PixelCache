@@ -221,6 +221,42 @@ def test_setitem_does_not_mutate_torch_tensor_in_place() -> None:
 # ----------------------------- numpy_view read-only --------------------
 
 
+def test_mask2bbox_returns_immutable_hashable_list() -> None:
+    """`HashableImage.mask2bbox` previously built its result via
+    `HashableList([]).append(...)`. After collections became immutable
+    that broke at runtime. Verify it now returns a populated list.
+    """
+    arr = np.zeros((64, 64, 3), dtype=np.uint8)
+    arr[10:30, 10:30] = 255
+    arr[40:50, 40:50] = 255
+    img = HashableImage(arr).to_binary(0.5)
+    bboxes = img.mask2bbox(margin=0.0)
+    assert len(bboxes) == 2
+
+
+# ----------------------------- PIL mode normalization ------------------
+
+
+def test_construct_from_pil_rgba_normalizes_to_rgb() -> None:
+    """RGBA PIL images get normalized to RGB so `dtype()` honors its
+    `Literal["L", "RGB", "1"]` contract and downstream hash/eq don't
+    crash.
+    """
+    rgba = Image.new("RGBA", (32, 32), color=(100, 200, 50, 128))
+    img = HashableImage(rgba)
+    assert img.dtype() == "RGB"
+    # And hash/eq are usable.
+    h = hash(img)
+    assert h == hash(HashableImage(rgba.copy()))
+
+
+def test_construct_from_pil_palette_normalizes_to_rgb() -> None:
+    """P (palette) PIL images get normalized to RGB."""
+    p_img = Image.new("P", (32, 32), color=5)
+    img = HashableImage(p_img)
+    assert img.dtype() == "RGB"
+
+
 def test_numpy_view_is_read_only_raises() -> None:
     """`numpy_view()` returns a writeable=False array; mutation raises."""
     img = HashableImage(np.zeros((16, 16, 3), dtype=np.uint8))
