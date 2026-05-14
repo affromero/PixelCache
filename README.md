@@ -126,7 +126,7 @@ logger.success(f"Output saved to: {output}")
 
 ## Usage Example 2
 
-Extracting bounding boxes for cropping / unpadding from binary masks using PixelCache:
+Extracting bounding boxes for cropping / unpadding from binary masks using PixelCache. The mask is derived from a grayscale threshold of the padded reference image — any chain that produces a `HashableImage` in binary `"1"` mode will work as the input to `crop_from_mask` and `mask2bbox`.
 
 ```python
 from pathlib import Path
