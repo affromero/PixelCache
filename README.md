@@ -1,12 +1,24 @@
-[![Tests](https://github.com/affromero/PixelCache/actions/workflows/tests.yml/badge.svg)](https://github.com/affromero/PixelCache/actions/workflows/tests.yml)
-[![Publish to PyPI](https://github.com/affromero/PixelCache/actions/workflows/publish.yml/badge.svg)](https://github.com/affromero/PixelCache/actions/workflows/publish.yml)
-![PyPI - Version](https://img.shields.io/pypi/v/pixelcache)
+<div align="center">
 
 # PixelCache
 
 <img src="pixelcache/assets/pixel_cache.png" width="100" height="100"/>
 
 **One hashable wrapper for images stored as PIL, NumPy, or PyTorch — convert between them on demand, hash them safely as cache keys, and stop transferring pixel data through disk.**
+
+[![PyPI](https://img.shields.io/pypi/v/pixelcache)](https://pypi.org/project/pixelcache/)
+[![Downloads](https://img.shields.io/pypi/dm/pixelcache)](https://pypi.org/project/pixelcache/)
+[![Python](https://img.shields.io/pypi/pyversions/pixelcache)](https://pypi.org/project/pixelcache/)
+[![Tests](https://img.shields.io/github/actions/workflow/status/affromero/PixelCache/tests.yml?label=tests)](https://github.com/affromero/PixelCache/actions/workflows/tests.yml)
+[![Publish](https://img.shields.io/github/actions/workflow/status/affromero/PixelCache/publish.yml?label=publish)](https://github.com/affromero/PixelCache/actions/workflows/publish.yml)
+[![License: MIT](https://img.shields.io/github/license/affromero/PixelCache)](https://github.com/affromero/PixelCache/blob/main/LICENSE.md)
+[![Ruff](https://img.shields.io/badge/code%20style-ruff-261230?logo=ruff)](https://github.com/astral-sh/ruff)
+[![mypy](https://img.shields.io/badge/typing-mypy%20strict-blue)](http://mypy-lang.org/)
+[![jaxtyping](https://img.shields.io/badge/shapes-jaxtyping-orange)](https://github.com/patrick-kidger/jaxtyping)
+[![Socket](https://img.shields.io/badge/Socket-protected-blueviolet?logo=socket.dev)](https://socket.dev)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/affromero/PixelCache/pulls)
+
+</div>
 
 ```
                   ┌──────────────┐
@@ -35,6 +47,19 @@ This is a near-complete rewrite of pixelcache. See [`CHANGELOG.md`](CHANGELOG.md
 | `HashableDict` / `HashableList`   | Mutable, with stale-hash hazards                       | Immutable; deep-copy mutable leaves; read-side leaf protection      |
 
 Plus 12+ correctness bugs fixed (ImageCrop dims, Points axes, PIL-mode handling, `mask2bbox`, `bgr2rgb` torch path, `get_filename` fidelity, …) across 8 rounds of adversarial review.
+
+## What can you build with it?
+
+PixelCache is the glue layer between PIL / NumPy / PyTorch image code that doesn't want to know which one it's holding. Some workflows it makes much simpler:
+
+- **ML inference pipelines** — Hugging Face / diffusion / SAM-style models want torch tensors; preprocessing libs want NumPy; visualization wants PIL. Wrap once at the input boundary; convert at the call site without copying through `Image.fromarray` / `torch.from_numpy` glue.
+- **Content-addressed caching** — `@functools.lru_cache` and `@cachetools.cached` need hashable keys. `hash(HashableImage(arr))` is a stable `xxhash` fingerprint of the pixel content, not `id()`, so the same image hits the cache regardless of which path / array / tensor it came in as.
+- **Mask-driven crop / paste workflows** — `mask.mask2bbox()` → `image.crop_from_bbox(boxes)` → process → `cropped.uncrop_from_bbox(base, boxes)` lets you run heavy models on the relevant region only, then composite back.
+- **Reproducible test fixtures** — feed the same image into `HashableImage` from any source (path, bytes, ndarray, tensor) and you'll get the same content hash. Useful for snapshot tests and regression suites.
+- **Annotated debug grids** — `HashableImage.make_image_grid({"label": [img]})` stitches a labeled comparison sheet from a dict of HashableLists. One line. Saves to PNG/JPG.
+- **EXIF-correct phone-photo loading** — `HashableImage("IMG_1234.HEIC")` decodes via `pillow-heif`, applies EXIF orientation, and gives you an RGB tensor or array. No more sideways portraits.
+- **Bounding box arithmetic** — `BoundingBox(xmin, ymin, xmax, ymax, image_size=...)` carries normalized vs. pixel coords explicitly with `.xyxy` / `.xywh` / `.xyxyn` / `.xywhn`; arithmetic and equality compare by field, not just hash.
+- **Hashable params for ML configs** — `HashableDict({"image": img, "prompt": "...", "seed": 42})` makes whole inference configurations content-hashable so you can cache by *what the call looks like*, not by argument identity.
 
 ## Installation
 
@@ -206,3 +231,18 @@ Contributions are welcome. Open an issue or submit a pull request — `pre-commi
 ## License
 
 MIT — see [`LICENSE.md`](LICENSE.md).
+
+## You might also like
+
+If you found PixelCache useful, check out some other projects from the same author:
+
+|                                                                 |                                                                 |                   |
+| --------------------------------------------------------------- | --------------------------------------------------------------- | ----------------- |
+| [**DiffLogTest**](https://github.com/affromero/DiffLogTest)     | Snapshot testing through `print` output comparison              | Python · pytest   |
+| [**fairtrail**](https://github.com/affromero/fairtrail)         | Track flight prices over time. Self-hosted. Bring your own LLM. | Next.js · Prisma  |
+| [**gitpane**](https://github.com/affromero/gitpane)             | Multi-repo git workspace dashboard for the terminal             | Rust · TUI        |
+| [**kin3o**](https://github.com/affromero/kin3o)                 | AI-powered Lottie animation generator CLI                       | TypeScript · LLM  |
+| [**pricetoken**](https://github.com/affromero/pricetoken)       | Real-time LLM pricing API · REST + npm + historical data        | TypeScript        |
+| [**yazi-ssh.yazi**](https://github.com/affromero/yazi-ssh.yazi) | Browse remote filesystems in yazi over SSH                      | Lua · yazi plugin |
+| [**ply2lcc**](https://github.com/affromero/ply2lcc)             | Convert Gaussian Splats in PLY → XGRIDS LCC format              | Python · 3D       |
+| [**riasec-co**](https://github.com/affromero/riasec-co)         | Bayesian vocational orientation engine for Colombia             | npm · PyPI · CRAN |
