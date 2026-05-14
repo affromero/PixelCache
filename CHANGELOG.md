@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 — Pixelcache refactor (unreleased)
+## \[0.1.0\] - 2026-05-14
 
 This is a breaking refactor relative to `0.0.x`. `pixelcache` was a pre-1.0
 library; the `0.0.x` API was not stabilized. The version bump signals the
@@ -120,8 +120,30 @@ breaks explicitly.
 
 ### Tests
 
-- New `tests/` directory with 54 tests covering smoke, hash/eq, copy
-  semantics, transforms, kept methods, perf budgets, and regression tests
-  for every bug surfaced during adversarial review.
+- New `tests/` directory with 76 tests covering smoke, hash/eq, copy
+  semantics, transforms, kept methods, perf budgets, `make_image_grid`
+  immutable-input regression, and one regression test per bug surfaced
+  during 10 rounds of adversarial review.
 - New `.github/workflows/tests.yml` runs the suite on push to `main`
   and on PRs.
+
+### Documentation
+
+- README reorganized: badges (PyPI / Downloads / Python 3.10+ / Tests /
+  Publish / License / uv / Ruff / mypy / jaxtyping / Socket / PRs), an
+  ASCII flow diagram of `HashableImage` I/O, a "What can you build with
+  it?" use-cases section, two embedded visual examples (transformations
+  grid + mask workflow), full Basic Usage and Usage Example sections,
+  cross-promo "You might also like" table, and the v0.1.0 perf
+  highlights moved to the bottom.
+- `pixelcache/examples/visuals.py` is the reproducible generator for the
+  two README PNGs. All README asset URLs are pinned to the `v0.1.0`
+  release tag so PyPI's bundled long description is immune to later
+  asset churn on `main`.
+- Install snippet uses `uv add pixelcache` as the canonical path
+  (Poetry is no longer first-class for this project).
+- `uv.lock` removed from the repo — `pyproject.toml` is the source of
+  truth for downstream consumers.
+- Dropped upper-bound version pins on `tyro` and `pre-commit` (libraries
+  should only set lower bounds — upper bounds cause downstream resolver
+  conflicts).
