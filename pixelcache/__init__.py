@@ -3,7 +3,6 @@ from importlib.metadata import version
 from difflogtest import DEFAULT_VERBOSITY, LoggingRich, get_logger
 
 from pixelcache.core import (
-    MAX_IMG_CACHE,
     BoundingBox,
     HashableDict,
     HashableImage,
@@ -23,7 +22,6 @@ __version__ = version("pixelcache")
 
 __all__ = [
     "DEFAULT_VERBOSITY",
-    "MAX_IMG_CACHE",
     "BoundingBox",
     "HashableDict",
     "HashableImage",

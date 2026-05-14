@@ -32,7 +32,7 @@ from pydantic.dataclasses import dataclass
 from torchvision.transforms import functional as TF
 
 from pixelcache.tools.bbox import crop_from_bbox, uncrop_from_bbox
-from pixelcache.tools.cache import jaxtyped, lru_cache
+from pixelcache.tools.cache import jaxtyped
 from pixelcache.tools.image import (
     ImageSize,
     center_pad,
@@ -73,7 +73,6 @@ PCropArgs = ParamSpec("PCropArgs")
 PSquareMaskArgs = ParamSpec("PSquareMaskArgs")
 P_PathStr = TypeVar("P_PathStr", bound=Path | str)
 
-MAX_IMG_CACHE = 5
 VALID_IMAGES = Literal["pil", "numpy", "torch"]
 PALETTE_DEFAULT = color_palette()
 
@@ -540,7 +539,6 @@ class HashableImage:
             return np.sum(cast("np.ndarray", self._image)).item() == 0
         return np.sum(np.asarray(self._image)).item() == 0
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def to_gray(self) -> "HashableImage":
         """Converts the current image to grayscale.
@@ -576,7 +574,6 @@ class HashableImage:
             return self
         return HashableImage(image._image.convert("L"))
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def flip_lr(self) -> "HashableImage":
         """Flip the image horizontally.
@@ -713,7 +710,6 @@ class HashableImage:
             new_image[image_np == value] = _palette[value]
         return HashableImage(new_image)
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def to_rgb(self) -> "HashableImage":
         """Convert an image to RGB format.
@@ -756,7 +752,6 @@ class HashableImage:
             return self
         return HashableImage(self._image.convert("RGB"))
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def to_binary(
         self,
@@ -800,7 +795,6 @@ class HashableImage:
             )[0]
         return HashableImage(mask)
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def unique_values(self) -> tuple[list[float], torch.Tensor, list[int]]:
         """Get the unique values in the image.
@@ -831,7 +825,6 @@ class HashableImage:
         _count = output[2].tolist()
         return _unique, _indices, _count
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def split_masks(
         self,
@@ -882,7 +875,6 @@ class HashableImage:
             ],
         )
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def invert_binary(self) -> "HashableImage":
         """Invert the binary representation of the image data in a.
@@ -915,7 +907,6 @@ class HashableImage:
             return HashableImage(~self.to_binary().tensor())
         return HashableImage(~self.to_binary().numpy())
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def invert_rgb(self) -> "HashableImage":
         """Invert the RGB values of the HashableImage object.
@@ -1726,7 +1717,6 @@ class HashableImage:
             return self._image
         return np.asarray(self._image)
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def tensor(
         self,
@@ -2247,7 +2237,6 @@ class HashableImage:
             return torch.equal(self._image, other._image)
         return self._image.tobytes() == other._image.tobytes()
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def crop_from_mask(
         self,
@@ -2288,7 +2277,6 @@ class HashableImage:
             )
         )
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def crop_from_points(
         self,
@@ -2301,7 +2289,6 @@ class HashableImage:
         mask = points.to_mask()
         return self.crop_from_mask(mask, *args, **kwargs)
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def crop_from_bbox(
         self,
@@ -2349,7 +2336,6 @@ class HashableImage:
             )
         )
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def uncrop_from_bbox(
         self,
@@ -2477,7 +2463,6 @@ class HashableImage:
             _points_np, is_normalized=normalize, image_size=self.size()
         )
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def maskidx2bbox(
         self,
@@ -2526,7 +2511,6 @@ class HashableImage:
         msg = "maskidx must be a 2D array"
         raise ValueError(msg)
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def mask2bbox(
         self,
@@ -2609,7 +2593,6 @@ class HashableImage:
             )
         return all_boxes
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def mask2squaremask(
         self,
@@ -2645,7 +2628,6 @@ class HashableImage:
             mask2squaremask(self.to_binary().numpy(), *args, **kwargs)
         )
 
-    @lru_cache(maxsize=MAX_IMG_CACHE)
     @jaxtyped(typechecker=beartype)
     def blend(
         self,
