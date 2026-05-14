@@ -23,41 +23,42 @@ _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
 
+def _wrap_value(v: object) -> object:
+    """Wrap nested `dict` / `list` (and unwrap-then-rewrap nested
+    HashableDict / HashableList) into hashable equivalents.
+
+    Returns everything else unchanged. Used both at construction time
+    and from every mutation path (`__setitem__`, `insert`, slice
+    assignment) so the public mapping/sequence interface stays
+    consistent — a raw dict assigned post-construction must wrap the
+    same way it would have during `__init__`.
+    """
+    if isinstance(v, dict):
+        return HashableDict(v)
+    if isinstance(v, list):
+        return HashableList(v)
+    if isinstance(v, HashableDict):
+        return HashableDict(v.to_dict())
+    if isinstance(v, HashableList):
+        return HashableList(v.to_list())
+    return v
+
+
 class HashableDict(MutableMapping[_KT, _VT]):
     """Hashable dictionary class."""
 
     def __init__(self, data: dict[_KT, _VT]) -> None:
-        """Initialize an instance of the HashableDict class.
+        """Initialize a HashableDict, wrapping nested containers.
 
-        This method converts nested dictionaries and lists within the input
-            dictionary into HashableDict and HashableList objects,
-            respectively, to initialize an instance of the HashableDict
-            class.
-
-        Args:
-            self (HashableDict): The instance of the HashableDict class.
-            data (dict): A dictionary containing key-value pairs where the
-                values can be dictionaries or lists.
-
-        Returns:
-            None
-
+        Raw `dict` values become `HashableDict`; raw `list` values
+        become `HashableList`. Existing HashableDict / HashableList
+        values are deep-copied to make this instance independent of
+        the caller's structure. Other value types pass through.
         """
-        new_data: dict[_KT, _VT] = {}
-        for k, v in data.items():
-            if isinstance(v, dict):
-                new_data[k] = cast("_VT", HashableDict(v))
-            elif isinstance(v, list):
-                new_data[k] = cast("_VT", HashableList(v))
-            elif isinstance(v, HashableDict):
-                new_data[k] = cast("_VT", HashableDict(v.to_dict()))
-            elif isinstance(v, HashableList):
-                new_data[k] = cast("_VT", HashableList(v.to_list()))
-            else:
-                new_data[k] = v
-        self.__data = new_data
-        # Lazy hash cache; safe because __data is replaced by __setitem__
-        # / __delitem__ etc. which must invalidate it.
+        self.__data: dict[_KT, _VT] = {
+            k: cast("_VT", _wrap_value(v)) for k, v in data.items()
+        }
+        # Lazy hash cache; every mutation path resets this to None.
         self._cached_hash: int | None = None
 
     def __hash__(self) -> int:
@@ -89,25 +90,32 @@ class HashableDict(MutableMapping[_KT, _VT]):
         return self._cached_hash
 
     def __eq__(self, other: object) -> bool:
-        """Compare two HashableDict instances for equality.
+        """Compare two HashableDict instances key-by-key.
 
-        This method checks if the data in the calling HashableDict instance
-            is equal to the data in another HashableDict instance.
-
-        Args:
-            self ('HashableDict'): The instance of HashableDict calling the
-                method.
-            other ('HashableDict'): The other instance of HashableDict to
-                compare with.
-
-        Returns:
-            bool: Returns True if the two HashableDict instances have the
-                same data, otherwise returns False.
-
+        Short-circuits on identity, type, and hash mismatch, then does a
+        key-set + per-value comparison. Tensor / ndarray / PIL values are
+        compared by content (not by `==`, which raises on arrays);
+        everything else falls back to Python `==`.
         """
+        if self is other:
+            return True
         if not isinstance(other, HashableDict):
             return NotImplemented
-        return self.__data == other.__data
+        if self.__hash__() != other.__hash__():
+            return False
+        if self.__data.keys() != other.__data.keys():
+            return False
+        for k, a in self.__data.items():
+            b = other.__data[k]
+            if isinstance(a, torch.Tensor) and isinstance(b, torch.Tensor):
+                if not torch.equal(a, b):
+                    return False
+            elif isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+                if not np.array_equal(a, b):
+                    return False
+            elif type(a) is not type(b) or a != b:
+                return False
+        return True
 
     def to_dict(
         self,
@@ -226,8 +234,15 @@ class HashableDict(MutableMapping[_KT, _VT]):
         return self.__data[__name]
 
     def __setitem__(self, __name: _KT, __value: _VT, /) -> None:
-        """Assign a value to a key; invalidates the hash cache."""
-        self.__data[__name] = __value
+        """Assign a value to a key; wraps raw dict/list values.
+
+        Without the wrap, `hd["x"] = {"a": 1}` would store a raw dict
+        and the next `hash(hd)` would raise on the unhashable child.
+        Mirrors the wrapping done in `__init__`.
+
+        Invalidates the cached hash.
+        """
+        self.__data[__name] = cast("_VT", _wrap_value(__value))
         self._cached_hash = None
 
     def __delitem__(self, __name: _KT, /) -> None:
@@ -289,28 +304,20 @@ class HashableList(MutableSequence[_T]):
             None
 
         """
-        new_data: list[_T] = []
-        for item in data:
-            if isinstance(item, dict):
-                new_data.append(cast("_T", HashableDict(item)))
-            elif isinstance(item, list):
-                new_data.append(cast("_T", HashableList(item)))
-            elif isinstance(item, HashableDict):
-                new_data.append(cast("_T", HashableDict(item.to_dict())))
-            elif isinstance(item, HashableList):
-                new_data.append(cast("_T", HashableList(item.to_list())))
-            else:
-                new_data.append(item)
-        self.__data = new_data
+        self.__data: list[_T] = [
+            cast("_T", _wrap_value(item)) for item in data
+        ]
         self._cached_hash: int | None = None
 
     def __hash__(self) -> int:
-        """Return a cached structural hash for this list.
+        """Return a cached order-sensitive structural hash for this list.
 
-        First call walks the items, hashing raw `torch.Tensor` /
-        `np.ndarray` / `PIL.Image` values via their byte buffers and
-        delegating to `hash()` for everything else. Subsequent calls
-        return the cached int.
+        First call walks the items in-order, hashing raw `torch.Tensor`
+        / `np.ndarray` / `PIL.Image` values via their byte buffers and
+        delegating to `hash()` for everything else. The per-item hashes
+        are combined as a `tuple` (not `frozenset`) so order and
+        multiplicity matter — `[1, 2]`, `[2, 1]`, and `[1, 1, 2]` are
+        distinct.
         """
         if self._cached_hash is not None:
             return self._cached_hash
@@ -322,31 +329,34 @@ class HashableList(MutableSequence[_T]):
                 items.append(hash(item.tobytes()))
             else:
                 items.append(hash(item))
-        self._cached_hash = hash(frozenset(items))
+        self._cached_hash = hash(tuple(items))
         return self._cached_hash
 
     def __eq__(self, other: object) -> bool:
-        """Compare the hash values of two HashableList objects.
+        """Compare two HashableLists element-wise in order.
 
-        This method compares the hash value of the HashableList object
-            calling the method (self)
-        with the hash value of another HashableList object (other).
-
-        Args:
-            self ('HashableList'): The HashableList object calling the
-                method.
-            other ('HashableList'): The HashableList object to compare with.
-
-        Returns:
-            bool: Returns True if the hash values of both HashableList
-                objects are equal, False otherwise.
-                  If the 'other' object is not an instance of HashableList,
-                it returns NotImplemented.
-
+        Short-circuits on identity, type, and hash mismatch, then does
+        a length+element comparison. Tensors, ndarrays, and PIL images
+        are compared by bytes; everything else by `==`.
         """
+        if self is other:
+            return True
         if not isinstance(other, HashableList):
             return NotImplemented
-        return self.__hash__() == other.__hash__()
+        if self.__hash__() != other.__hash__():
+            return False
+        if len(self.__data) != len(other.__data):
+            return False
+        for a, b in zip(self.__data, other.__data, strict=True):
+            if isinstance(a, torch.Tensor) and isinstance(b, torch.Tensor):
+                if not torch.equal(a, b):
+                    return False
+            elif isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+                if not np.array_equal(a, b):
+                    return False
+            elif type(a) is not type(b) or a != b:
+                return False
+        return True
 
     def to_list(self) -> list[_T]:
         """Convert the HashableList object into a regular Python list.
@@ -525,8 +535,16 @@ class HashableList(MutableSequence[_T]):
         self._cached_hash = None
 
     def insert(self, __index: int, __value: _T, /) -> None:
-        """Insert a value at the given index; invalidates the hash cache."""
-        self.__data.insert(__index, __value)
+        """Insert a value at the given index, wrapping raw containers.
+
+        Same wrapping contract as `__init__` / `__setitem__`: raw
+        `dict` / `list` values become `HashableDict` / `HashableList`
+        on insert so the next `hash()` doesn't trip on an unhashable
+        nested value.
+
+        Invalidates the cached hash.
+        """
+        self.__data.insert(__index, cast("_T", _wrap_value(__value)))
         self._cached_hash = None
 
     def __mul__(self, other: int) -> "HashableList[_T]":
