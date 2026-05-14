@@ -3,6 +3,9 @@ import random
 
 import numpy as np
 import torch
+from difflogtest import get_logger
+
+logger = get_logger()
 
 max_seed_value = np.iinfo(np.uint32).max
 min_seed_value = np.iinfo(np.uint32).min
@@ -15,40 +18,21 @@ def seed_everything(
     verbose: bool = True,
     cuda_deterministic: bool = True,
 ) -> int:
-    """Set the seed for pseudo-random number generators in torch, numpy, and.
+    """Seed Python, NumPy, and PyTorch RNGs deterministically.
 
-        Python's random module.
+    Sets `PL_GLOBAL_SEED` and `PL_SEED_WORKERS` env vars so spawned
+    subprocesses (Lightning ddp_spawn etc.) inherit the seed.
 
-    This function also sets the following environment variables:
-    - ``PL_GLOBAL_SEED``: Passed to spawned subprocesses (e.g., ddp_spawn
-        backend).
-    - ``PL_SEED_WORKERS``: Set to 1 if ``workers=True``.
-
-    Arguments:
-        seed (int | None): The seed for the global random state in
-            Lightning. If ``None``,
-            the function will read the seed from the ``PL_GLOBAL_SEED``
-            environment variable.
-            If both are ``None`` and the ``PL_GLOBAL_SEED`` environment
-            variable is not set,
-            then the seed defaults to 0.
-        workers (bool): If set to ``True``, configures all dataloaders
-            passed to the
-            Trainer with a ``worker_init_fn``. If the user already provides
-            such a function
-            for their dataloaders, setting this argument will have no
-            influence. See also:
-    :func:`~lightning_fabric.utilities.seed.pl_worker_init_function`.
-            Defaults to False.
+    Args:
+        seed: Seed value. If `None`, read from `PL_GLOBAL_SEED` env;
+            falls back to `0` if unset or invalid.
+        workers: Set `PL_SEED_WORKERS=1` so dataloader workers seed too.
+        verbose: Log the chosen seed.
+        cuda_deterministic: Force `cudnn.deterministic=True` and
+            `cudnn.benchmark=False` when CUDA is available.
 
     Returns:
-        None
-    Example:
-        >>> set_seed(42, workers=True)
-
-    Note:
-        The function does not return any value. It modifies the global state
-            of several modules and environment variables.
+        The seed actually applied (after env-var resolution / clamping).
 
     """
     if seed is None:
@@ -67,10 +51,13 @@ def seed_everything(
         seed = 0
 
     if verbose:
-        print(f"Seed set to {seed}")
+        logger.info(f"Seed set to {seed}")
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
-    np.random.seed(seed)  # noqa: NPY002
+    # Seed the legacy global numpy RNG (NPY002): downstream code that
+    # calls `np.random.*` directly relies on the global state. Modern
+    # call sites should construct their own `np.random.default_rng()`.
+    np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)

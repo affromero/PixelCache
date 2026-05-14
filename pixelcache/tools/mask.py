@@ -193,20 +193,8 @@ def morphologyEx(  # noqa: N802
 
     """
     mask255 = (mask * 255).astype(np.uint8)
-
-    if struct is not None and struct == "elipse":
+    if struct == "ellipse":
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        np.asarray(
-            [
-                [0, 0, 1, 0, 0],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [0, 0, 1, 0, 0],
-            ],
-            dtype=np.uint8,
-        )
-
     return cv2.morphologyEx(mask255, mode, kernel).astype(bool)
 
 

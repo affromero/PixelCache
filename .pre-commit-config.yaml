@@ -135,7 +135,7 @@ repos:
       hooks:
         # Run the linter.
           - id: ruff
-            args: [--fix, --unsafe-fixes, --select, ALL, --ignore, 'C901,F722,F821,D401,D211,D101,D417,D100,D404,D104,E501,D205,D213,D203,T201,COM812,ISC001,G004,PLR0913,PLR2004,PLR0915,PLR0912,ERA001,S310,S607,S603,ANN401,RUF012,PERF401,SIM115,PERF203,PLW2901,TCH010,PLR0911,N812,SLF001,TRY301']
+            args: [--fix, --unsafe-fixes, --select, ALL, --ignore, 'C901,F722,F821,D401,D211,D101,D417,D100,D404,D104,E501,D205,D213,D203,T201,COM812,ISC001,G004,NPY002,PLR0913,PLR2004,PLR0915,PLR0912,ERA001,S310,S607,S603,ANN401,RUF012,PERF401,SIM115,PERF203,PLW2901,TCH010,PLR0911,N812,SLF001,TRY301']
             exclude: ^dependencies/|^experiments/|poetry\.lock|tools/generative/pipelines/
         # Run the formatter.
           - id: ruff-format

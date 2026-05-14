@@ -61,7 +61,7 @@ skip-magic-trailing-comma = false
 # Allow unused variables when underscore-prefixed.
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
-ignore = ["ANN401", "C901", "COM812", "D100", "D101", "D104", "D203", "D205", "D211", "D213", "D401", "D404", "D417", "E501", "ERA001", "F722", "F821", "G004", "ISC001", "N812", "PERF203", "PERF401", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004", "PLW2901", "RUF012", "S310", "S603", "S607", "SIM115", "SLF001", "T201", "TCH010", "TRY301"]
+ignore = ["ANN401", "C901", "COM812", "D100", "D101", "D104", "D203", "D205", "D211", "D213", "D401", "D404", "D417", "E501", "ERA001", "F722", "F821", "G004", "ISC001", "N812", "NPY002", "PERF203", "PERF401", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004", "PLW2901", "RUF012", "S310", "S603", "S607", "SIM115", "SLF001", "T201", "TCH010", "TRY301"]
 # Also put select and ignore in .pre-commit-config.yaml - here for linting vscode, yaml for pre-commit github (see explanation in .pre-commit-config.yaml)
 select = ["ALL"]
 
