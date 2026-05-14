@@ -18,6 +18,7 @@ dependencies = [
   "einops>=0.8.0",
   "jaxtyping>=0.2.36",
   "json5>=0.10.0",
+  "matplotlib>=3.7",
   "numpy",
   "opencv-python>=4.6",
   "pathlib>=1.0.1",
