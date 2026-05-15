@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from difflogtest import get_logger
+from klog import get_logger
 
 from pixelcache import HashableDict, HashableImage, HashableList
 

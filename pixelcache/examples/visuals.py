@@ -15,7 +15,7 @@ Run from the repo root::
 from __future__ import annotations
 
 import numpy as np
-from difflogtest import get_logger
+from klog import get_logger
 
 from pixelcache import HashableImage, ImageSize
 

@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torchvision.utils as tv
 from beartype import beartype
-from difflogtest.utils.path import path_exists
+from klog.path import path_exists
 from jaxtyping import Bool, Float, UInt8, jaxtyped
 from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
