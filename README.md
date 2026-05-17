@@ -16,6 +16,8 @@
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-261230?logo=ruff)](https://github.com/astral-sh/ruff)
 [![mypy](https://img.shields.io/badge/typing-mypy%20strict-blue)](http://mypy-lang.org/)
 [![jaxtyping](https://img.shields.io/badge/shapes-jaxtyping-orange)](https://github.com/patrick-kidger/jaxtyping)
+[![Pydantic v2](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pydantic/pydantic/main/docs/badge/v2.json)](https://docs.pydantic.dev/latest/)
+[![Beartype](https://raw.githubusercontent.com/beartype/beartype-assets/main/badge/bear-ified.svg)](https://beartype.readthedocs.io)
 [![Socket](https://img.shields.io/badge/Socket-protected-blueviolet?logo=socket.dev)](https://socket.dev)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/affromero/PixelCache/pulls)
 
