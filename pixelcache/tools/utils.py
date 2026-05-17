@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 import torch
-from klog import get_logger
+from klogr import get_logger
 
 logger = get_logger()
 

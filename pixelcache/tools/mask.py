@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import torch
 from beartype import beartype
-from klog import get_logger
+from klogr import get_logger
 from jaxtyping import Bool, Float, Int64, UInt8, jaxtyped
 from PIL import Image
 

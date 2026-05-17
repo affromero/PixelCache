@@ -5,7 +5,7 @@ from typing import Literal
 import numpy as np
 import torch
 from beartype import beartype
-from klog import get_logger
+from klogr import get_logger
 from jaxtyping import jaxtyped
 from PIL import Image, ImageDraw, ImageFont
 

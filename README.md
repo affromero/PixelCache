@@ -102,7 +102,7 @@ pip install pixelcache
 uv add git+https://github.com/affromero/pixelcache.git
 ```
 
-Requires Python ≥ 3.10. Runtime deps: numpy, torch, torchvision, pillow, opencv-python, pydantic, jaxtyping, beartype, xxhash, matplotlib, klog, einops, pillow-heif, rich, tyro.
+Requires Python ≥ 3.10. Runtime deps: numpy, torch, torchvision, pillow, opencv-python, pydantic, jaxtyping, beartype, xxhash, matplotlib, klogr, einops, pillow-heif, rich, tyro.
 
 ## Basic Usage
 
@@ -158,7 +158,7 @@ Blending two images and saving an annotated comparison grid:
 ```python
 from pathlib import Path
 
-from klog import get_logger
+from klogr import get_logger
 from pixelcache import HashableDict, HashableImage, HashableList
 
 logger = get_logger()
@@ -203,7 +203,7 @@ Pull a binary mask off a reference image, crop the reference by the mask, then p
 ```python
 from pathlib import Path
 
-from klog import get_logger
+from klogr import get_logger
 from pixelcache import HashableDict, HashableImage, HashableList, ImageSize
 
 logger = get_logger()
@@ -253,7 +253,7 @@ logger.success(f"Output saved to: {output}")
 
 ## Project conventions
 
-This project follows [`CLAUDE.md`](CLAUDE.md): jaxtyping shape/dtype annotations on public surfaces, `klog.path` instead of raw `pathlib`, no `Any`/`# noqa`/`# type: ignore` in new code, files under 1000 lines, immutable value types where possible.
+This project follows [`CLAUDE.md`](CLAUDE.md): jaxtyping shape/dtype annotations on public surfaces, `klogr.path` instead of raw `pathlib`, no `Any`/`# noqa`/`# type: ignore` in new code, files under 1000 lines, immutable value types where possible.
 
 ## Contributing
 

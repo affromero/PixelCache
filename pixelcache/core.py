@@ -18,8 +18,8 @@ import numpy as np
 import torch
 import xxhash
 from beartype import beartype
-from klog import get_logger
-from klog.path import path_basename, path_stat
+from klogr import get_logger
+from klogr.path import path_basename, path_stat
 from jaxtyping import Bool, Float, UInt8
 from matplotlib import colormaps
 from PIL import Image, ImageOps

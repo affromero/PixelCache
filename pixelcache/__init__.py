@@ -1,6 +1,6 @@
 from importlib.metadata import version
 
-from klog import DEFAULT_VERBOSITY, LoggingRich, get_logger
+from klogr import DEFAULT_VERBOSITY, LoggingRich, get_logger
 
 from pixelcache._collections import HashableDict, HashableList
 from pixelcache._types import BoundingBox, ImageCrop, Points
